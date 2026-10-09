@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MX Design</title>
+<meta name="description" content="MX Design: one place to reach Julix DJ, the Julix&Mx label, MX Design Studio, the blog and more.">
+<meta name="theme-color" content="#0B0B0E">
+<link rel="icon" href="images/mx-mark.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0B0B0E;
+  --card: #131318;
+  --line: #26262E;
+  --paper: #F2F0EA;
+  --mute: #A9A6B0;
+  --dim: #75727D;
+  --f-display: 'Big Shoulders Display', 'Arial Narrow', Impact, sans-serif;
+  --f-body: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
+  --f-mono: 'DM Mono', ui-monospace, Menlo, Consolas, monospace;
+  --gutter: clamp(16px, 4vw, 48px);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--ink); }
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(60vw 40vw at 85% -10%, rgba(140,255,94,.07), transparent 70%),
+    radial-gradient(50vw 40vw at -10% 110%, rgba(217,164,65,.08), transparent 70%),
+    var(--ink);
+  color: var(--paper);
+  font-family: var(--f-body);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+}
+a { color: inherit; text-decoration: none; }
+
+.wrap { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 var(--gutter); }
+
+header { padding: clamp(40px, 8vw, 88px) 0 clamp(28px, 5vw, 48px); }
+.top { display: flex; align-items: center; gap: 16px; margin-bottom: clamp(28px, 5vw, 48px); }
+.top img { width: 44px; height: 44px; object-fit: contain; }
+.top span { font-family: var(--f-mono); font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--mute); }
+h1 {
+  font-family: var(--f-display);
+  font-weight: 900;
+  font-size: clamp(56px, 11vw, 132px);
+  line-height: .88;
+  letter-spacing: -.01em;
+  text-transform: uppercase;
+}
+h1 em { font-style: normal; color: transparent; -webkit-text-stroke: 1.5px var(--paper); }
+.lede { margin-top: 20px; max-width: 46ch; color: var(--mute); font-size: clamp(16px, 1.6vw, 18px); }
+
+main { flex: 1; padding-bottom: clamp(48px, 8vw, 96px); }
+.grid { list-style: none; display: grid; gap: 16px; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.grid > li { grid-column: span 2; display: flex; min-width: 0; }
+.grid > li.wide { grid-column: span 3; }
+
+.tile {
+  --accent: var(--paper);
+  --glow: rgba(255,255,255,.06);
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(160deg, var(--glow), transparent 55%), var(--card);
+  overflow: hidden;
+  transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+a.tile:hover, a.tile:focus-visible {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 18px 50px -20px var(--accent);
+  outline: none;
+}
+.tag { font-family: var(--f-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); }
+.logo { flex: 1; display: flex; align-items: center; padding: 28px 0; }
+.logo img { display: block; max-width: 100%; height: auto; }
+.tile h2 { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.tile p { margin-top: 4px; color: var(--mute); font-size: 15px; }
+.foot { margin-top: 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  font-family: var(--f-mono); font-size: 12px; color: var(--dim); }
+.arrow { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 50%;
+  border: 1px solid var(--line); color: var(--accent); transition: background .25s, color .25s, border-color .25s; }
+a.tile:hover .arrow, a.tile:focus-visible .arrow { background: var(--accent); border-color: var(--accent); color: var(--ink); }
+
+/* per-site themes, taken from each site's own palette */
+.t-dj    { --accent: #D9A441; --glow: rgba(217,164,65,.14); }
+.t-label { --accent: #8CFF5E; --glow: rgba(179,156,255,.14); }
+.t-studio{ --accent: #3BE36B; --glow: rgba(0,40,120,.35); }
+.t-blog  { --accent: #F2F0EA; --glow: rgba(255,255,255,.07); }
+.t-card  { --accent: #B39CFF; --glow: rgba(179,156,255,.10); }
+
+.t-dj .logo img { width: min(280px, 100%); }
+.t-label .logo img { width: min(300px, 100%); filter: drop-shadow(0 0 12px rgba(140,255,94,.35)); }
+.t-studio .logo { gap: 18px; }
+.t-studio .logo .mark { width: 96px; flex: none; }
+.t-studio .logo .word { width: min(240px, 100%); min-width: 0; }
+
+.wordmark { font-family: var(--f-display); font-weight: 900; font-size: clamp(56px, 7vw, 84px); line-height: .9; text-transform: uppercase; }
+.t-blog .wordmark span { color: transparent; -webkit-text-stroke: 1.5px var(--paper); }
+
+/* placeholder card: an outlined business card */
+.card-art { width: min(220px, 100%); aspect-ratio: 85 / 55; border: 1.5px dashed var(--accent); border-radius: 12px;
+  display: flex; flex-direction: column; justify-content: flex-end; padding: 14px; gap: 6px; opacity: .8; }
+.card-art i { display: block; height: 6px; border-radius: 3px; background: var(--line); }
+.card-art i:first-child { width: 55%; background: var(--accent); opacity: .7; }
+.card-art i:last-child { width: 35%; }
+
+.soon { cursor: default; }
+.soon .arrow { border-style: dashed; color: var(--dim); }
+
+footer { border-top: 1px solid var(--line); padding: 24px 0; font-family: var(--f-mono); font-size: 12px; color: var(--dim); }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; }
+footer a:hover { color: var(--paper); }
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid > li, .grid > li.wide { grid-column: span 1; }
+  .grid > li.studio { grid-column: span 2; }
+}
+@media (max-width: 600px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .grid > li, .grid > li.wide, .grid > li.studio { grid-column: auto; }
+  .tile { min-height: 230px; }
+  .t-studio .logo .mark { width: 72px; }
+}
+@media (prefers-reduced-motion: reduce) { .tile, .arrow { transition: none; } a.tile:hover { transform: none; } }
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <div class="top">
+    <img src="images/mx-mark.png" alt="">
+    <span>mxdesign.uk</span>
+  </div>
+  <h1>Everything<br><em>MX</em> in one place</h1>
+  <p class="lede">Music, the label, the design studio and the blog. Pick where you want to go.</p>
+</header>
+
+<main class="wrap">
+  <ul class="grid">
+
+    <li class="wide">
+      <a class="tile t-dj" href="https://julix.mxdesign.uk">
+        <span class="tag">DJ · Producer</span>
+        <div class="logo"><img src="images/julix-dj.png" alt="Julix" width="719" height="182"></div>
+        <h2>Julix DJ</h2>
+        <p>Sets, mixes and bookings for clubs, festivals, resorts and cafés.</p>
+        <div class="foot"><span>julix.mxdesign.uk</span><span class="arrow" aria-hidden="true">&rarr;</span></div>
+      </a>
+    </li>
+
+    <li class="wide">
+      <a class="tile t-label" href="https://music.mxdesign.uk">
+        <span class="tag">Record label</span>
+        <div class="logo"><img src="images/julix-mx.svg" alt="Julix&amp;Mx" width="984" height="240"></div>
+        <h2>Julix&amp;Mx</h2>
+        <p>The independent label: releases, live dates, licensing, press and merch.</p>
+        <div class="foot"><span>music.mxdesign.uk</span><span class="arrow" aria-hidden="true">&rarr;</span></div>
+      </a>
+    </li>
+
+    <li class="studio">
+      <a class="tile t-studio" href="https://studio.mxdesign.uk">
+        <span class="tag">Design studio</span>
+        <div class="logo">
+          <img class="mark" src="images/mx-mark.png" alt="" width="375" height="390">
+          <img class="word" src="images/studio.png" alt="MX Design Studio" width="344" height="53">
+        </div>
+        <h2>MX Design Studio</h2>
+        <p>Interiors and contracting.</p>
+        <div class="foot"><span>studio.mxdesign.uk</span><span class="arrow" aria-hidden="true">&rarr;</span></div>
+      </a>
+    </li>
+
+    <!-- TODO: swap in the blog's real address -->
+    <li>
+      <div class="tile t-blog soon" aria-disabled="true">
+        <span class="tag">Writing</span>
+        <div class="logo"><div class="wordmark">The<br><span>Blog</span></div></div>
+        <h2>Blog</h2>
+        <p>Notes, stories and behind the scenes.</p>
+        <div class="foot"><span>Link coming soon</span><span class="arrow" aria-hidden="true">&rarr;</span></div>
+      </div>
+    </li>
+
+    <li>
+      <div class="tile t-card soon" aria-disabled="true">
+        <span class="tag">In progress</span>
+        <div class="logo"><div class="card-art" aria-hidden="true"><i></i><i></i><i></i></div></div>
+        <h2>Card</h2>
+        <p>A digital card with every contact and link in one tap.</p>
+        <div class="foot"><span>Being rebuilt</span><span class="arrow" aria-hidden="true">&rarr;</span></div>
+      </div>
+    </li>
+
+  </ul>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>&copy; <script>document.write(new Date().getFullYear())</script> MX Design</span>
+    <span><a href="https://instagram.com/julixofficial">Instagram</a> · <a href="https://www.youtube.com/@JulixAndMx">YouTube</a> · <a href="https://open.spotify.com/artist/17z0B7roqXptI7sGYqhN4e">Spotify</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
