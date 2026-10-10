@@ -17,7 +17,7 @@
 <style>
 body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-/* Layout: one phone-width column, two views behind a segmented switch, taken from the 2023 dark theme. Single dark look by design. */
+/* Layout: one phone-width column, three views behind a segmented switch, taken from the 2023 dark theme. Single dark look by design. */
 :root{
   color-scheme:dark;
   --ground:#1b1d25; --panel:#2a2c38; --panel-hi:#343644; --line:#3d4050;
@@ -98,6 +98,15 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .chip[aria-pressed="true"]{color:var(--ink)}
 .chip[aria-pressed="true"] i{background:var(--violet);color:#fff}
 .chip:focus-visible{outline:2px solid var(--lime-hi);outline-offset:4px;border-radius:12px}
+.seg button{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* the link picker: a sheet that rises from the bottom of the screen */
+.picker{margin:auto auto 0;width:100%;max-width:440px;border:0;padding:0;background:var(--panel);color:var(--ink);border-radius:var(--r) var(--r) 0 0;box-shadow:0 -20px 60px rgba(0,0,0,.5)}
+.picker::backdrop{background:rgba(10,11,16,.6)}
+.picker-in{display:flex;flex-direction:column;gap:18px;padding:22px 20px calc(18px + env(safe-area-inset-bottom,0px))}
+.picker[open]{animation:rise .22s ease-out}
+@keyframes rise{from{transform:translateY(24px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.picker[open]{animation:none}}
+.textbtn{align-self:center;background:none;border:0;padding:6px;color:var(--violet-hi);font:600 13px var(--body);text-decoration:underline;cursor:pointer}
 </style>
 </head>
 <body>
@@ -111,12 +120,13 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     </div>
   </div>
 
-  <div class="seg two" role="tablist" aria-label="Screens">
+  <div class="seg" role="tablist" aria-label="Screens">
     <button role="tab" id="tab-edit" data-view="edit" aria-selected="false">My card</button>
+    <button role="tab" id="tab-links" data-view="links" aria-selected="false">Links</button>
     <button role="tab" id="tab-share" data-view="share" aria-selected="true">Share</button>
   </div>
 
-  <!-- 1. your cards and links -->
+  <!-- 1. your cards -->
   <section class="view" id="view-edit" hidden>
     <p class="eyebrow">Create your card</p>
     <div class="seg two pick" role="tablist" aria-label="Which card">
@@ -130,7 +140,13 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       <div class="field"><input id="f-tel" type="tel" inputmode="tel" placeholder="+44 7700 900123"><label for="f-tel">Mobile</label></div>
       <div class="field"><input id="f-email" type="email" inputmode="email" placeholder="you@example.com"><label for="f-email">Email</label></div>
     </form>
-    <p class="sub">Your links · each one gets its own QR</p>
+    <button class="btn primary" id="save-card" type="button">Save</button>
+    <p class="note" id="edit-note"></p>
+  </section>
+
+  <!-- 2. your links, kept in one place for both cards -->
+  <section class="view" id="view-links" hidden>
+    <p class="eyebrow">Your links</p>
     <div class="panel fields" id="link-form">
       <div class="field"><input id="f-web" inputmode="url" placeholder="yoursite.com" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="f-web">Website</label></div>
       <div class="field"><input id="l-whatsapp" type="tel" inputmode="tel" placeholder="+44 7700 900123" autocomplete="off"><label for="l-whatsapp">WhatsApp</label></div>
@@ -145,11 +161,11 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       <div class="field"><input id="l-customLabel" placeholder="e.g. Bookings" autocomplete="off" maxlength="14"><label for="l-customLabel">Link name</label></div>
       <div class="field"><input id="l-customUrl" placeholder="yoursite.com/book" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="l-customUrl">Link</label></div>
     </div>
-    <button class="btn primary" id="save-card" type="button">Save</button>
-    <p class="note" id="edit-note"></p>
+    <button class="btn primary" id="save-links" type="button">Save</button>
+    <p class="note">Each link gets its own QR on the Share tab. Usernames only, except Spotify and your own link, which take a pasted link.</p>
   </section>
 
-  <!-- 2. show a QR: a contact card, or one of your links -->
+  <!-- 3. show a QR: a contact card, or one of your links -->
   <section class="view" id="view-share">
     <div class="panel qrcard">
       <h2 id="qr-title">Personal</h2>
@@ -163,9 +179,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     <div class="seg pick" role="tablist" aria-label="What to share">
       <button role="tab" id="sk-personal" data-kind="personal" aria-selected="true">Personal</button>
       <button role="tab" id="sk-work" data-kind="work" aria-selected="false">Work</button>
-      <button role="tab" id="sk-links" data-kind="links" aria-selected="false">Links</button>
+      <button role="tab" id="sk-links" data-kind="links" aria-selected="false" aria-haspopup="dialog">Links</button>
     </div>
-    <div class="chips" id="chips" role="group" aria-label="Which link" hidden></div>
     <p class="note" id="share-help"></p>
     <button class="install" id="install" type="button" aria-expanded="false" aria-controls="install-help" hidden>
       <img src="icons/icon-192.png" alt="" width="40" height="40">
@@ -177,6 +192,15 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       Free to use · <b>Buy me a beer</b>
     </a>
   </section>
+
+  <!-- pops up from the Links button on Share: pick which link the QR shows -->
+  <dialog class="picker" id="picker" aria-label="Choose a link to share">
+    <div class="picker-in">
+      <p class="eyebrow">Which link?</p>
+      <div class="chips" id="chips"></div>
+      <button class="textbtn" id="picker-edit" type="button">Edit links</button>
+    </div>
+  </dialog>
 </main>
 
 <script src="qrcode.js"></script>
@@ -252,7 +276,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       var b=document.createElement("button");b.type="button";b.className="chip";b.setAttribute("aria-pressed",String(it.id===linkSel));b.title=it.n;
       var i=document.createElement("i");i.textContent=it.m;i.setAttribute("aria-hidden","true");
       var sp=document.createElement("span");sp.textContent=it.n;b.append(i,sp);
-      b.addEventListener("click",function(){linkSel=it.id;renderShare()});
+      b.addEventListener("click",function(){linkSel=it.id;closePicker();renderShare()});
       box.append(b);
     });
   }
@@ -265,12 +289,13 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     select("sk-",["personal","work","links"],shareKind);
     $("qrbox").classList.remove("empty");$("qr").hidden=false;$("empty-msg").hidden=true;$("empty-btn").hidden=true;
     var isLinks=shareKind==="links",items=isLinks?linkItems():[];
-    $("chips").hidden=!items.length;
+    $("sk-links").textContent="Links";
     if(isLinks){
       $("qr-title").textContent="Links";
       if(!items.length){empty("No links yet","Add your links");return}
       var it=items.filter(function(x){return x.id===linkSel})[0]||items[0];linkSel=it.id;
       drawChips(items);drawQR(it.url);
+      $("sk-links").textContent=items.length>1?it.n+" \u25BE":it.n; // the button names the link it is showing
       $("qr-title").textContent=it.n;$("w-name").textContent="Opens in their browser";$("w-tel").textContent=it.show;$("w-title").textContent="";
       $("share-help").textContent="Their camera opens your "+(it.id==="web"?"website":it.n)+". Showing the QR needs no signal on your phone.";
       return;
@@ -290,7 +315,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     $("edit-note").textContent=isNew?"Add your details once, then show your QR. No sign-up; everything stays in this browser.":"No sign-up. Everything stays in this browser.";
   }
   function show(view){
-    ["edit","share"].forEach(function(v){$("view-"+v).hidden=v!==view;$("tab-"+v).setAttribute("aria-selected",String(v===view))});
+    ["edit","links","share"].forEach(function(v){$("view-"+v).hidden=v!==view;$("tab-"+v).setAttribute("aria-selected",String(v===view))});
   }
   // After a save the logo gives way to the thank-you nudge for five seconds, then comes back.
   function showTip(){
@@ -298,25 +323,40 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     var t=$("tip");tipOn=true;$("logo").hidden=true;t.classList.remove("out");t.hidden=false;
     setTimeout(function(){t.classList.add("out");setTimeout(function(){t.hidden=true;$("logo").hidden=false;tipOn=false},300)},5000);
   }
+  function openLinks(focus){loadForm();show("links");if(focus)$(focus).focus()}
+  function openPicker(){var d=$("picker");if(d.showModal)d.showModal();else d.setAttribute("open","")}
+  function closePicker(){var d=$("picker");if(d.close)d.close();else d.removeAttribute("open")}
+  function cleanLinks(){
+    draft.web=(draft.web||"").trim();
+    LK.forEach(function(k){draft.links[k]=(draft.links[k]||"").trim()});
+    SOC.forEach(function(s){draft.links[s.k]=handle(draft.links[s.k])});
+  }
+  function store(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}}
   function openEdit(kind,focus){if(kind)editKind=kind;loadForm();show("edit");$(focus||"f-name").focus()}
 
   document.querySelectorAll("[data-view]").forEach(function(b){b.addEventListener("click",function(){show(b.dataset.view)})});
-  ["personal","work","links"].forEach(function(k){$("sk-"+k).addEventListener("click",function(){shareKind=k;renderShare()})});
+  ["personal","work"].forEach(function(k){$("sk-"+k).addEventListener("click",function(){shareKind=k;renderShare()})});
+  // The Links button shows a link's QR and pops up the choice of which one. With a single link there is nothing to choose.
+  $("sk-links").addEventListener("click",function(){shareKind="links";renderShare();if(linkItems().length>1)openPicker()});
+  $("picker").addEventListener("click",function(e){if(e.target===$("picker"))closePicker()});
+  $("picker-edit").addEventListener("click",function(){closePicker();openLinks()});
   ["personal","work"].forEach(function(k){$("ek-"+k).addEventListener("click",function(){editKind=k;loadForm()})});
   F.forEach(function(k){$("f-"+k).addEventListener("input",function(){draft.cards[editKind][k]=$("f-"+k).value})});
   $("f-web").addEventListener("input",function(){draft.web=$("f-web").value});
   LK.forEach(function(k){$("l-"+k).addEventListener("input",function(){draft.links[k]=$("l-"+k).value})});
   $("card-form").addEventListener("submit",function(e){e.preventDefault()});
-  $("empty-btn").addEventListener("click",function(){shareKind==="links"?openEdit(null,"f-web"):openEdit(shareKind)});
+  $("empty-btn").addEventListener("click",function(){shareKind==="links"?openLinks("f-web"):openEdit(shareKind)});
   $("save-card").addEventListener("click",function(){
     if(!draft.cards[editKind].name.trim()){$("edit-note").textContent="Add a name to your "+editKind+" card first, or switch to the other card.";$("f-name").focus();return}
     ["personal","work"].forEach(function(kd){F.forEach(function(k){draft.cards[kd][k]=(draft.cards[kd][k]||"").trim()})});
-    draft.web=(draft.web||"").trim();
-    LK.forEach(function(k){draft.links[k]=(draft.links[k]||"").trim()});
-    SOC.forEach(function(s){draft.links[s.k]=handle(draft.links[s.k])});
-    data=copy(draft);isNew=false;if(shareKind!=="links")shareKind=editKind;
-    try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}
-    renderShare();loadForm();show("share");
+    cleanLinks();data=copy(draft);isNew=false;shareKind=editKind;
+    store();renderShare();loadForm();show("share");
+    showTip();
+  });
+  // Links save on their own, so they can be changed without touching a card.
+  $("save-links").addEventListener("click",function(){
+    cleanLinks();data.web=draft.web;data.links=copy(draft.links);shareKind="links";
+    store();renderShare();loadForm();show("share");
     showTip();
   });
   // Add to home screen: Android and desktop Chrome/Edge offer a real install prompt; iPhone and iPad have no
