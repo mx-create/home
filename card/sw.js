@@ -1,6 +1,6 @@
 // Keeps Cardshare working offline once installed. The page is fetched fresh when there is
 // signal and falls back to the cached copy without; everything else comes from cache first.
-var CACHE = "cardshare-v1";
+var CACHE = "cardshare-v2";
 var CORE = ["./", "qrcode.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", function (e) {
