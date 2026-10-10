@@ -174,10 +174,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     </div>
   </div>
 
-  <div class="seg" id="tabs" role="tablist" aria-label="Screens">
+  <div class="seg two" id="tabs" role="tablist" aria-label="Screens">
     <button role="tab" id="tab-edit" data-view="edit" aria-selected="false">My card</button>
     <button role="tab" id="tab-share" data-view="share" aria-selected="true">Share</button>
-    <button role="tab" id="tab-public" data-view="public" aria-selected="false">They see</button>
   </div>
 
   <!-- 1. make your cards -->
@@ -236,9 +235,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     </a>
   </section>
 
-  <!-- 3. the card page: your own preview, or someone else's card opened from their QR -->
+  <!-- the card page: someone else's card opened from their QR, or your own preview opened from Set up -->
   <section class="view" id="view-public" hidden>
-    <p class="frame-label" id="pub-label">Your card page, shared when My Cardshare is on</p>
+    <p class="frame-label" id="pub-label">Preview of your card page, shared when My Cardshare is on</p>
+    <p class="made own-only"><button type="button" id="pub-back">Back to set up</button></p>
     <div class="pub" id="pub-card">
       <div class="avatar" id="p-avatar"></div>
       <h1 id="p-name"></h1>
@@ -298,7 +298,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       <div class="field"><input id="s-customlabel" placeholder="e.g. Bookings" autocomplete="off" maxlength="14"><label for="s-customlabel">Link name</label></div>
       <div class="field"><input id="s-customurl" placeholder="yoursite.com/book" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="s-customurl">Link</label></div>
     </div>
-    <button class="btn primary" id="save-setup" type="button">Save and see page</button>
+    <button class="btn primary" id="save-setup" type="button">Save</button>
+    <p class="made"><button type="button" id="see-page">See my page</button></p>
     <p class="note">Usernames only, except Spotify and your own link, which take a pasted link. A button shows on your page only when its field is filled in. The website comes from My card.</p>
     <button class="panel offer" id="custom-open" type="button">
       <span><strong>Want a fully custom page?</strong><small>Our designer can build one for you</small></span><i aria-hidden="true">›</i>
@@ -569,7 +570,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   });
   $("s-photo-clear").addEventListener("click",function(){setupPhoto="";$("s-photo").value="";drawSetupPhoto()});
   $("s-logo-clear").addEventListener("click",function(){setupLogo="";$("s-logo").value="";drawSetupLogo()});
-  $("save-setup").addEventListener("click",function(){commitSetup();show("public")});
+  $("save-setup").addEventListener("click",function(){commitSetup();show("share")});
+  // The preview of the card page lives here now; a visitor still gets the real page by scanning the QR.
+  $("see-page").addEventListener("click",function(){commitSetup();show("public")});
+  $("pub-back").addEventListener("click",openSetup);
   $("setup-page").addEventListener("click",openSetup);
   document.querySelectorAll(".back-setup").forEach(function(b){b.addEventListener("click",openSetup)});
 
