@@ -134,11 +134,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 
   <!-- 2. show a QR -->
   <section class="view" id="view-share">
-    <div class="seg pick" role="tablist" aria-label="What to share">
-      <button role="tab" id="sk-personal" data-kind="personal" aria-selected="true">Personal</button>
-      <button role="tab" id="sk-work" data-kind="work" aria-selected="false">Work</button>
-      <button role="tab" id="sk-web" data-kind="web" aria-selected="false">Website</button>
-    </div>
     <div class="panel qrcard">
       <h2 id="qr-title">Personal</h2>
       <div class="qrbox" id="qrbox">
@@ -147,6 +142,11 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
         <button class="btn small" id="empty-btn" type="button" hidden></button>
       </div>
       <div class="who"><span class="n" id="w-name"></span><span class="p" id="w-tel"></span><span class="t" id="w-title"></span></div>
+    </div>
+    <div class="seg pick" role="tablist" aria-label="What to share">
+      <button role="tab" id="sk-personal" data-kind="personal" aria-selected="true">Personal</button>
+      <button role="tab" id="sk-work" data-kind="work" aria-selected="false">Work</button>
+      <button role="tab" id="sk-web" data-kind="web" aria-selected="false">Website</button>
     </div>
     <p class="note" id="share-help"></p>
     <button class="panel portal" id="portal" type="button" aria-expanded="false" aria-controls="portal-reveal">
