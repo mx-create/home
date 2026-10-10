@@ -1,1085 +1,300 @@
 <!doctype html>
-<html class="no-js" lang="en">
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<meta name="author" content="M_Adnan" />
-<!-- Document Title -->
-<title>Design Studio</title>
-
-<!-- Favicon -->
-<link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
-<link rel="icon" href="images/favicon.ico" type="image/x-icon">
-
-<!-- Favicon -->
-<link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
-<link rel="icon" href="images/favicon.ico" type="image/x-icon">
-
-<!-- FontsOnline -->
-<link href='https://fonts.googleapis.com/css?family=Montserrat:400,700' rel='stylesheet' type='text/css'>
-<link href='https://fonts.googleapis.com/css?family=Crimson+Text:400,400italic,600,600italic,700,700italic' rel='stylesheet' type='text/css'>
-
-<!-- StyleSheets -->
-<link rel="stylesheet" href="css/ionicons.min.css">
-<link rel="stylesheet" href="css/bootstrap/bootstrap.min.css">
-<link rel="stylesheet" href="css/font-awesome.min.css">
-<link rel="stylesheet" href="css/main.css">
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/responsive.css">
-
-<!-- SLIDER REVOLUTION 4.x CSS SETTINGS -->
-<link rel="stylesheet" type="text/css" href="rs-plugin/css/settings.css" media="screen" />
-
-<!-- COLORS -->
-<link rel="stylesheet" id="color" href="css/default.css">
-
-<!-- COLORS -->
-<link rel="stylesheet" id="color" href="css/default.css">
-
-<!-- JavaScripts -->
-<script src="js/vendors/modernizr.js"></script>
-<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-<!--[if lt IE 9]>
-    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-    <![endif]-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Make a free contact card and share it by QR with any phone. No sign-up, no app.">
+<meta name="theme-color" content="#1b1d25">
+<title>Cardshare</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@800&display=swap">
+<style>
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+/* Layout: one phone-width column, three views behind a segmented switch, taken from the 2023 dark theme. Single dark look by design. */
+:root{
+  color-scheme:dark;
+  --ground:#1b1d25; --panel:#2a2c38; --panel-hi:#343644; --line:#3d4050;
+  --ink:#f3f2f8; --ink-soft:#a9a8b8; --ink-dim:#77768a;
+  --violet:#7461f2; --violet-hi:#8d7cff; --lime:#c8e62b; --lime-hi:#bfff6b;
+  --paper:#ffffff; --paper-ink:#15161c;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --brand:"Poppins","Arial Black",system-ui,sans-serif;
+  --r:22px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--ground);color:var(--ink);font:400 15px/1.45 var(--body);
+  background-image:radial-gradient(60% 40% at 80% 30%,rgba(116,97,242,.22),transparent 70%);background-attachment:fixed}
+.app{max-width:440px;margin:0 auto;padding-inline:20px;padding-block:22px 40px;display:flex;flex-direction:column;gap:20px}
+.logo{position:relative;align-self:center;font:800 30px/1 var(--brand);letter-spacing:-.05em;color:var(--violet-hi);padding:14px 6px;display:flex;gap:.28em}
+.logo span{position:relative;z-index:1}
+.logo::before,.logo::after{content:"";position:absolute;transform:skewX(-20deg)}
+.logo::before{background:var(--lime);left:28%;right:38%;top:22%;bottom:0}
+.logo::after{background:var(--lime-hi);left:45%;right:20%;top:0;bottom:16%}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--panel);border-radius:999px;padding:4px;gap:4px}
+.seg.two{grid-template-columns:repeat(2,1fr)}
+.seg button{border:0;background:none;color:var(--ink-soft);font:500 13.5px var(--body);padding:10px 6px;border-radius:999px;cursor:pointer}
+.seg button[aria-selected="true"]{background:var(--panel-hi);color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+.seg.pick button[aria-selected="true"]{background:var(--violet);color:#fff}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--lime-hi);outline-offset:2px}
+.view{display:flex;flex-direction:column;gap:18px}
+.eyebrow{text-align:center;color:var(--ink-soft);font-size:14px;margin:0}
+.panel{background:var(--panel);border-radius:var(--r);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.fields{display:flex;flex-direction:column;padding:6px 0}
+.field{display:flex;align-items:center;gap:10px;padding:0 18px}
+.field + .field{border-top:1px solid rgba(255,255,255,.05)}
+.field input{flex:1;min-width:0;background:none;border:0;color:var(--ink);font:500 15.5px var(--body);padding:15px 0}
+.field input::placeholder{color:var(--ink-dim);font-weight:400}
+.field label{color:var(--ink-dim);font-size:12.5px;white-space:nowrap}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;border:0;border-radius:999px;padding:15px 18px;font:600 15px var(--body);cursor:pointer;text-decoration:none;color:var(--ink);background:var(--panel-hi);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.btn.primary{background:linear-gradient(180deg,var(--violet-hi),var(--violet));color:#fff;box-shadow:0 10px 26px -8px rgba(116,97,242,.8),inset 0 1px 0 rgba(255,255,255,.3)}
+.btn.small{width:auto;padding:9px 14px;font-size:13px}
+.note{color:var(--ink-soft);font-size:13px;text-align:center;margin:0;text-wrap:balance}
+/* share */
+.qrcard{padding:14px 14px 18px;text-align:center}
+.qrcard h2{font:600 16px var(--body);margin:2px 0 12px}
+.qrbox{background:var(--paper);border-radius:14px;padding:14px;aspect-ratio:1;max-width:100%}
+.qrbox svg{display:block;width:100%;height:100%}
+.qrbox.empty{background:none;border:1px dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--ink-soft)}
+.who{margin-top:14px;display:flex;flex-direction:column;gap:2px}
+.who .n{font-size:13.5px;color:var(--ink-soft)}
+.who .p{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.who .t{font-size:14.5px;color:var(--ink-dim)}
+.portal{display:flex;align-items:center;gap:14px;padding:14px 18px;width:100%;border:0;text-align:left;color:var(--ink);font:inherit;cursor:pointer}
+.portal svg{flex:none;width:40px;height:40px}
+.portal span{flex:1;min-width:0}
+.portal strong{display:block;font-weight:600}
+.portal small{color:var(--ink-soft);font-size:12.5px}
+.portal i{font-style:normal;color:var(--ink-dim);font-size:20px}
+.reveal{background:var(--panel);border:1px dashed var(--line);border-radius:16px;padding:14px;font-size:13.5px;color:var(--ink-soft)}
+.reveal b{color:var(--ink);font-weight:600}
+.tip{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;border:1px dashed var(--line);border-radius:var(--r)}
+.tip p{flex:1;min-width:180px;margin:0;font-size:13.5px;color:var(--ink-soft)}
+.tip .btn{background:var(--lime-hi);color:var(--paper-ink)}
+/* public page */
+.frame-label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);text-align:center;margin:0;text-wrap:balance}
+.pub{padding:26px 18px 18px;display:flex;flex-direction:column;gap:16px;align-items:stretch}
+.avatar{align-self:center;width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,var(--lime),var(--lime-hi));color:var(--paper-ink);display:flex;align-items:center;justify-content:center;font:800 30px var(--brand);letter-spacing:-.03em}
+.pub h1{font:600 22px/1.2 var(--body);margin:0;text-align:center;text-wrap:balance;overflow-wrap:anywhere}
+.pub .role{margin:-10px 0 0;text-align:center;color:var(--ink-soft)}
+.rows{display:flex;flex-direction:column;background:var(--ground);border-radius:16px}
+.row{display:flex;align-items:center;gap:10px;padding:12px 14px}
+.row + .row{border-top:1px solid rgba(255,255,255,.05)}
+.row .k{width:54px;flex:none;color:var(--ink-dim);font-size:12.5px}
+.row .v{flex:1;min-width:0;user-select:all;overflow-wrap:anywhere;font-weight:500}
+.row button{border:0;background:var(--panel-hi);color:var(--ink-soft);border-radius:999px;font:500 12px var(--body);padding:6px 10px;cursor:pointer}
+.pub .reveal{background:var(--ground);border:0}
+.made{text-align:center;font-size:13px;color:var(--ink-dim);margin:0;text-wrap:balance}
+</style>
 </head>
 <body>
 
-<!-- LOADER ===========================================-->
-<div id="loader">
-  <div class="loader">
-    <div class="position-center-center"> <img src="images/logo-dark.png" alt="">
-      <p class="font-crimson text-center">Please Wait...</p>
-      <div class="loading">
-        <div class="ball"></div>
-        <div class="ball"></div>
-        <div class="ball"></div>
-      </div>
-    </div>
-  </div>
-</div>
+<main class="app">
+  <div class="logo" aria-label="card share"><span>card</span><span>share</span></div>
 
-<!-- Page Wrapper -->
-<div id="wrap"> 
-  
-  <!-- Header -->
-  <header class="header single-pages">
-    <div class="sticky dark-header">
-      <div class="container">
-        <div class="logo"> <a href="index.html"><img src="images/logo.png" alt=""></a> </div>
-        
-        <!-- Nav -->
-        <nav>
-          <ul id="ownmenu" class="ownmenu">
-            <li class="scroll active"><a href="#wrap">HOME</a></li>
-          
-            <li class="scroll"><a href="#portfolio">PORTFOLIO</a></li>
-            <li class="scroll"><a href="#services">services</a></li>
-            <li class="scroll"><a href="#team">TEAM</a></li>
-            <li class="scroll"><a href="#contact">CONTACT </a> 
-              <!--======= MEGA MENU =========-->
-              <div class="megamenu full-width animated-3s fadeInUp">
-                <div class="row nav-post">
-                  <div class="col-sm-3">
-                    <h6>MANU R</h6>
-                    <hr>
-                    <ul>
-                      <li><a href="element_accordion.html"> CALL ME : +91 944 65 809 72 </a></li>
-                      <li><a href="element_accordion.html"> MAIL ME : i.manu@outlook.com </a></li>
-                    </ul>
-                  </div>
-                  <div class="col-sm-3">
-                    <h6>MILTON M R</h6>
-                    <hr>
-                    <ul>
-                      <li><a href="element_accordion.html"> CALL ME : +91 944 65 809 72 </a></li>
-                      <li><a href="element_accordion.html"> MAIL ME : operation@mxtc.in </a></li>
-                    </ul>
-                </div>
-              </div>
-            </li>
-          </ul>
-        </nav>
-      </div>
+  <div class="seg" role="tablist" aria-label="Screens">
+    <button role="tab" id="tab-edit" data-view="edit" aria-selected="false">My card</button>
+    <button role="tab" id="tab-share" data-view="share" aria-selected="true">Share</button>
+    <button role="tab" id="tab-public" data-view="public" aria-selected="false">They see</button>
+  </div>
+
+  <!-- 1. make your cards -->
+  <section class="view" id="view-edit" hidden>
+    <p class="eyebrow">Create your card</p>
+    <div class="seg two pick" role="tablist" aria-label="Which card">
+      <button role="tab" id="ek-personal" data-kind="personal" aria-selected="true">Personal</button>
+      <button role="tab" id="ek-work" data-kind="work" aria-selected="false">Work</button>
     </div>
-  </header>
-  <!-- End Header --> 
-  
-  <!--======= HOME MAIN SLIDER =========-->
-  <section class="home-slider">
-    <div class="tp-banner-container">
-      <div class="tp-banner">
-        <ul>
-          <!-- SLIDE  -->
-          <li data-transition="random" data-slotamount="7" data-masterspeed="300"  data-saveperformance="off" > 
-            <!-- MAIN IMAGE --> 
-            <img src="images/sliders/1/slide-1.jpg"  alt="slider"  data-bgposition="center top" data-bgfit="cover" data-bgrepeat="no-repeat"> 
-            <!-- LAYERS --> 
-            
-            <!-- LAYER NR. 1 -->
-            <div class="tp-caption biglargetext sfr tp-resizeme" 
-                data-x="center" data-hoffset="0" 
-                data-y="center" data-voffset="-90" 
-                data-speed="500" 
-                data-start="1000" 
-                data-easing="Power3.easeInOut" 
-                data-splitin="chars" 
-                data-splitout="none" 
-                data-elementdelay="0.06" 
-                data-endelementdelay="0.1" 
-                data-endspeed="300"
-                style="z-index: 5; max-width: auto; max-height: auto; white-space: nowrap;">We Deliver </div>
-            
-            <!-- LAYER NR. 2 -->
-            <div class="tp-caption verybiglargetext sfr tp-resizeme" 
-                data-x="center" data-hoffset="0" 
-                data-y="center" data-voffset="40" 
-                data-speed="500" 
-                data-start="1500" 
-                data-easing="Power3.easeInOut" 
-                data-splitin="chars" 
-                data-splitout="none" 
-                data-elementdelay="0.07" 
-                data-endelementdelay="0.1" 
-                data-endspeed="300" 
-                style="z-index: 6; max-width: auto; max-height: auto; white-space: nowrap;">Excellence </div>
-            
-            <!-- LAYER NR. 3 -->
-            <div class="tp-caption font-crimson font-italic sfb tp-resizeme" 
-                data-x="center" data-hoffset="0" 
-                data-y="center" data-voffset="140" 
-                data-speed="500" 
-                data-start="1900" 
-                data-easing="Power3.easeInOut" 
-                data-splitin="none" 
-                data-splitout="none" 
-                data-elementdelay="0.1" 
-                data-endelementdelay="0.1" 
-                data-endspeed="300" 
-                style="z-index: 7; font-size:18px; color:#fff; max-width: auto; max-height: auto; white-space: nowrap;">We are Creative Design Stuido from Kochi - India </div>
-            
-            <!-- LAYER NR. 4 -->
-            <div class="tp-caption lfb tp-scrollbelowslider" 
-                data-x="center" data-hoffset="0" 
-                data-y="bottom" data-voffset="-50" 
-                data-speed="500" 
-                data-start="2400" 
-                data-easing="Power3.easeInOut" 
-                data-elementdelay="0.1" 
-                data-endelementdelay="0.1" 
-                data-endspeed="300" 
-                data-scrolloffset="0"
-                style="z-index: 8;"><img src="images/sliders/6/enter.png" alt=""> </div>
-          </li>
-          <!-- SLIDE  -->
-          <li data-transition="random" data-slotamount="7" data-masterspeed="300"  data-saveperformance="off" > 
-            <!-- MAIN IMAGE --> 
-            <img src="images/sliders/1/slide-2.jpg"  alt="home_slider2"  data-bgposition="center top" data-bgfit="cover" data-bgrepeat="no-repeat"> 
-            <!-- LAYERS --> 
-            
-            <!-- LAYER NR. 1 -->
-            <div class="tp-caption sfb tp-resizeme" 
-                data-x="center" data-hoffset="0" 
-                data-y="center" data-voffset="-170" 
-                data-speed="600" 
-                data-start="1000" 
-                data-easing="Power3.easeInOut" 
-                data-splitin="chars" 
-                data-splitout="none" 
-                data-elementdelay="0.07" 
-                data-endelementdelay="0.1" 
-                data-endspeed="300" 
-                style="z-index: 5; font-size:40px; color:#fff; max-width: auto; max-height: auto; white-space: nowrap;">WE MATERIALIZE YOUR DREAM DESIGN </div>
-            
-            <!-- LAYER NR. 2 -->
-            <div class="tp-caption font-crimson font-italic sfb tp-resizeme" 
-                data-x="center" data-hoffset="0" 
-                data-y="center" data-voffset="-100" 
-                data-speed="600" 
-                data-start="2500" 
-                data-easing="Power3.easeInOut" 
-                data-splitin="none" 
-                data-splitout="none" 
-                data-elementdelay="0.1" 
-                data-endelementdelay="0.1" 
-                data-endspeed="300" 
-                style="z-index: 6; font-size:24px; color:#fff; max-width: auto; max-height: auto; white-space: nowrap;">Get your idea rendered in a click! </div>
-            
-            <!-- LAYER NR. 4 -->
-            <div class="tp-caption sfb" 
-                data-x="center" data-hoffset="0" 
-                data-y="center" data-voffset="150" 
-                data-speed="500" 
-                data-start="3300" 
-                data-easing="Power3.easeInOut" 
-                data-elementdelay="0.1" 
-                data-endelementdelay="0.1" 
-                data-endspeed="300" 
-                style="z-index: 8;"><img src="images/sliders/1/IMAC2.png" alt=""> </div>
-            
-            <!-- LAYER NR. 6 -->
-            <div class="tp-caption skewfromleft tp-resizeme" 
-                data-x="center" data-hoffset="0" 
-                data-y="bottom" data-voffset="90" 
-                data-speed="400" 
-                data-start="4100" 
-                data-easing="Power3.easeInOut" 
-                data-splitin="none" 
-                data-splitout="none" 
-                data-elementdelay="0.1" 
-                data-endelementdelay="0.1" 
-                data-endspeed="300" 
-                style="z-index: 10; max-width: auto; max-height: auto; white-space: nowrap;"><a href="https://goo.gl/forms/jzaWSImJ13rQQpH73" target="_blank" class="btn btn-med btn-color">CONSULT US</a> </div>
-          </li>
-          <!-- SLIDE  -->
-          <li data-transition="random" data-slotamount="7" data-masterspeed="300"  data-saveperformance="off" > 
-            <!-- MAIN IMAGE --> 
-            <img src="images/sliders/1/slide-3.jpg"  alt="home_slider3"  data-bgposition="center top" data-bgfit="cover" data-bgrepeat="no-repeat"> 
-            <!-- LAYERS --> 
-            
-            <!-- LAYER NR. 1 -->
-            <div class="tp-caption font-bold skewfromright tp-resizeme" 
-                data-x="center" data-hoffset="0" 
-                data-y="center" data-voffset="-160" 
-                data-speed="300" 
-                data-start="1000" 
-                data-easing="Power3.easeInOut" 
-                data-splitin="chars" 
-                data-splitout="none" 
-                data-elementdelay="0.1" 
-                data-endelementdelay="0.1" 
-                data-endspeed="300" 
-                style="z-index: 5; font-size:60px; color:#fff; max-width: auto; max-height: auto; white-space: nowrap;"> WE UNDERSTAND YOUR NEEDS </div>
-            
-            <!-- LAYER NR. 2 -->
-            <div class="tp-caption font-crimson font-italic sfb tp-resizeme" 
-                data-x="center" data-hoffset="0" 
-                data-y="center" data-voffset="0" 
-                data-speed="500" 
-                data-start="2100" 
-                data-easing="Power3.easeInOut" 
-                data-splitin="none" 
-                data-splitout="none" 
-                data-elementdelay="0.1" 
-                data-endelementdelay="0.1" 
-                data-endspeed="300" 
-                style="z-index: 6; font-size:30px; color:#fff; max-width: auto; max-height: auto; white-space: nowrap;"> We deliver design with aesthetics + functionality </div>
-            
-            <!-- LAYER NR. 3 -->
-            <div class="tp-caption skewfromleft tp-resizeme" 
-                data-x="center" data-hoffset="-120" 
-                data-y="center" data-voffset="100" 
-                data-speed="500" 
-                data-start="2500" 
-                data-easing="Power3.easeInOut" 
-                data-splitin="none" 
-                data-splitout="none" 
-                data-elementdelay="0.1" 
-                data-endelementdelay="0.1" 
-                data-endspeed="300" 
-                style="z-index: 7; max-width: auto; max-height: auto; white-space: nowrap;"><a href="https://goo.gl/forms/jzaWSImJ13rQQpH73" target="_blank" class="btn btn-med btn-color">CONSULT US</a> </div>
-            
-            <!-- LAYER NR. 4 -->
-            <div class="tp-caption skewfromright tp-resizeme" 
-                data-x="center" data-hoffset="120" 
-                data-y="center" data-voffset="100" 
-                data-speed="500" 
-                data-start="2800" 
-                data-easing="Power3.easeInOut" 
-                data-splitin="none" 
-                data-splitout="none" 
-                data-elementdelay="0.1" 
-                data-endelementdelay="0.1" 
-                data-endspeed="300" 
-                style="z-index: 8; max-width: auto; max-height: auto; white-space: nowrap;"><a href="#portfolio" class="btn btn-med btn-color">SEE OUR WORK</a> </div>
-          </li>
-        </ul>
+    <form class="panel fields" id="card-form" autocomplete="off">
+      <div class="field"><input id="f-name" placeholder="Your name"><label for="f-name">Name</label></div>
+      <div class="field"><input id="f-title" placeholder="What you do"><label for="f-title">Title</label></div>
+      <div class="field"><input id="f-org" placeholder="Company or brand"><label for="f-org">Company</label></div>
+      <div class="field"><input id="f-tel" type="tel" inputmode="tel" placeholder="+44 7700 900123"><label for="f-tel">Mobile</label></div>
+      <div class="field"><input id="f-email" type="email" inputmode="email" placeholder="you@example.com"><label for="f-email">Email</label></div>
+    </form>
+    <div class="panel fields">
+      <div class="field"><input id="f-web" inputmode="url" placeholder="yoursite.com" autocomplete="off"><label for="f-web">Website</label></div>
+    </div>
+    <button class="btn primary" id="save-card" type="button">Save</button>
+    <p class="note" id="edit-note"></p>
+  </section>
+
+  <!-- 2. show a QR -->
+  <section class="view" id="view-share">
+    <div class="seg pick" role="tablist" aria-label="What to share">
+      <button role="tab" id="sk-personal" data-kind="personal" aria-selected="true">Personal</button>
+      <button role="tab" id="sk-work" data-kind="work" aria-selected="false">Work</button>
+      <button role="tab" id="sk-web" data-kind="web" aria-selected="false">Website</button>
+    </div>
+    <div class="panel qrcard">
+      <h2 id="qr-title">Personal</h2>
+      <div class="qrbox" id="qrbox">
+        <div id="qr"></div>
+        <span id="empty-msg" hidden></span>
+        <button class="btn small" id="empty-btn" type="button" hidden></button>
       </div>
+      <div class="who"><span class="n" id="w-name"></span><span class="p" id="w-tel"></span><span class="t" id="w-title"></span></div>
+    </div>
+    <p class="note" id="share-help"></p>
+    <button class="panel portal" id="portal" type="button" aria-expanded="false" aria-controls="portal-reveal">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="#343644"/><path d="M11 30l5-17h11l-5 17z" fill="#c8e62b"/><path d="M17 26l5-17h11l-5 17z" fill="#bfff6b"/></svg>
+      <span><strong>My Cardshare</strong><small>Your portal: custom pages and more</small></span><i aria-hidden="true">›</i>
+    </button>
+    <div class="reveal" id="portal-reveal" hidden><b>cardshare / portal</b> is coming soon. This button will open your own space: custom pages, a photo, a short link that keeps working after you edit, and NFC stickers.</div>
+    <div class="tip" id="tip" hidden>
+      <p id="tip-text">Saved. Cardshare is free. If it helps, chip in towards hosting.</p>
+      <a class="btn small" id="tip-btn" href="https://buy.stripe.com/fZu14mbnDgVS5qx26cawo00" target="_blank" rel="noopener">Leave a tip</a>
     </div>
   </section>
-  
-  <!-- Content -->
-  <div id="content"> 
-        
-    <!-- PORTFOLIO ( OUR WORKS ) -->
-    <section id="portfolio" class="portfolio port-wrap padding-top-80">
-      <div class="container"> 
-        <!-- MAIN HEADING -->
-        <div class="heading-block text-center animate fadeInUp" data-wow-delay="0.4s">
-          <h3>Our Works</h3>
-          <div class="divider divider-short divider-center"><img class="i-div" src="images/divider/hammers.png" alt="Divider Icon Image"/></div>
-          <span>Show Amazing Your Works</span> </div>
-        
-        <!-- Work Filter -->
-        <ul class="tabs portfolio-filter text-center margin-bottom-80 animate fadeInUp" data-wow-delay="0.4s">
-          <li class="tab-title filter-item"><a href="#." data-filter=".pf-branding-design">Kitchen</a></li>
-          <li class="tab-title filter-item"><a href="#." data-filter=".pf-photography">Home Interiors</a></li>
-          <li class="tab-title filter-item"><a href="#." data-filter=".pf-web-design">commercial Interior</a></li>
-          <li class="tab-title filter-item"><a href="#." data-filter=".pf-digital-art">Branding</a></li>
-          <li class="tab-title filter-item"><a class="active" href="#." data-filter="*"><i class="fa fa-plus"></i></a></li>
-        </ul>
-      </div>
-      
-      <!-- PORTFOLIO ITEMS -->
-      <div class="items row col-4 animate fadeInUp" data-wow-delay="0.4s"> 
-        
-        <!-- ITEM -->
-        <article class="portfolio-item pf-branding-design pf-web-design">
-          <div class="portfolio-image"> <a href="#."> <img alt="Open Imagination" src="images/portfolio/1/portfolio-1.png"> </a> </div>
-          <div class="portfolio-overlay">
-            <div class="position-center-center"> <span><a href="#.">Restaurant</a></span>
-              <h3><a href="https://drive.google.com/open?id=0Bwipg1U58ViqOUd2Q1BWNV9EdVk" target="_blank">OCTOPUS BAKES AND BRISTO</a></h3>
-            </div>
-          </div>
-        </article>
-        
-        <!-- ITEM -->
-        <article class="portfolio-item pf-photography pf-branding-design">
-          <div class="portfolio-image"> <a href="#."> <img alt="Open Imagination" src="images/portfolio/1/portfolio-2.png"> </a> </div>
-          <div class="portfolio-overlay">
-            <div class="position-center-center"> <span><a href="#.">Fashion</a></span>
-              <h3><a href="#.">Crossfit : 15.4 Open Workout</a></h3>
-            </div>
-          </div>
-        </article>
-        
-        <!-- ITEM -->
-        <article class="portfolio-item pf-web-design pf-branding-design">
-          <div class="portfolio-image"> <a href="#."> <img alt="Open Imagination" src="images/portfolio/1/portfolio-3.png"> </a> </div>
-          <div class="portfolio-overlay">
-            <div class="position-center-center"> <span><a href="#.">Fashion</a></span>
-              <h3><a href="#.">Crossfit : 15.4 Open Workout</a></h3>
-            </div>
-          </div>
-        </article>
-        
-        <!-- ITEM -->
-        <article class="portfolio-item pf-web-design pf-digital-art pf-branding-design">
-          <div class="portfolio-image"> <a href="#."> <img alt="Open Imagination" src="images/portfolio/1/portfolio-4.png"> </a> </div>
-          <div class="portfolio-overlay">
-            <div class="position-center-center"> <span><a href="#.">Fashion</a></span>
-              <h3><a href="#.">Crossfit : 15.4 Open Workout</a></h3>
-            </div>
-          </div>
-        </article>
-        
-        <!-- ITEM -->
-        <article class="portfolio-item pf-branding-design pf-digital-art">
-          <div class="portfolio-image"> <a href="#."> <img alt="Open Imagination" src="images/portfolio/1/portfolio-5.png"> </a> </div>
-          <div class="portfolio-overlay">
-            <div class="position-center-center"> <span><a href="#.">Fashion</a></span>
-              <h3><a href="#.">Crossfit : 15.4 Open Workout</a></h3>
-            </div>
-          </div>
-        </article>
-        
-        <!-- ITEM -->
-        <article class="portfolio-item pf-branding-design pf-digital-art">
-          <div class="portfolio-image"> <a href="#."> <img alt="Open Imagination" src="images/portfolio/1/portfolio-6.png"> </a> </div>
-          <div class="portfolio-overlay">
-            <div class="position-center-center"> <span><a href="#.">Fashion</a></span>
-              <h3><a href="#.">Crossfit : 15.4 Open Workout</a></h3>
-            </div>
-          </div>
-        </article>
-        
-        <!-- ITEM -->
-        <article class="portfolio-item pf-branding-design pf-photography">
-          <div class="portfolio-image"> <a href="#."> <img alt="Open Imagination" src="images/portfolio/1/portfolio-7.png"> </a> </div>
-          <div class="portfolio-overlay">
-            <div class="position-center-center"> <span><a href="#.">Fashion</a></span>
-              <h3><a href="#.">Crossfit : 15.4 Open Workout</a></h3>
-            </div>
-          </div>
-        </article>
-        
-        <!-- ITEM -->
-        <article class="portfolio-item pf-branding-design pf-digital-art">
-          <div class="portfolio-image"> <a href="#."> <img alt="Open Imagination" src="images/portfolio/1/portfolio-8.png"> </a> </div>
-          <div class="portfolio-overlay">
-            <div class="position-center-center"> <span><a href="#.">Fashion</a></span>
-              <h3><a href="#.">Crossfit : 15.4 Open Workout</a></h3>
-            </div>
-          </div>
-        </article>
-      </div>
-    </section>
-    
-    <!-- Why Choose Us -->
-    <section id="services" class="why-choose padding-top-80 padding-bottom-60">
-      <div class="container"> 
-        
-        <!-- Main Heading -->
-        <div class="heading-block text-center animate fadeInUp" data-wow-delay="0.4s">
-          <h3>Why Choose Us</h3>
-          <div class="divider divider-short divider-center"><img class="i-div" src="images/divider/hammers.png" alt="Divider Icon Image"/></div>
-          <span>Our Mission is to ask, listen and learn <i class="fa  fa-long-arrow-right"></i> Then create, inspire and deliver</span> </div>
-        
-        <!-- Why Choose Us  ROW-->
-        <div class="row">
-          <div class="col-md-7 margin-top-50 animate fadeInLeft" data-wow-delay="0.4s"> 
-            
-            <!-- Tittle -->
-            <div class="heading-block margin-bottom-20">
-              <h4>aesthetic ingenuity + practicality </h4>
-            </div>
-            <p> Our belief is that design should optimise aesthetic ingenuity with practicality. By developing conceptual briefs through discussion we implement                 solutions with intelligence.Taking initial ideas from paper, through planning to the last day on site and beyond, our comprehensive service                     eliminates misinterpretation of design to ensure the result is exactly on target.</br>We have experienced continuous growth over this period.                      When required by the client we have access to resources such as three dimensional imaging or project control systems without recourse to                        independent consultants.</p>
-            <div class="ultra-ser">
-              <hr>
-              <span><span class="name"> Manu R &nbsp; - &nbsp;</span> <span>Director - MX DESIGN . STUDIO</span></span> </div>
-          </div>
-          
-          <!-- Image -->
-          <div class="col-md-5 text-right animate fadeInRight" data-wow-delay="0.4s"> <img class="img-responsive" src="images/why-choose/why-choose-1.png" alt="Why Choose Us Image" /> </div>
-        </div>
-        
-        <!-- Services ROW -->
-        <div class="row margin-top-60"> 
-          
-          <!-- Services -->
-          <div class="col-md-4 animate fadeInUp" data-wow-delay="0.4s">
-            <div class="clearfix icon-box ib-style-2 i-large i-top padding-bottom-15 border-bottom-1 border-light">
-              <div class="ib-icon"> <i class="fa fa-paper-plane-o"></i> </div>
-              <div class="ib-info">
-                <h4 class="h6">Project Management</h4>
-                <p>Contrary to popular belief , Lorem Ipsum is not simply random text. It has roots in a piece</p>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Services -->
-          <div class="col-md-4 animate fadeInUp" data-wow-delay="0.6s">
-            <div class="clearfix icon-box ib-style-2 i-large i-top padding-bottom-15 border-bottom-1 border-light">
-              <div class="ib-icon"> <i class="fa fa-tencent-weibo"></i> </div>
-              <div class="ib-info">
-                <h4 class="h6">Construction Design Management Planning</h4>
-                <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem not simply random accusantium</p>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Services -->
-          <div class="col-md-4 margin-bottom-30 animate fadeInUp" data-wow-delay="0.8s">
-            <div class="clearfix icon-box ib-style-2 i-large i-top padding-bottom-15 border-bottom-1 border-light">
-              <div class="ib-icon"> <i class="fa fa-sliders"></i> </div>
-              <div class="ib-info">
-                <h4 class="h6">Branding and Graphic Design</h4>
-                <p>Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece</p>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Services -->
-          <div class="col-md-4 animate fadeInUp" data-wow-delay="0.4s">
-            <div class="clearfix icon-box ib-style-2 i-large i-top padding-bottom-31">
-              <div class="ib-icon"> <i class="fa fa-moon-o"></i> </div>
-              <div class="ib-info">
-                <h4 class="h6">3D Visualisation</h4>
-                <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium</p>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Services -->
-          <div class="col-md-4 animate fadeInUp" data-wow-delay="0.6s">
-            <div class="clearfix icon-box ib-style-2 i-large i-top padding-bottom-31">
-              <div class="ib-icon"> <i class="fa fa-heart-o"></i> </div>
-              <div class="ib-info">
-                <h4 class="h6">Space Planning</h4>
-                <p>Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece</p>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Services -->
-          <div class="col-md-4 animate fadeInUp" data-wow-delay="0.8s">
-            <div class="clearfix icon-box ib-style-2 i-large i-top padding-bottom-31">
-              <div class="ib-icon"> <i class="fa fa-hdd-o"></i> </div>
-              <div class="ib-info">
-                <h4 class="h6">Photography</h4>
-                <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <!-- Promo -->
-    <section class="promo dark">
-      <div class="container">
-        <h3 class="font-crimson text-white font-italic animate fadeInLeft" data-wow-delay="0.4s">Looking for a <span class="text-color-primary"> quality and                    affordable partner </span> for your next project?</h3>
-        <a href="https://goo.gl/forms/jzaWSImJ13rQQpH73" target="_blank" class="btn btn-color btn-med animate fadeInRight" data-wow-delay="0.4s">GET A QUOTE</a> </div>
-    </section>
-      
 
-    
-    <!-- TEAM MEMBER -->
-    <section id="team" class="our-team padding-top-90">
-      <div class="container"> 
-        
-        <!-- Main Heading -->
-        <div class="heading-block text-center animate fadeInUp" data-wow-delay="0.4s">
-          <h3>Meet Our Team</h3>
-          <div class="divider divider-short divider-center"><img class="i-div" src="images/divider/hammers.png" alt="Divider Icon Image"/></div>
-          <span>We are a friendly, forward-thinking team taking pride in our approach - being dynamic, stylish, imaginative and fun.</span> </div>
-        
-        <!-- Team Row -->
-        <div class="row margin-bottom-20"> 
-          
-          <!-- Team Member -->
-          <div class="col-md-4 margin-bottom-30 animate fadeInLeft" data-wow-delay="0.4s">
-            <div class="team style-1">
-              <div class="team-image"> <a href="#."> <img alt="Our Team Thumbnail Image" src="images/our-teams/our-team-1a.png"/> </a> </div>
-              <div class="team-desc">
-                <div class="team-title">
-                  <h4><a href="#.">Manu R</a></h4>
-                  <span>CEO/Co-founder</span> </div>
-              </div>
-            </div>
-          </div>
-          <!-- Team Member -->
-          <div class="col-md-4 margin-bottom-30 animate fadeInUp" data-wow-delay="0.4s">
-            <div class="team style-1">
-              <div class="team-image"> <a href="#."> <img alt="our team thumbnail image" src="images/our-teams/our-team-1b.png"/> </a> </div>
-              <div class="team-desc">
-                <div class="team-title">
-                  <h4><a href="#.">Prof. Raveendran R</a></h4>
-                  <span>Art Director/Co-founder</span> </div>
-              </div>
-            </div>
-          </div>
-          <!-- Team Member -->
-          <div class="col-md-4 margin-bottom-30 animate fadeInRight" data-wow-delay="0.4s">
-            <div class="team style-1">
-              <div class="team-image"> <a href="#."> <img alt="our team thumbnail image" src="images/our-teams/our-team-1c.png"/> </a> </div>
-              <div class="team-desc">
-                <div class="team-title">
-                  <h4><a href="#.">Milton M R</a></h4>
-                  <span>Project Execution / Co-founder</span> </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Team Member -->
-        <div class="row margin-bottom-80 animate fadeInUp" data-wow-delay="0.4s">
-          <div class="col-md-8">
-            <h4 class="text-uppercase margin-bottom-25">Are you crazy to think out of the box ?</h4>
-            <p>We have opening for emerging talents who are keen in embracing the future and ready to work hard</p>
-          </div>
-          <div class="col-md-4 padding-top-40 large-text-right animate fadeInRight" data-wow-delay="0.4s"> <a href="http://mxtc.in/careers.html" target="_blank" class="btn btn-x-large dark-border right">Join With Us</a> </div>
-        </div>
-      </div>
-    </section>
-    
-     <!-- OUR TEAM STYLE 5 -->
-    <section class="testimonial"> 
-      <!-- TITTLE -->
-      <div class="white-bg">
-        <div class="container"> 
-          <!-- MAIN HEADING -->
-          <div class="heading-block text-center animate fadeInLeft" data-wow-delay="0.4s">
-            <h3>WHAT BUYERS SAY ABOUT US</h3>
-            <hr class="color">
-            <span>Happy Clients</span> </div>
-        </div>
-      </div>
-      
-      <!-- Testimonial Style 3 -->
-      <section class="testimonial style-6 bg-parallax padding-bottom-40 padding-top-80" style="background:url(images/testimonials/testimonial-bg-parallax-2.png) fixed no-repeat;">
-        <div class="container">
-          <ul class="row white-text">
-            
-            <!-- Testi -->
-            <li class="col-md-6 margin-bottom-30 animate fadeInUp" data-wow-delay="0.4s">
-              <div class="testi-in"> 
-                <!-- Avatar -->
-                <div class="avatar"> <img class="img-circle img-responsive" src="images/testimonials/testimonial-6a.png" alt=""> </div>
-                <p>Working with the team was easy and starin free. They deleivered beyond my expecations . </p>
-                <hr>
-                <h6>KIRAN </h6>
-                <span>Director CHILLAX </span> </div>
-            </li>
-            
-            <!-- Testi -->
-            <li class="col-md-6 margin-bottom-30 animate fadeInUp" data-wow-delay="0.6s">
-              <div class="testi-in"> 
-                <!-- Avatar -->
-                <div class="avatar"> <img class="img-circle img-responsive" src="images/testimonials/testimonial-6b.png" alt=""> </div>
-                <p>There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don't look even slightly believable. </p>
-                <hr>
-                <h6>JENNIFER WHITE</h6>
-                <span>CEO/Founder Apple Inc</span> </div>
-            </li>
-            
-            <!-- Testi -->
-            <li class="col-md-6 margin-bottom-30 animate fadeInUp" data-wow-delay="0.4s">
-              <div class="testi-in"> 
-                <!-- Avatar -->
-                <div class="avatar"> <img class="img-circle img-responsive" src="images/testimonials/testimonial-6c.png" alt=""> </div>
-                <p>There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don't look even slightly believable. </p>
-                <hr>
-                <h6>RENNA SCOT</h6>
-                <span>CEO/Founder Apple Inc</span> </div>
-            </li>
-            
-            <!-- Testi -->
-            <li class="col-md-6 margin-bottom-30 animate fadeInUp" data-wow-delay="0.6s">
-              <div class="testi-in"> 
-                <!-- Avatar -->
-                <div class="avatar"> <img class="img-circle img-responsive" src="images/testimonials/testimonial-6d.png" alt=""> </div>
-                <p>There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don't look even slightly believable. </p>
-                <hr>
-                <h6>DAVID MARTIN</h6>
-                <span>CEO/Founder Apple Inc</span></div>
-            </li>
-          </ul>
-        </div>
-      </section>
-    </section>          
-</section>  
-    
-    
-
-    
-    <!-- How we work -->
-    <section id="blog" class="blog padding-top-80">
-      <div class="container">
-        <div class="heading-block text-center animate fadeInUp" data-wow-delay="0.4s">
-          <h3>How we work</h3>
-          <div class="divider divider-short divider-center"><img class="i-div" src="images/divider/hammers.png" alt="Divider Icon Image"/></div>
-          <span>Let me tell you the story of how we get things done</span> </div>
-      </div>
-      
-      <!-- Blog -->
-      <div class="container-fluid"> 
-        
-        <!-- Blog Row -->
-        <div class="posts posts-list list-style-1 row"> 
-          
-          <!-- Blog -->
-          <div class="entry col-lg-6 no-padding animate fadeInLeft" data-wow-delay="0.4s">
-            <div class="entry-image"> <a href="#."> <img class="responsive-img" src="images/blog/1/blog-1.png" alt="Blog Thumbnail Image" /> </a> </div>
-            <div class="entry-body"> <span class="entry-category">step one</span>
-              <h4 class="entry-title"><a href="#.">client consultation</a></h4>
-              <p class="entry-content">During the programming phase the client's needs and objectives are identified. Questions regarding the specific function(s) of the space, who will be using the space and furniture and equipment requirements will be discussed. Measurements and photos are also taken at this time. <i class="fa  fa-long-arrow-right"></i> </p>
-            </div>
-          </div>
-          
-          <!-- Blog -->
-          <div class="entry col-lg-6 no-padding animate fadeInRight" data-wow-delay="0.4s">
-            <div class="entry-image"> <a href="#."> <img class="responsive-img" src="images/blog/1/blog-2.png" alt="Blog Thumbnail Image" /> </a> </div>
-            <div class="entry-body"> <span class="entry-category">step two </span>
-              <h4 class="entry-title"><a href="#.">schematic design and design development</a></h4>
-              <p class="entry-content">In the schematic design phase, space planning and furniture layouts are developed. Circulation patterns and minimum clearances are considered and applied to the floor plan. Rough sketches and elevations are created, preliminary furniture and finish ideas are developed and then presented to the client for review and revision. <i class="fa  fa-long-arrow-right"></i> </p>
-               </div>
-          </div>
-          
-          <!-- Blog -->
-          <div class="entry entry-image-right col-lg-6 no-padding animate fadeInRight" data-wow-delay="0.4s">
-            <div class="entry-image"> <a href="#."> <img class="responsive-img" src="images/blog/1/blog-3.png" alt="Blog Thumbnail Image" /> </a> </div>
-            <div class="entry-body"> <span class="entry-category">step three</span>
-              <h4 class="entry-title"><a href="#.">design development</a></h4>
-              <p class="entry-content">After final approval of the schematic design, the designer develops floor plans, elevations and other related items in greater detail. Colors and finishes are refined, furniture, fabrics and equipment are selected and cost estimates are prepared. The resulting design is presented to the client for review, revision and final approval. <i class="fa  fa-long-arrow-right"></i> </p>
-             </div>
-          </div>
-          
-          <!-- Blog -->
-          <div class="entry entry-image-right col-lg-6 no-padding animate fadeInLeft" data-wow-delay="0.4s">
-            <div class="entry-image"> <a href="#."> <img class="responsive-img" src="images/blog/1/blog-4.png" alt="Blog Thumbnail Image" /> </a> </div>
-            <div class="entry-body"> <span class="entry-category">step four</span>
-              <h4 class="entry-title"><a href="#.">construction documentation</a></h4>
-              <p class="entry-content">The specific details of the work to be completed are documented.These details include millwork specification, finish selections such as flooring and paint, lighting plans and fixture selection, plumbing location and fixture selection, and electrical layouts etc are completed.The bids are obtained, contractors selected, and purchase orders are issued.<i class="fa  fa-long-arrow-right"></i> </p>
-               </div>
-          </div>
-            
-<!-- Blog Row -->
-        <div class="posts posts-list list-style-1 row"> 
-          
-          <!-- Blog -->
-          <div class="entry col-lg-6 no-padding animate fadeInLeft" data-wow-delay="0.4s">
-            <div class="entry-image"> <a href="#."> <img class="responsive-img" src="images/blog/1/blog-5.png" alt="Blog Thumbnail Image" /> </a> </div>
-            <div class="entry-body"> <span class="entry-category">step five</span>
-              <h4 class="entry-title"><a href="#.">construction administration</a></h4>
-              <p class="entry-content">This is the final stage where things are built and installed. The designer is often onsite during "installation" to ensure items are received in good condition, installed correctly, and that documents have been followed properly.<i class="fa  fa-long-arrow-right"></i>  </p>
-              </div>
-          </div>
-            
-<!-- Blog Row -->
-        <div class="posts posts-list list-style-1 row"> 
-          
-          <!-- Blog -->
-          <div class="entry col-lg-6 no-padding animate fadeInLeft" data-wow-delay="0.4s">
-            <div class="entry-image"> <a href="#."> <img class="responsive-img" src="images/blog/1/blog-6.png" alt="Blog Thumbnail Image" /> </a> </div>
-            <div class="entry-body"> <span class="entry-category">step six</span>
-              <h4 class="entry-title"><a href="#.">service and support</a></h4>
-              <p class="entry-content">After the execution of the project we continue the customer support by extending maintanance and giving other value add features like webiste developement, software support etc from our sister and partener companies. <i class="fa  fa-long-arrow-right"></i>  </p>
-               </div>
-          </div>
-            
-            
-            
-        </div>
-      </div>
-    </section>
- 
-    
-    <!-- Pricing Table -->
-    <section id="price" class="pricing padding-bottom-50 padding-top-50">
-      <div class="container"> 
-        
-        <!-- Heading Blog -->
-        <div class="heading-block text-center animate fadeInUp" data-wow-delay="0.4s">
-          <h3>Pricing</h3>
-          <div class="divider divider-short divider-center"><img class="i-div" src="images/divider/hammers.png" alt="Divider Icon Image"/></div>
-          <span>We can make it work in any budget</span> </div>
-        
-        <!-- Pricing Table Row -->
-        <div class="text-center">
-          <h5 class="text-uppercase margin-bottom-65">Call now for free Estimates</h5>
-        </div>
-        <div class="row"> 
-          <!-- Basic Plan -->
-          <div class="col-md-3 margin-bottom-30 animate fadeInLeft" data-wow-delay="0.4s">
-            <ul class="pricing-table style-1 hover-up hover-shadow">
-              <li class="title">MODULAR KITCHEN</li>
-              <li class="bullet-item">Custom design</li>
-              <li class="bullet-item">Marine / multiwood <i class="fa fa-check text-color-primary"></i></li>
-              <li class="bullet-item">Granate top</li>
-              <li class="bullet-item">Laminate / paint finish <i class="fa fa-check text-color-primary"></i></li>
-              <li class="bullet-item">Stainless steel accessories</li>
-              <li class="bullet-item">Complimentary HOD</li>
-              <li class="price"><span class="currency">Rs</span>1lakh<span class="period">starting*</span></li>
-              <li class="cta-button"><a class="btn dark"  href="https://goo.gl/forms/jzaWSImJ13rQQpH73" target="_blank">Get Quote</a></li>
-            </ul>
-          </div>
-          
-          <!-- Business Plan -->
-          <div class="col-md-3 margin-bottom-30 animate fadeInLeft" data-wow-delay="0.6s">
-            <ul class="pricing-table style-1 hover-up hover-shadow">
-              <li class="title">2BHK COMBO</li>
-              <li class="bullet-item">Custom design</li>
-              <li class="bullet-item">Marine plywood+ Multiwood <i class="fa fa-check text-color-primary"></i></li>
-              <li class="bullet-item">One side kitchen</li>
-              <li class="bullet-item">2 x Wardrobs + bed interiors <i class="fa fa-check text-color-primary"></i></li>
-              <li class="bullet-item">TV stand</li>
-              <li class="bullet-item">Wall art by artist</li>
-              <li class="price"><span class="currency">Rs</span>2.5lakh<span class="period">starting*</span></li>
-              <li class="cta-button"><a class="btn dark"  href="https://goo.gl/forms/jzaWSImJ13rQQpH73" target="_blank">Get Quote</a></li>
-            </ul>
-          </div>
-          
-          <!-- Premium Plan -->
-          <div class="col-md-3 margin-bottom-30 animate fadeInRight" data-wow-delay="0.8s">
-            <ul class="pricing-table style-1 hover-up hover-shadow">
-              <li class="title">commercial Interiors</li>
-              <li class="bullet-item">Detailed design<i class="fa fa-check text-color-primary"></i></li>
-              <li class="bullet-item">False celing  </li>
-              <li class="bullet-item">Flooring</li>
-              <li class="bullet-item">Paint and wall frames </li>
-              <li class="bullet-item">Lighting</li>
-              <li class="bullet-item">Basic Branding <i class="fa fa-check text-color-primary"></i></li>
-              <li class="price"><span class="currency">Rs</span>3.5lakh<span class="period">starting*</span></li>
-              <li class="cta-button"><a class="btn dark"  href="https://goo.gl/forms/jzaWSImJ13rQQpH73" target="_blank">Get Quote</a></li>
-            </ul>
-          </div>
-          
-          <!-- Ultimate Plan -->
-          <div class="col-md-3 margin-bottom-30 animate fadeInRight" data-wow-delay="1s">
-            <ul class="pricing-table style-1 hover-up hover-shadow">
-              <li class="title">branding / photography</li>
-              <li class="bullet-item">Logo design</li>
-              <li class="bullet-item">basic stationary  <i class="fa fa-check text-color-primary"></i></li>
-              <li class="bullet-item">Brand Identity </li>
-              <li class="bullet-item">3D visualization <i class="fa fa-check text-color-primary"></i></li>
-              <li class="bullet-item">Brand strategy</li>
-              <li class="bullet-item">Photography</li>
-              <li class="price"><span class="currency">Rs</span>45,000<span class="period">starting*</span></li>
-              <li class="cta-button"><a class="btn dark"  href="https://goo.gl/forms/jzaWSImJ13rQQpH73" target="_blank">Get Quote</a></li>
-            </ul>
-          </div>
-        </div>
-      </div>
-        
-        <section id="contact" class="contact padding-top-40">
-            <div class="text-center">
-          <p class="font-crimson"> * The prices are indicative and excluding taxes. The actual quote will depend on the actual requirements and details of the materials used. All pricing are excluding transportations and shipping fees. All details in the website are for indicative purpose </p>
-        </div>
-              
-    </section>
-        
-    </section>
-
-          
-          
-          
-    <!-- Contact Us -->
-    <section id="contact" class="contact padding-top-50">
-      <div class="container"> 
-        
-        <!-- Main Heading  -->
-        <div class="heading-block text-center animate fadeInUp" data-wow-delay="0.4s">
-          <h3>Get In Touch</h3>
-          <div class="divider divider-short divider-center"><img class="i-div" src="images/divider/hammers.png" alt="Divider Icon Image"/></div>
-            <span> We  <i class="fa  fa-heart"></i> to hear from you</span> </div>
-      </div>
-      
-      <!-- Contact  -->
-      <div class="padding-top-80 padding-bottom-80 bg-parallax" style="background-image: url('images/contact/contact-1.png')">
-        <div class="container">
-          <div class="row"> 
-            
-            <!-- Phone Number  -->
-            <div class="col-md-4 animate fadeInUp" data-wow-delay="0.4s">
-              <div class="icon-box ib-style-1 ib-circle ib-bordered ib-bordered-white ib-bordered-thin ib-medium ib-text-alt i-xlarge">
-                <div class="ib-icon"> <i class="fa fa-mobile text-primary"></i> </div>
-                <div class="ib-info text-white">
-                  <p>+91 944 65 809 72</p>
-                  <p>+91 944 65 809 72</p>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Address -->
-            <div class="col-md-4 animate fadeInUp" data-wow-delay="0.6s">
-              <div class="icon-box ib-style-1 ib-circle ib-bordered ib-bordered-white ib-bordered-thin ib-medium ib-text-alt i-large">
-                <div class="ib-icon"> <i class="fa fa-map-marker text-primary"></i> </div>
-                <div class="ib-info text-white">
-                  <p>46/2777 A1 ,</p>
-                  <p>Vivekananda Road ,NH Bypass,</p>
-                  <p>Kochi, Kerala, India 682028</p>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Email  -->
-            <div class="col-md-4 animate fadeInUp" data-wow-delay="0.8s">
-              <div class="icon-box ib-style-1 ib-circle ib-bordered ib-bordered-white ib-bordered-thin ib-medium ib-text-alt i-large">
-                <div class="ib-icon"> <i class="fa fa-envelope-o text-primary"></i> </div>
-                <div class="ib-info">
-                  <p class="no-margin-bottom"><a href="#." class="text-white">i.manu@outlook.com</a></p>
-                    <p class="no-margin-bottom"><a href="#." class="text-white">sales@mxtc.in</a></p>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Form  -->
-            <div class="col-md-12 margin-top-50 animate fadeInUp" data-wow-delay="0.4s">
-              <div class="contact-form"> 
-                
-                <!-- Success Msg -->
-                <div id="contact_message" class="success-msg animated fadeInUp"> <i class="fa fa-paper-plane-o"></i>Thank You. Your Message has been Submitted</div>
-                
-                <!-- FORM -->
-                <form role="form" id="contact_form" class="contact-form" method="post" onSubmit="return false">
-                  <ul class="row">
-                    <li class="col-sm-4">
-                      <label>*<span> NAME</span>
-                        <input type="text" class="form-control" name="name" id="name" placeholder="">
-                      </label>
-                    </li>
-                    <li class="col-sm-4">
-                      <label>* <span>EMAIL</span>
-                        <input type="text" class="form-control" name="email" id="email" placeholder="">
-                      </label>
-                    </li>
-                    <li class="col-sm-4">
-                      <label>* <span>SUBJECT</span>
-                        <input type="text" class="form-control" name="company" id="company" placeholder="">
-                      </label>
-                    </li>
-                    <li class="col-sm-12 margin-top-20">
-                      <label> <span>CONTENT</span>
-                        <textarea class="form-control" name="message" id="message" rows="5" placeholder=""></textarea>
-                      </label>
-                    </li>
-                    <li class="col-sm-12">
-                      <button type="submit" value="submit" id="btn_submit" onClick="proceed();">SEND ME</button>
-                    </li>
-                  </ul>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <!-- Parthner -->
-    <section class="section-home section-parthner padding-top-80 padding-bottom-80">
-      <div class="container"> 
-        <!-- Main Heading -->
-        <div class="heading-block text-center animate fadeInUp" data-wow-delay="0.4s">
-          <h3>WE WORK WITH</h3>
-          <div class="divider divider-short divider-center"><img class="i-div" src="images/divider/hammers.png" alt="Divider Icon Image"/></div>
-          <span>These amazing partners help us deliver you, amazing quality</span> </div>
-        <!-- Pathner Images -->
-        <ul class="animate fadeInUp" data-wow-delay="0.4s">
-          <li> <a href="#.."> <img class="img-responsive" src="images/partners/partner-1.png" alt="Our Partner Logo Image" /> </a> </li>
-          <li> <a href="#.."> <img class="img-responsive" src="images/partners/partner-2.png" alt="Our Partner Logo Image" /> </a> </li>
-          <li> <a href="#.."> <img class="img-responsive" src="images/partners/partner-3.png" alt="Our Partner Logo Image" /> </a> </li>
-          <li> <a href="#.."> <img class="img-responsive" src="images/partners/partner-4.png" alt="Our Partner Logo Image" /> </a> </li>
-          <li> <a href="#.."> <img class="img-responsive" src="images/partners/partner-5.png" alt="Our Partner Logo Image" /> </a> </li>
-          <li> <a href="#.."> <img class="img-responsive" src="images/partners/partner-6.png" alt="Our Partner Logo Image" /> </a> </li>
-          <li> <a href="#.."> <img class="img-responsive" src="images/partners/partner-7.png" alt="Our Partner Logo Image" /> </a> </li>
-        </ul>
-      </div>
-    </section>
-    
-    
-     <!-- FACTS -->
-    <section class="facts padding-top-90 padding-bottom-90" style="background-image: url('images/fact/bg-parallax-1.png')">     </section>
-    
-    
-       <!-- PARTHNES -->
-    <section class="parthners text-center padding-top-50 padding-bottom-50">
-      <div class="container-fluid">
-        <div class="col-1">
-          <ul class="row">
-            <li class="animate fadeInUp" data-wow-delay="0.2s"> <img src="images/partners/partner-8.png" alt="" > </li>
-<!--
-            <li class="animate fadeInUp" data-wow-delay="0.4s"> <img src="images/partners/partner-9.png" alt="" > </li>
-            <li class="animate fadeInUp" data-wow-delay="0.6s"> <img src="images/partners/partner-10.png" alt="" > </li>
-            <li class="animate fadeInUp" data-wow-delay="0.8s"> <img src="images/partners/partner-11.png" alt="" > </li>
-            <li class="animate fadeInUp" data-wow-delay="1s"> <img src="images/partners/partner-12.png" alt="" > </li>
--->
-          </ul>
-        </div>
-      </div>
-    </section>
-    
-    
-  <!-- End Content --> 
-  
-  <!-- Footer -->
-  <footer id="footer">
-    <div class="footer-wrapper"> 
-      
-      <!-- Footer Top -->
-      <div class="footer-top">
-        <div class="footer-top-wrapper">
-          <div class="container">
-            <div class="row"> 
-              <!-- About Block -->
-              <div class="col-md-4">
-                <div class="block block-about">
-                  <h3 class="block-title no-underline"><span class="text-primary">A Design Studio from Kochi</span></h3>
-                  <div class="block-content">
-                    <p>We are here to make a diffrence in Design space by optimising aesthetic ingenuity with practicality. We do it by developing conceptual briefs through discussion and we implement solutions with intelligence. Are you ready for the change. </p>
-                    <img class="footer-logo" src="images/footer/footer_logo_1.png" alt="" /> </div>
-                </div>
-              </div>
-              <!-- End About Block --> 
-              
-              <!-- Footer Links Block -->
-              <div class="col-md-2">
-                <div class="block block-links">
-                  <h3 class="block-title"><span>Info</span></h3>
-                  <div class="block-content">
-                    <ul>
-                      <li><a href="#">Home</a></li>              
-                      <li><a href="#.">Privacy Policy</a></li>
-                      <li><a href="#.">Warrenty statements</a></li>
-                      <li><a href="#services">Services</a></li>
-                      <li><a href="https://www.facebook.com/media/set/?set=a.925632944186147.1073741835.703387606410683&type=1&l=a33e8f4834" target="_blank" >External Gallery</a></li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <!-- End Footer Links Block --> 
-              
-              <!-- Twitter Widget Block -->
-              <div class="col-md-3">
-                <div class="block block-twitter-widget">
-                  <h3 class="block-title"><span>Twitter Widget</span></h3>
-                  <div class="block-content">
-                    <div class="twitter-item">
-                      <div class="twitter-content"> Looking for an awesome CREATIVE WordPress Theme? Esquise was updated and optimized to run even better. Find it here: <a href="http://t.co/0WWEMQEQ48" target="_blank">http://t.co/0WWEMQEQ48</a> </div>
-                      <div class="twitter-context"> <i class="fa fa-twitter"></i><span class="twitter-date">01 day ago</span> </div>
-                    </div>
-                    <div class="twitter-item">
-                      <div class="twitter-content"> It is a long established fact that a reader will be distracted by the readable . Find it here: <a href="http://t.co/0WWEMQEQ48" target="_blank">http://t.co/0WWEMQEQ48</a> </div>
-                      <div class="twitter-context"> <i class="fa fa-twitter"></i><span class="twitter-date">02 days ago</span> </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <!-- End Twitter Widget Block --> 
-              
-              <!-- Instagram Widget Block -->
-              <div class="col-md-3">
-                <div class="block block-instagram-widget">
-                  <h3 class="block-title"><span>Instagram Widget</span></h3>
-                  <ul >
-                    <li> <a href="#.."> <img src="images/footer/footer_instagram_01.png" alt="" /> <span class="overlay"><i class="fa fa-search"></i></span> </a> </li>
-                    <li> <a href="#.."> <img src="images/footer/footer_instagram_02.png" alt="" /> <span class="overlay"><i class="fa fa-search"></i></span> </a> </li>
-                    <li> <a href="#.."> <img src="images/footer/footer_instagram_03.png" alt="" /> <span class="overlay"><i class="fa fa-search"></i></span> </a> </li>
-                    <li> <a href="#.."> <img src="images/footer/footer_instagram_04.png" alt="" /> <span class="overlay"><i class="fa fa-search"></i></span> </a> </li>
-                    <li> <a href="#.."> <img src="images/footer/footer_instagram_05.png" alt="" /> <span class="overlay"><i class="fa fa-search"></i></span> </a> </li>
-                    <li> <a href="#.."> <img src="images/footer/footer_instagram_06.png" alt="" /> <span class="overlay"><i class="fa fa-search"></i></span> </a> </li>
-                  </ul>
-                </div>
-              </div>
-              <!-- End Instagram Widget Block --> 
-              
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- End Footer Top --> 
-      
-      <!-- Footer Bottom -->
-      <div class="footer-bottom">
-        <div class="footer-bottom-wrapper">
-          <div class="container">
-            <div class="row">
-              <div class="col-md-6 copyright">
-                <p>&copy; 2017 MX DESIGN STUDIO all rights reserved.</p>
-              </div>
-              <div class="col-md-6 social-links">
-                <ul class="right">
-                  <li><a href="#."><i class="fa fa-facebook"></i></a></li>
-                  <li><a href="#."><i class="fa fa-twitter"></i></a></li>
-                  <li><a href="#."><i class="fa fa-dribbble"></i></a></li>
-                  <li><a href="#."><i class="fa fa-behance"></i></a></li>
-                  <li><a href="#."><i class="fa fa-pinterest"></i></a></li>
-                  <li><a href="#."><i class="fa fa-google-plus"></i></a></li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- End Footer Bottom --> 
+  <!-- 3. what the other person sees -->
+  <section class="view" id="view-public" hidden>
+    <p class="frame-label" id="pub-label"></p>
+    <div class="panel pub">
+      <div class="avatar" id="p-avatar"></div>
+      <h1 id="p-name"></h1>
+      <p class="role" id="p-role"></p>
+      <div class="rows" id="p-rows"></div>
+      <button class="btn primary" id="save-contact" type="button">Save contact</button>
+      <button class="btn" id="send-back" type="button">Send mine back</button>
     </div>
-  </footer>
-  <!-- End Footer --> 
-  
-    <!-- GO TO TOP --> 
-  	<a href="#" class="cd-top"><i class="fa fa-angle-up"></i></a> 
-  <!-- GO TO TOP End --> 
+    <p class="made">Add your details once, then show your own QR back. Free, no sign-up.</p>
+  </section>
+</main>
 
-<!-- End Page Wrapper --> 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+(function(){
+  var KEY="cardshare-lite-v2",OLD="cardshare-lite-card";
+  var F=["name","title","org","tel","email"],LABEL={personal:"Personal",work:"Work",web:"Website"};
+  // Example cards, shown until the viewer saves their own. Numbers are from the UK range reserved for fiction.
+  var EXAMPLE={web:"vermastudio.example",cards:{
+    personal:{name:"Asha Verma",title:"",org:"",tel:"+44 7700 900123",email:"asha@example.com"},
+    work:{name:"Asha Verma",title:"Wedding photographer",org:"Verma Studio",tel:"+44 7700 900456",email:"hello@vermastudio.example"}}};
+  function blank(){return {name:"",title:"",org:"",tel:"",email:""}}
+  function copy(o){return JSON.parse(JSON.stringify(o))}
+  var data=null,isExample=true;
+  try{
+    var s=JSON.parse(localStorage.getItem(KEY)||"null");
+    if(s&&s.cards){data=s;isExample=false}
+    else{var o=JSON.parse(localStorage.getItem(OLD)||"null");
+      if(o&&o.name){data={web:o.web||"",cards:{personal:Object.assign(blank(),o),work:blank()}};isExample=false}}
+  }catch(e){}
+  if(!data)data=copy(EXAMPLE);
+  data.cards.personal=Object.assign(blank(),data.cards.personal);data.cards.work=Object.assign(blank(),data.cards.work);
+  var draft=copy(data),editKind="personal",shareKind="personal",cardKind="personal";
+  var $=function(id){return document.getElementById(id)};
 
+  function url(w){return /^https?:/i.test(w)?w:"https://"+w}
+  function esc(v){return String(v||"").replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\n/g,"\\n")}
+  function vcard(c,web){
+    var parts=c.name.trim().split(/\s+/),last=parts.length>1?parts.pop():"",first=parts.join(" ");
+    var L=["BEGIN:VCARD","VERSION:3.0","N:"+esc(last)+";"+esc(first)+";;;","FN:"+esc(c.name)];
+    if(c.org)L.push("ORG:"+esc(c.org));
+    if(c.title)L.push("TITLE:"+esc(c.title));
+    if(c.tel)L.push("TEL;TYPE=CELL:"+c.tel.replace(/[^\d+]/g,""));
+    if(c.email)L.push("EMAIL:"+esc(c.email));
+    if(web)L.push("URL:"+url(web));
+    L.push("END:VCARD");return L.join("\r\n");
+  }
+  function drawQR(text){
+    var box=$("qr");box.style.color="#15161c";
+    if(typeof qrcode!=="function"){box.textContent="QR could not load. Check your connection and reopen.";return}
+    try{
+      qrcode.stringToBytes=qrcode.stringToBytesFuncs["UTF-8"];
+      var q=qrcode(0,"M");q.addData(text,"Byte");q.make();
+      var n=q.getModuleCount(),d="";
+      for(var r=0;r<n;r++)for(var c=0;c<n;c++)if(q.isDark(r,c))d+="M"+c+" "+r+"h1v1h-1z";
+      box.innerHTML='<svg viewBox="0 0 '+n+' '+n+'" shape-rendering="crispEdges" role="img" aria-label="QR code"><path fill="#15161c" d="'+d+'"/></svg>';
+    }catch(e){box.textContent="That is too much text for one QR. Shorten a field."}
+  }
+  function initials(n){return n.trim().split(/\s+/).slice(0,2).map(function(w){return w[0]||""}).join("").toUpperCase()}
+  function select(prefix,kinds,on){kinds.forEach(function(k){$(prefix+k).setAttribute("aria-selected",String(k===on))})}
 
-<!-- JavaScripts --> 
-<script src="js/vendors/jquery/jquery.min.js"></script> 
-<script src="js/vendors/wow.min.js"></script> 
-<script src="js/vendors/bootstrap.min.js"></script> 
-<script src="js/vendors/own-menu.js"></script> 
-<script src="js/vendors/flexslider/jquery.flexslider-min.js"></script> 
-<script src="js/vendors/jquery.countTo.js"></script> 
-<script src="js/vendors/jquery.isotope.min.js"></script> 
-<script src="js/vendors/jquery.bxslider.min.js"></script> 
-<script src="js/vendors/owl.carousel.min.js"></script> 
-<script src="js/vendors/jquery.sticky.js"></script> 
-<script src="js/vendors/color-switcher.js"></script> 
+  function renderShare(){
+    select("sk-",["personal","work","web"],shareKind);
+    $("qr-title").textContent=LABEL[shareKind];
+    var c=data.cards[shareKind],has=shareKind==="web"?!!data.web:!!(c&&c.name);
+    $("qrbox").classList.toggle("empty",!has);$("qr").hidden=!has;$("empty-msg").hidden=has;$("empty-btn").hidden=has;
+    if(!has){
+      $("empty-msg").textContent=shareKind==="web"?"No website yet":"No "+shareKind+" card yet";
+      $("empty-btn").textContent=shareKind==="web"?"Add website":"Add "+shareKind+" card";
+      $("w-name").textContent=$("w-tel").textContent=$("w-title").textContent="";$("share-help").textContent="";return;
+    }
+    if(shareKind==="web"){
+      drawQR(url(data.web));
+      $("w-name").textContent="Opens in their browser";$("w-tel").textContent=data.web.replace(/^https?:\/\//i,"");$("w-title").textContent="";
+      $("share-help").textContent="Their camera opens your site. Nothing is saved to their contacts.";
+    }else{
+      drawQR(vcard(c,data.web));
+      $("w-name").textContent=c.name;$("w-tel").textContent=c.tel||c.email;$("w-title").textContent=[c.title,c.org].filter(Boolean).join(" · ");
+      $("share-help").textContent="Works with no signal. Their camera offers to add you as a contact.";
+    }
+  }
+  function renderPublic(){
+    var c=data.cards[cardKind];
+    if(!c.name){cardKind=cardKind==="work"?"personal":"work";c=data.cards[cardKind]}
+    $("pub-label").textContent="What they see after scanning your "+cardKind+" card";
+    $("p-avatar").textContent=initials(c.name);$("p-name").textContent=c.name;
+    $("p-role").textContent=[c.title,c.org].filter(Boolean).join(" · ");
+    var rows=$("p-rows");rows.textContent="";
+    [["Mobile",c.tel],["Email",c.email],["Web",data.web]].forEach(function(p){
+      if(!p[1])return;
+      var row=document.createElement("div");row.className="row";
+      var k=document.createElement("span");k.className="k";k.textContent=p[0];
+      var v=document.createElement("span");v.className="v";v.textContent=p[1];
+      var b=document.createElement("button");b.type="button";b.textContent="Copy";
+      b.addEventListener("click",function(){
+        var done=function(){b.textContent="Copied";setTimeout(function(){b.textContent="Copy"},1400)};
+        var sel=function(){var r=document.createRange();r.selectNodeContents(v);var s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="Selected"};
+        try{navigator.clipboard.writeText(p[1]).then(done,sel)}catch(e){sel()}
+      });
+      row.append(k,v,b);rows.append(row);
+    });
+  }
+  function loadForm(){
+    select("ek-",["personal","work"],editKind);
+    F.forEach(function(k){$("f-"+k).value=draft.cards[editKind][k]||""});
+    $("f-web").value=draft.web||"";
+    $("edit-note").textContent=isExample?"These are example cards. Change them to yours and save. No sign-up; they stay in this browser.":"No sign-up. Your cards stay in this browser.";
+  }
+  function render(){renderShare();renderPublic()}
+  function show(view){
+    ["edit","share","public"].forEach(function(v){$("view-"+v).hidden=v!==view;$("tab-"+v).setAttribute("aria-selected",String(v===view))});
+  }
+  function openEdit(kind,focus){if(kind)editKind=kind;loadForm();show("edit");$(focus||"f-name").focus()}
 
-<!-- SLIDER REVOLUTION 4.x SCRIPTS  --> 
-<script type="text/javascript" src="rs-plugin/js/jquery.themepunch.tools.min.js"></script> 
-<script type="text/javascript" src="rs-plugin/js/jquery.themepunch.revolution.min.js"></script> 
-<script src="js/zap.js"></script>
+  document.querySelectorAll("[data-view]").forEach(function(b){b.addEventListener("click",function(){show(b.dataset.view)})});
+  ["personal","work","web"].forEach(function(k){$("sk-"+k).addEventListener("click",function(){shareKind=k;if(k!=="web")cardKind=k;render()})});
+  ["personal","work"].forEach(function(k){$("ek-"+k).addEventListener("click",function(){editKind=k;loadForm()})});
+  F.forEach(function(k){$("f-"+k).addEventListener("input",function(){draft.cards[editKind][k]=$("f-"+k).value})});
+  $("f-web").addEventListener("input",function(){draft.web=$("f-web").value});
+  $("card-form").addEventListener("submit",function(e){e.preventDefault()});
+  $("empty-btn").addEventListener("click",function(){shareKind==="web"?openEdit(null,"f-web"):openEdit(shareKind)});
+  $("save-card").addEventListener("click",function(){
+    if(!draft.cards[editKind].name.trim()){$("edit-note").textContent="Add a name to your "+editKind+" card first, or switch to the other card.";$("f-name").focus();return}
+    ["personal","work"].forEach(function(kd){F.forEach(function(k){draft.cards[kd][k]=(draft.cards[kd][k]||"").trim()})});
+    draft.web=(draft.web||"").trim();
+    data=copy(draft);isExample=false;shareKind=cardKind=editKind;
+    try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}
+    $("tip").hidden=false;render();loadForm();show("share");
+  });
+  $("portal").addEventListener("click",function(){var r=$("portal-reveal");r.hidden=!r.hidden;$("portal").setAttribute("aria-expanded",String(!r.hidden))});
+  $("save-contact").addEventListener("click",function(){
+    var c=data.cards[cardKind],a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([vcard(c,data.web)],{type:"text/vcard"}));
+    a.download=(c.name.trim().replace(/[^\w]+/g,"-")||"contact")+".vcf";
+    document.body.appendChild(a);a.click();a.remove();
+  });
+  // Someone with saved cards goes straight to their QR; a first-timer gets a blank form.
+  $("send-back").addEventListener("click",function(){
+    if(!isExample){show("share");return}
+    draft={web:"",cards:{personal:blank(),work:blank()}};
+    openEdit("personal");
+    $("edit-note").textContent="Add your details once. Then show your QR back.";
+  });
+  loadForm();render();
+})();
+</script>
 </body>
 </html>
