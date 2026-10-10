@@ -6,6 +6,13 @@
 <meta name="description" content="Make a free contact card and share it by QR with any phone. No sign-up, no app.">
 <meta name="theme-color" content="#1b1d25">
 <title>Cardshare</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cardshare">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@800&display=swap">
 <style>
 body{margin:0}img{max-width:100%}[hidden]{display:none!important}
@@ -84,6 +91,12 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .row .v{flex:1;min-width:0;user-select:all;overflow-wrap:anywhere;font-weight:500}
 .row button{border:0;background:var(--panel-hi);color:var(--ink-soft);border-radius:999px;font:500 12px var(--body);padding:6px 10px;cursor:pointer}
 .pub .reveal{background:var(--ground);border:0}
+.install{display:flex;align-items:center;gap:14px;padding:14px 18px;width:100%;border:1px dashed var(--line);border-radius:var(--r);background:none;text-align:left;color:var(--ink);font:inherit;cursor:pointer}
+.install img{flex:none;width:40px;height:40px;border-radius:11px}
+.install span{flex:1;min-width:0}
+.install strong{display:block;font-weight:600}
+.install small{color:var(--ink-soft);font-size:12.5px}
+.install i{font-style:normal;color:var(--lime-hi);font-size:20px}
 .made{text-align:center;font-size:13px;color:var(--ink-dim);margin:0;text-wrap:balance}
 </style>
 </head>
@@ -141,6 +154,11 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       <span><strong>My Cardshare</strong><small>Your portal: custom pages and more</small></span><i aria-hidden="true">›</i>
     </button>
     <div class="reveal" id="portal-reveal" hidden><b>cardshare / portal</b> is coming soon. This button will open your own space: custom pages, a photo, a short link that keeps working after you edit, and NFC stickers.</div>
+    <button class="install" id="install" type="button" aria-expanded="false" aria-controls="install-help" hidden>
+      <img src="icons/icon-192.png" alt="" width="40" height="40">
+      <span><strong>Add to home screen</strong><small>Open Cardshare like an app, even with no signal</small></span><i aria-hidden="true">+</i>
+    </button>
+    <div class="reveal" id="install-help" hidden></div>
     <div class="tip" id="tip" hidden>
       <p id="tip-text">Saved. Cardshare is free. If it helps, chip in towards hosting.</p>
       <a class="btn small" id="tip-btn" href="https://buy.stripe.com/fZu14mbnDgVS5qx26cawo00" target="_blank" rel="noopener">Leave a tip</a>
@@ -162,7 +180,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   </section>
 </main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="qrcode.js"></script>
 <script>
 (function(){
   var KEY="cardshare-lite-v2",OLD="cardshare-lite-card";
@@ -293,6 +311,21 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     openEdit("personal");
     $("edit-note").textContent="Add your details once. Then show your QR back.";
   });
+  // Add to home screen: Android and desktop Chrome/Edge offer a real install prompt; iPhone and iPad have no
+  // prompt, so the button shows the Share-menu steps instead. Hidden once opened from the home screen.
+  var standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+  var ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  var deferred=null;
+  if(!standalone&&ios)$("install").hidden=false;
+  addEventListener("beforeinstallprompt",function(e){e.preventDefault();deferred=e;if(!standalone)$("install").hidden=false});
+  addEventListener("appinstalled",function(){deferred=null;$("install").hidden=true;$("install-help").hidden=true});
+  $("install").addEventListener("click",function(){
+    if(deferred){deferred.prompt();deferred.userChoice.then(function(){deferred=null});return}
+    var h=$("install-help");
+    h.innerHTML=ios?"Tap <b>Share</b> in the browser bar, then <b>Add to Home Screen</b>.":"Open your browser menu and choose <b>Install app</b> or <b>Add to Home screen</b>.";
+    h.hidden=!h.hidden;$("install").setAttribute("aria-expanded",String(!h.hidden));
+  });
+  if("serviceWorker" in navigator)addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});
   loadForm();render();
 })();
 </script>
