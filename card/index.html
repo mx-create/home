@@ -17,7 +17,7 @@
 <style>
 body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-/* Layout: one phone-width column, three views behind a segmented switch, taken from the 2023 dark theme. Single dark look by design. */
+/* Layout: one phone-width column, two views behind a segmented switch, taken from the 2023 dark theme. Single dark look by design. */
 :root{
   color-scheme:dark;
   --ground:#1b1d25; --panel:#2a2c38; --panel-hi:#343644; --line:#3d4050;
@@ -67,12 +67,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .who .n{font-size:13.5px;color:var(--ink-soft)}
 .who .p{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .who .t{font-size:14.5px;color:var(--ink-dim)}
-.portal{display:flex;align-items:center;gap:14px;padding:14px 18px;width:100%;border:0;text-align:left;color:var(--ink);font:inherit;cursor:pointer}
-.portal svg{flex:none;width:40px;height:40px}
-.portal span{flex:1;min-width:0}
-.portal strong{display:block;font-weight:600}
-.portal small{color:var(--ink-soft);font-size:12.5px}
-.portal i{font-style:normal}
 .reveal{background:var(--panel);border:1px dashed var(--line);border-radius:16px;padding:14px;font-size:13.5px;color:var(--ink-soft)}
 .reveal b{color:var(--ink);font-weight:600}
 /* top slot: the logo, swapped for the thank-you nudge for a few seconds after a save */
@@ -85,19 +79,6 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 @keyframes pop{from{opacity:0;transform:translateY(-8px) scale(.97)}}
 @keyframes fade{to{opacity:0;transform:translateY(-8px)}}
 @media (prefers-reduced-motion:reduce){.tip,.tip.out{animation:none}}
-/* public page */
-.frame-label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim);text-align:center;margin:0;text-wrap:balance}
-.pub{padding:26px 18px 18px;display:flex;flex-direction:column;gap:16px;align-items:stretch}
-.avatar{align-self:center;width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,var(--lime),var(--lime-hi));color:var(--paper-ink);display:flex;align-items:center;justify-content:center;font:800 30px var(--brand);letter-spacing:-.03em}
-.pub h1{font:600 22px/1.2 var(--body);margin:0;text-align:center;text-wrap:balance;overflow-wrap:anywhere}
-.pub .role{margin:-10px 0 0;text-align:center;color:var(--ink-soft)}
-.rows{display:flex;flex-direction:column;background:var(--ground);border-radius:16px}
-.row{display:flex;align-items:center;gap:10px;padding:12px 14px}
-.row + .row{border-top:1px solid rgba(255,255,255,.05)}
-.row .k{width:54px;flex:none;color:var(--ink-dim);font-size:12.5px}
-.row .v{flex:1;min-width:0;user-select:all;overflow-wrap:anywhere;font-weight:500}
-.row button{border:0;background:var(--panel-hi);color:var(--ink-soft);border-radius:999px;font:500 12px var(--body);padding:6px 10px;cursor:pointer}
-.pub .reveal{background:var(--ground);border:0}
 .install{display:flex;align-items:center;gap:14px;padding:14px 18px;width:100%;border:1px dashed var(--line);border-radius:var(--r);background:none;text-align:left;color:var(--ink);font:inherit;cursor:pointer}
 .install img{flex:none;width:40px;height:40px;border-radius:11px}
 .install span{flex:1;min-width:0}
@@ -108,78 +89,34 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .tipline svg{width:12px;height:12px;fill:var(--lime-hi)}
 .tipline b{color:var(--ink-soft);font-weight:500}
 .tipline:hover{color:var(--ink-soft);border-color:var(--lime)}
-.made{text-align:center;font-size:13px;color:var(--ink-dim);margin:0;text-wrap:balance}
-
-/* card page, set-up screens and preview-only screens */
-.top .brand{max-height:58px;max-width:200px;object-fit:contain}
-.portal i{font-size:12px;font-weight:600;padding:5px 11px;border-radius:999px;background:var(--panel-hi);color:var(--ink-soft)}
-.portal[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--violet)}
-.portal[aria-pressed="true"] i{background:var(--lime-hi);color:var(--paper-ink)}
-.row2{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.reveal .btn{margin-top:10px}
-.row2 .btn,.stack .btn{margin-top:0}
-.stack{display:flex;flex-direction:column;gap:10px}
-.stack select{width:100%;background:var(--panel-hi);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px;font:500 15px var(--body)}
-.pub{padding:10px 0 0}
-.pub .avatar{width:112px;height:112px;font-size:38px}
-.avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
-.avatar.sm{width:56px;height:56px;font-size:20px;align-self:auto;flex:none}
-.intro{margin:0;text-align:center;font-size:16px;text-wrap:balance}
-.acts{display:flex;flex-direction:column;gap:10px;margin-top:8px}
-.socials{display:flex;flex-wrap:wrap;justify-content:center;gap:14px 10px;margin-top:10px}
-.soc{display:flex;flex-direction:column;align-items:center;gap:5px;width:60px;text-decoration:none;color:var(--ink-soft);font-size:10.5px}
-.soc i{font-style:normal;width:46px;height:46px;border-radius:50%;background:var(--panel-hi);color:var(--ink);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
-.soc span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.made button,.made a{background:none;border:0;color:var(--violet-hi);font:600 13px var(--body);cursor:pointer;padding:0;text-decoration:underline}
-.made .quiet{color:var(--ink-dim);font-weight:500}
-.made b{color:var(--ink-soft);font-weight:600;overflow-wrap:anywhere}
-.sent{padding:22px 18px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
-.sent p{margin:0;color:var(--ink-soft)}
-.sent strong{font-size:17px;font-weight:600;overflow-wrap:anywhere}
-.sent .dim{font-size:13px;color:var(--ink-dim)}
-.sent .price{font:600 30px/1.1 var(--body);color:var(--ink)}
-.sent img{max-height:72px;max-width:220px;object-fit:contain;margin-bottom:6px}
-.tag{align-self:center;display:inline-block;margin:0;padding:5px 12px;border:1px dashed var(--line);border-radius:999px;font-size:12.5px;color:var(--ink-soft);text-align:center}
-.photo-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px}
-.photo-row .state{font-size:12.5px;color:var(--lime-hi);font-weight:600}
-.vh{position:absolute;opacity:0;width:1px;height:1px}
-.logo-slot{flex:none;width:96px;height:56px;border:1px dashed var(--line);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--ink-dim);padding:6px}
-.logo-slot img{max-width:100%;max-height:100%;object-fit:contain}
-.btn.buy{background:var(--lime-hi);color:var(--paper-ink)}
-.offer{display:flex;align-items:center;gap:14px;padding:14px 18px;width:100%;border:0;text-align:left;color:var(--ink);font:inherit;cursor:pointer}
-.offer span{flex:1;min-width:0}
-.offer strong{display:block;font-weight:600}
-.offer small{color:var(--ink-soft);font-size:12.5px}
-.offer i{font-style:normal;color:var(--ink-dim);font-size:20px}
-.arow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 16px}
-.arow + .arow{border-top:1px solid rgba(255,255,255,.05)}
-.arow .u{flex:1;min-width:150px}
-.arow .u b{display:block;font-weight:600;font-size:14px;overflow-wrap:anywhere}
-.arow .u small{color:var(--ink-soft);font-size:12.5px}
-.st{font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid currentColor}
-.st.live{color:var(--lime-hi)}.st.reported{color:#ffc24a}.st.suspended{color:#ff8372}
-/* someone else's card, opened from their QR: no tabs, no preview-only parts */
-.visitor #tabs,.visitor #pub-label,.visitor .own-only{display:none!important}
+.sub{margin:4px 4px -10px;color:var(--ink-dim);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+/* one round chip per link; the picked one drives the QR above */
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:14px 6px}
+.chip{display:flex;flex-direction:column;align-items:center;gap:5px;width:62px;border:0;background:none;padding:0;color:var(--ink-soft);font:400 10.5px var(--body);cursor:pointer}
+.chip i{font-style:normal;width:46px;height:46px;border-radius:50%;background:var(--panel-hi);color:var(--ink);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.chip span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip[aria-pressed="true"]{color:var(--ink)}
+.chip[aria-pressed="true"] i{background:var(--violet);color:#fff}
+.chip:focus-visible{outline:2px solid var(--lime-hi);outline-offset:4px;border-radius:12px}
 </style>
 </head>
 <body>
 
-<main class="app" id="app">
+<main class="app">
   <div class="top">
-    <img class="brand" id="brand-logo" alt="Logo" hidden>
     <div class="logo" id="logo" aria-label="card share"><span>card</span><span>share</span></div>
     <div class="tip" id="tip" role="status" hidden>
-      <p><b id="tip-lead">Saved.</b> Cardshare is free. If it helped, say thanks.</p>
-      <a class="btn small" id="tip-btn" href="https://buy.stripe.com/fZu14mbnDgVS5qx26cawo00" target="_blank" rel="noopener">Buy me a beer</a>
+      <p><b>Saved.</b> Cardshare is free. If it helped, say thanks.</p>
+      <a class="btn small" href="https://buy.stripe.com/fZu14mbnDgVS5qx26cawo00" target="_blank" rel="noopener">Buy me a beer</a>
     </div>
   </div>
 
-  <div class="seg two" id="tabs" role="tablist" aria-label="Screens">
+  <div class="seg two" role="tablist" aria-label="Screens">
     <button role="tab" id="tab-edit" data-view="edit" aria-selected="false">My card</button>
     <button role="tab" id="tab-share" data-view="share" aria-selected="true">Share</button>
   </div>
 
-  <!-- 1. make your cards -->
+  <!-- 1. your cards and links -->
   <section class="view" id="view-edit" hidden>
     <p class="eyebrow">Create your card</p>
     <div class="seg two pick" role="tablist" aria-label="Which card">
@@ -193,14 +130,26 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       <div class="field"><input id="f-tel" type="tel" inputmode="tel" placeholder="+44 7700 900123"><label for="f-tel">Mobile</label></div>
       <div class="field"><input id="f-email" type="email" inputmode="email" placeholder="you@example.com"><label for="f-email">Email</label></div>
     </form>
-    <div class="panel fields">
-      <div class="field"><input id="f-web" inputmode="url" placeholder="yoursite.com" autocomplete="off"><label for="f-web">Website</label></div>
+    <p class="sub">Your links · each one gets its own QR</p>
+    <div class="panel fields" id="link-form">
+      <div class="field"><input id="f-web" inputmode="url" placeholder="yoursite.com" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="f-web">Website</label></div>
+      <div class="field"><input id="l-whatsapp" type="tel" inputmode="tel" placeholder="+44 7700 900123" autocomplete="off"><label for="l-whatsapp">WhatsApp</label></div>
+      <div class="field"><input id="l-linkedin" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="l-linkedin">LinkedIn</label></div>
+      <div class="field"><input id="l-instagram" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="l-instagram">Instagram</label></div>
+      <div class="field"><input id="l-x" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="l-x">X</label></div>
+      <div class="field"><input id="l-youtube" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="l-youtube">YouTube</label></div>
+      <div class="field"><input id="l-tiktok" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="l-tiktok">TikTok</label></div>
+      <div class="field"><input id="l-facebook" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="l-facebook">Facebook</label></div>
+      <div class="field"><input id="l-telegram" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="l-telegram">Telegram</label></div>
+      <div class="field"><input id="l-spotify" placeholder="paste your Spotify link" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="l-spotify">Spotify</label></div>
+      <div class="field"><input id="l-customLabel" placeholder="e.g. Bookings" autocomplete="off" maxlength="14"><label for="l-customLabel">Link name</label></div>
+      <div class="field"><input id="l-customUrl" placeholder="yoursite.com/book" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="l-customUrl">Link</label></div>
     </div>
     <button class="btn primary" id="save-card" type="button">Save</button>
     <p class="note" id="edit-note"></p>
   </section>
 
-  <!-- 2. show a QR -->
+  <!-- 2. show a QR: a contact card, or one of your links -->
   <section class="view" id="view-share">
     <div class="panel qrcard">
       <h2 id="qr-title">Personal</h2>
@@ -214,16 +163,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     <div class="seg pick" role="tablist" aria-label="What to share">
       <button role="tab" id="sk-personal" data-kind="personal" aria-selected="true">Personal</button>
       <button role="tab" id="sk-work" data-kind="work" aria-selected="false">Work</button>
-      <button role="tab" id="sk-web" data-kind="web" aria-selected="false">Website</button>
+      <button role="tab" id="sk-links" data-kind="links" aria-selected="false">Links</button>
     </div>
+    <div class="chips" id="chips" role="group" aria-label="Which link" hidden></div>
     <p class="note" id="share-help"></p>
-    <button class="panel portal" id="portal" type="button" aria-pressed="false">
-      <svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="#343644"/><path d="M11 30l5-17h11l-5 17z" fill="#c8e62b"/><path d="M17 26l5-17h11l-5 17z" fill="#bfff6b"/></svg>
-      <span><strong>My Cardshare</strong><small>Switch the QR to a link to your card page</small></span><i id="portal-pill">Off</i>
-    </button>
-    <div class="reveal" id="portal-reveal" hidden>The QR now opens your card page on any phone. Your details travel inside the link, so nothing is stored on a server.
-      <span class="row2"><button type="button" class="btn small" id="setup-page">Set up page</button><button type="button" class="btn small" id="preview-page">See their page</button><button type="button" class="btn small" id="copy-link">Copy link</button></span>
-    </div>
     <button class="install" id="install" type="button" aria-expanded="false" aria-controls="install-help" hidden>
       <img src="icons/icon-192.png" alt="" width="40" height="40">
       <span><strong>Add to home screen</strong><small>Open Cardshare like an app, even with no signal</small></span><i aria-hidden="true">+</i>
@@ -234,147 +177,20 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       Free to use · <b>Buy me a beer</b>
     </a>
   </section>
-
-  <!-- the card page: someone else's card opened from their QR, or your own preview opened from Set up -->
-  <section class="view" id="view-public" hidden>
-    <p class="frame-label" id="pub-label">Preview of your card page, shared when My Cardshare is on</p>
-    <p class="made own-only"><button type="button" id="pub-back">Back to set up</button></p>
-    <div class="pub" id="pub-card">
-      <div class="avatar" id="p-avatar"></div>
-      <h1 id="p-name"></h1>
-      <p class="role" id="p-role"></p>
-      <p class="intro" id="p-intro"></p>
-      <div class="acts">
-        <a class="btn primary" id="a-wa" target="_blank" rel="noopener">Message on WhatsApp</a>
-        <a class="btn" id="a-web" target="_blank" rel="noopener">Visit website</a>
-        <button class="btn" id="save-contact" type="button">Save contact</button>
-      </div>
-      <div class="socials" id="p-socials"></div>
-    </div>
-    <p class="made" id="pub-foot"><button type="button" id="send-back">Send mine back</button> · <a href="https://buy.stripe.com/fZu14mbnDgVS5qx26cawo00" target="_blank" rel="noopener">Buy Cardshare a beer</a></p>
-    <p class="made" id="made-line">Made with <b>Cardshare</b></p>
-    <p class="made own-only" id="report-line"><button type="button" id="report-open" class="quiet">Report this page</button></p>
-    <div class="reveal stack own-only" id="report-box" hidden>
-      <label for="report-reason">Why are you reporting this page?</label>
-      <select id="report-reason"><option value="spam">Spam</option><option value="scam">Scam or fraud</option><option value="impersonation">Pretending to be someone else</option><option value="inappropriate">Inappropriate content</option><option value="other">Something else</option></select>
-      <button class="btn" id="report-send" type="button">Submit report</button>
-      <span><b>Preview:</b> reporting is not switched on yet, so nothing is sent.</span>
-    </div>
-    <p class="note own-only" id="report-done" hidden>Thanks. This page has been reported for review. (Preview: nothing was sent.)</p>
-    <div class="panel sent own-only" id="pub-suspended" hidden><strong>This page has been suspended</strong><p>It was reported and is under review.</p></div>
-  </section>
-
-  <!-- set up the card page: works now, stored in this browser and carried in the link -->
-  <section class="view" id="view-setup" hidden>
-    <p class="eyebrow">Set up your page</p>
-    <p class="made" id="acct-out"><button type="button" id="signin-open">Sign in</button> to keep your page on every device · Preview</p>
-    <p class="made" id="acct-in" hidden>Signed in as <b id="session-email"></b> · <button type="button" id="sign-out">Sign out</button></p>
-    <div class="panel photo-row">
-      <div class="avatar sm" id="s-avatar"></div>
-      <label class="btn small" for="s-photo">Choose photo</label><input id="s-photo" type="file" accept="image/*" class="vh">
-      <button class="btn small" id="s-photo-clear" type="button" hidden>Remove</button>
-    </div>
-    <div class="panel photo-row">
-      <div class="logo-slot"><span id="s-logo-none">No logo</span><img id="s-logo-img" alt="Your logo" hidden></div>
-      <label class="btn small" for="s-logo">Choose logo</label><input id="s-logo" type="file" accept="image/*" class="vh">
-      <button class="btn small" id="s-logo-clear" type="button" hidden>Remove</button>
-      <button class="btn small buy" id="s-logo-buy" type="button" hidden></button>
-      <span class="state" id="s-logo-on" hidden>On your page</span>
-    </div>
-    <p class="note">Your photo and logo show on your own preview for now. Other people will see them once accounts are switched on.</p>
-    <div class="panel fields">
-      <div class="field"><input id="s-intro" maxlength="120" placeholder="Hi, great to meet you." autocomplete="off"><label for="s-intro">Intro</label></div>
-      <div class="field"><input id="s-whatsapp" type="tel" inputmode="tel" placeholder="+44 7700 900123" autocomplete="off"><label for="s-whatsapp">WhatsApp</label></div>
-    </div>
-    <div class="panel fields">
-      <div class="field"><input id="s-linkedin" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="s-linkedin">LinkedIn</label></div>
-      <div class="field"><input id="s-instagram" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="s-instagram">Instagram</label></div>
-      <div class="field"><input id="s-x" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="s-x">X</label></div>
-      <div class="field"><input id="s-youtube" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="s-youtube">YouTube</label></div>
-      <div class="field"><input id="s-tiktok" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="s-tiktok">TikTok</label></div>
-      <div class="field"><input id="s-facebook" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="s-facebook">Facebook</label></div>
-      <div class="field"><input id="s-telegram" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="s-telegram">Telegram</label></div>
-      <div class="field"><input id="s-spotify" placeholder="paste your Spotify link" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="s-spotify">Spotify</label></div>
-      <div class="field"><input id="s-customlabel" placeholder="e.g. Bookings" autocomplete="off" maxlength="14"><label for="s-customlabel">Link name</label></div>
-      <div class="field"><input id="s-customurl" placeholder="yoursite.com/book" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="s-customurl">Link</label></div>
-    </div>
-    <button class="btn primary" id="save-setup" type="button">Save</button>
-    <p class="made"><button type="button" id="see-page">See my page</button></p>
-    <p class="note">Usernames only, except Spotify and your own link, which take a pasted link. A button shows on your page only when its field is filled in. The website comes from My card.</p>
-    <button class="panel offer" id="custom-open" type="button">
-      <span><strong>Want a fully custom page?</strong><small>Our designer can build one for you</small></span><i aria-hidden="true">›</i>
-    </button>
-    <p class="made"><button type="button" id="admin-link" class="quiet">Admin (preview)</button></p>
-  </section>
-
-  <!-- preview only: paying for the logo -->
-  <section class="view" id="view-pay" hidden>
-    <p class="eyebrow">Your logo on your page</p>
-    <div class="panel sent"><img id="pay-logo" alt="Your logo"><span class="price" id="pay-price"></span><p>One payment. Your logo takes the place of the Cardshare logo at the top of your page.</p></div>
-    <div class="reveal"><b>Preview:</b> payment is not switched on yet and nothing is charged. This button stands in for paying with Stripe.<button class="btn primary" id="pay-go" type="button">Simulate payment</button></div>
-    <p class="made"><button type="button" class="back-setup">Back</button></p>
-  </section>
-
-  <!-- preview only: asking for a designer-built page -->
-  <section class="view" id="view-custom" hidden>
-    <p class="eyebrow">A page built for you</p>
-    <div id="custom-form" class="stack">
-      <p class="note">Tell us what you need and our designer will reply with a quote. Your page stays at the same address.</p>
-      <div class="panel fields">
-        <div class="field"><input id="c-what" placeholder="e.g. Wedding photographer" autocomplete="off"><label for="c-what">What you do</label></div>
-        <div class="field"><input id="c-like" placeholder="a page or two you like" autocomplete="off"><label for="c-like">Examples</label></div>
-        <div class="field"><input id="c-need" placeholder="gallery, prices, booking…" autocomplete="off"><label for="c-need">Must have</label></div>
-        <div class="field"><input id="c-email" type="email" inputmode="email" placeholder="you@example.com" autocomplete="email" autocapitalize="off"><label for="c-email">Email</label></div>
-      </div>
-      <button class="btn primary" id="custom-send" type="button">Send request</button>
-      <p class="note" id="custom-note"></p>
-      <p class="tag">Preview: requests are not switched on yet, so nothing is sent</p>
-    </div>
-    <div class="panel sent" id="custom-done" hidden><strong>Thanks. Your request is in.</strong><p>We'll reply by email with a quote.</p><p class="dim">Preview: nothing was sent.</p></div>
-    <p class="made"><button type="button" class="back-setup">Back</button></p>
-  </section>
-
-  <!-- preview only: signing in by emailed link -->
-  <section class="view" id="view-signin" hidden>
-    <p class="eyebrow">Sign in to keep your page</p>
-    <form class="panel fields" id="signin-form" novalidate>
-      <div class="field"><input id="si-email" type="email" inputmode="email" placeholder="you@example.com" autocomplete="email" autocapitalize="off"><label for="si-email">Email</label></div>
-    </form>
-    <button class="btn primary" id="si-send" type="button">Send link</button>
-    <p class="note" id="si-note">No password. We email you a link, and tapping it signs you in.</p>
-    <p class="tag">Preview: sign-in is not switched on yet, so no email is sent</p>
-    <p class="made"><button type="button" class="back-setup">Back</button></p>
-  </section>
-
-  <section class="view" id="view-sent" hidden>
-    <p class="eyebrow">Check your inbox</p>
-    <div class="panel sent"><p>We've sent a sign-in link to</p><strong id="sent-email"></strong><p class="dim">It works once and expires in 15 minutes.</p></div>
-    <div class="reveal"><b>Preview:</b> no email was sent. This button stands in for tapping the link in that email.<button class="btn primary" id="open-link" type="button">Open my link</button></div>
-    <p class="made"><button type="button" id="si-change">Use a different email</button></p>
-  </section>
-
-  <!-- preview only: reviewing reported pages -->
-  <section class="view" id="view-admin" hidden>
-    <p class="eyebrow">Admin</p>
-    <p class="tag">Preview with example pages</p>
-    <div class="panel" id="admin-list"></div>
-    <p class="note">Suspending replaces the card with a notice. Restore brings it back and clears its reports.</p>
-    <p class="made"><button type="button" class="back-setup">Back</button></p>
-  </section>
 </main>
 
 <script src="qrcode.js"></script>
 <script>
 (function(){
-  var KEY="cardshare-lite-v2",OLD="cardshare-lite-card",SKEY="cardshare-lite-session";
-  var LOGO_PRICE="£9"; // placeholder until the real price is set
-  var F=["name","title","org","tel","email"],LABEL={personal:"Personal",work:"Work",web:"Website"};
-  // k: field name, c: short code used inside the link, n: name, m: letters on the chip, u: profile address
-  var SOC=[{k:"linkedin",c:"li",n:"LinkedIn",m:"in",u:"https://www.linkedin.com/in/"},{k:"instagram",c:"ig",n:"Instagram",m:"IG",u:"https://www.instagram.com/"},
-    {k:"x",c:"x",n:"X",m:"X",u:"https://x.com/"},{k:"youtube",c:"yt",n:"YouTube",m:"YT",u:"https://www.youtube.com/@"},{k:"tiktok",c:"tt",n:"TikTok",m:"TT",u:"https://www.tiktok.com/@"},
-    {k:"facebook",c:"fb",n:"Facebook",m:"fb",u:"https://www.facebook.com/"},{k:"telegram",c:"tg",n:"Telegram",m:"TG",u:"https://t.me/"}];
+  var KEY="cardshare-lite-v2",OLD="cardshare-lite-card";
+  var F=["name","title","org","tel","email"],LABEL={personal:"Personal",work:"Work"};
+  // k: field name, n: name, m: letters on the chip, u: profile address the username is added to
+  var SOC=[{k:"linkedin",n:"LinkedIn",m:"in",u:"https://www.linkedin.com/in/"},{k:"instagram",n:"Instagram",m:"IG",u:"https://www.instagram.com/"},
+    {k:"x",n:"X",m:"X",u:"https://x.com/"},{k:"youtube",n:"YouTube",m:"YT",u:"https://www.youtube.com/@"},{k:"tiktok",n:"TikTok",m:"TT",u:"https://www.tiktok.com/@"},
+    {k:"facebook",n:"Facebook",m:"fb",u:"https://www.facebook.com/"},{k:"telegram",n:"Telegram",m:"TG",u:"https://t.me/"}];
+  var LK=["whatsapp"].concat(SOC.map(function(s){return s.k}),["spotify","customLabel","customUrl"]);
   function blank(){return {name:"",title:"",org:"",tel:"",email:""}}
-  function blankPage(){var p={photo:"",logo:"",logoPaid:false,intro:"",whatsapp:"",spotify:"",customLabel:"",customUrl:""};SOC.forEach(function(s){p[s.k]=""});return p}
+  function blankLinks(){var o={};LK.forEach(function(k){o[k]=""});return o}
   function copy(o){return JSON.parse(JSON.stringify(o))}
   var data=null,isNew=true;
   try{
@@ -385,18 +201,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   }catch(e){}
   if(!data)data={web:"",cards:{personal:blank(),work:blank()}};
   data.cards.personal=Object.assign(blank(),data.cards.personal);data.cards.work=Object.assign(blank(),data.cards.work);
-  data.page=Object.assign(blankPage(),data.page);
-  var draft=copy(data),editKind="personal",shareKind="personal",cardKind="personal",curView="share";
-  var linkMode=!!data.linkMode,setupPhoto="",setupLogo="",tipOn=false,session="",pending="";
-  try{session=localStorage.getItem(SKEY)||""}catch(e){}
-  // Example entries for the admin preview. The first one stands for the viewer's own page.
-  var pages=[{mine:true,status:"live",reports:0,reason:""},
-    {url:"card of Priya Nair",status:"live",reports:0,reason:""},
-    {url:"card of “Free Crypto Bonus”",status:"reported",reports:3,reason:"scam"},
-    {url:"card of Tom Okafor",status:"reported",reports:1,reason:"impersonation"},
-    {url:"card of “Win a Gift Card”",status:"suspended",reports:5,reason:"scam"}];
+  var links=blankLinks();LK.forEach(function(k){if(data.links&&typeof data.links[k]==="string")links[k]=data.links[k]});
+  data={web:data.web||"",cards:data.cards,links:links};
+  var draft=copy(data),editKind="personal",shareKind="personal",linkSel="",tipOn=false;
   var $=function(id){return document.getElementById(id)};
-  function store(){data.linkMode=linkMode;try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}}
 
   function url(w){return /^https?:/i.test(w)?w:"https://"+w}
   function esc(v){return String(v||"").replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\n/g,"\\n")}
@@ -421,250 +229,96 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       box.innerHTML='<svg viewBox="0 0 '+n+' '+n+'" shape-rendering="crispEdges" role="img" aria-label="QR code"><path fill="#15161c" d="'+d+'"/></svg>';
     }catch(e){box.textContent="That is too much text for one QR. Shorten a field."}
   }
-  function initials(n){return n.trim().split(/\s+/).slice(0,2).map(function(w){return w[0]||""}).join("").toUpperCase()}
   function select(prefix,kinds,on){kinds.forEach(function(k){$(prefix+k).setAttribute("aria-selected",String(k===on))})}
   // Accepts a bare username, an @handle or a pasted profile link, and keeps just the username.
   function handle(v){return String(v||"").trim().replace(/[?#].*$/,"").replace(/\/+$/,"").split("/").pop().replace(/^@/,"")}
   function safeUrl(v){v=String(v||"").trim();if(!v)return "";if(!/^https?:\/\//i.test(v))v="https://"+v;try{var u=new URL(v);return /^https?:$/.test(u.protocol)&&u.hostname.indexOf(".")>0?u.href:""}catch(e){return ""}}
-  function setText(id,t){$(id).textContent=t||"";$(id).hidden=!t}
-  function link(id,h){$(id).hidden=!h;if(h)$(id).href=h;else $(id).removeAttribute("href")}
-  function avatar(el,name,photo){el.textContent="";if(photo){var i=new Image();i.alt="";i.src=photo;el.append(i)}else el.textContent=initials(name)}
+  function host(u){return new URL(u).hostname.replace(/^www\./,"")}
 
-  // The card page needs no server: the details are packed into the link the QR holds, after the #,
-  // and that part of an address is never sent to the website. Photos and logos are too big to travel this way.
-  function pack(kind){
-    var c=data.cards[kind],p=data.page,o={n:c.name,t:c.title,o:c.org,p:c.tel,e:c.email,w:data.web,i:p.intro,a:p.whatsapp,sp:p.spotify,cl:p.customLabel,cu:p.customUrl};
-    SOC.forEach(function(s){o[s.c]=p[s.k]});
-    Object.keys(o).forEach(function(k){if(!o[k])delete o[k]});
-    return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  // Every link that is filled in, as something a QR can hold: id, name, chip letters, address, and the text shown under the QR.
+  function linkItems(){
+    var L=data.links,items=[],web=safeUrl(data.web);
+    if(web)items.push({id:"web",n:"Website",m:"www",url:web,show:host(web)});
+    var wa=L.whatsapp.replace(/\D/g,"");
+    if(wa)items.push({id:"whatsapp",n:"WhatsApp",m:"WA",url:"https://wa.me/"+wa,show:L.whatsapp});
+    SOC.forEach(function(s){var h=handle(L[s.k]);if(h)items.push({id:s.k,n:s.n,m:s.m,url:s.u+encodeURIComponent(h),show:"@"+h})});
+    var sp=safeUrl(L.spotify);if(sp&&/(^|\.)spotify\.com$/.test(new URL(sp).hostname))items.push({id:"spotify",n:"Spotify",m:"SP",url:sp,show:"Spotify"});
+    var cu=safeUrl(L.customUrl);if(cu)items.push({id:"custom",n:L.customLabel||host(cu),m:"\u2197",url:cu,show:host(cu)});
+    return items;
   }
-  function pageLink(kind){return location.href.split("#")[0]+"#c="+pack(kind)}
-  function unpack(hash){
-    var m=/^#c=([A-Za-z0-9_-]{8,4000})$/.exec(hash||"");if(!m)return null;
-    try{
-      var o=JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g,"+").replace(/_/g,"/")))));
-      var g=function(k){return typeof o[k]==="string"?o[k].slice(0,200):""};
-      if(!g("n").trim())return null;
-      var p=blankPage();p.intro=g("i").slice(0,120);p.whatsapp=g("a");p.spotify=g("sp");p.customLabel=g("cl").slice(0,14);p.customUrl=g("cu");
-      SOC.forEach(function(s){p[s.k]=g(s.c)});
-      return {c:{name:g("n"),title:g("t"),org:g("o"),tel:g("p"),email:g("e")},web:g("w"),p:p};
-    }catch(e){return null}
-  }
-  var visitor=unpack(location.hash);
-  function source(){
-    if(visitor)return visitor;
-    if(!data.cards[cardKind].name)cardKind=cardKind==="work"?"personal":"work";
-    return {c:data.cards[cardKind],web:data.web,p:data.page};
-  }
-
-  function renderShare(){
-    select("sk-",["personal","work","web"],shareKind);
-    $("qr-title").textContent=LABEL[shareKind];
-    var c=data.cards[shareKind],has=shareKind==="web"?!!data.web:!!(c&&c.name);
-    var live=linkMode&&shareKind!=="web"&&has;
-    $("portal").setAttribute("aria-pressed",String(linkMode));$("portal-pill").textContent=linkMode?"On":"Off";$("portal-reveal").hidden=!live;
-    $("qrbox").classList.toggle("empty",!has);$("qr").hidden=!has;$("empty-msg").hidden=has;$("empty-btn").hidden=has;
-    if(!has){
-      $("empty-msg").textContent=shareKind==="web"?"No website yet":"No "+shareKind+" card yet";
-      $("empty-btn").textContent=shareKind==="web"?"Add website":"Add "+shareKind+" card";
-      $("w-name").textContent=$("w-tel").textContent=$("w-title").textContent="";$("share-help").textContent="";return;
-    }
-    if(shareKind==="web"){
-      drawQR(url(data.web));
-      $("w-name").textContent="Opens in their browser";$("w-tel").textContent=data.web.replace(/^https?:\/\//i,"");$("w-title").textContent="";
-      $("share-help").textContent="Their camera opens your site. Nothing is saved to their contacts.";
-    }else{
-      drawQR(live?pageLink(shareKind):vcard(c,data.web));
-      $("w-name").textContent=c.name;$("w-tel").textContent=c.tel||c.email;$("w-title").textContent=[c.title,c.org].filter(Boolean).join(" · ");
-      $("share-help").textContent=live?"Their camera opens your card page, where they can save you and message you. Needs signal.":"Works with no signal. Their camera offers to add you as a contact.";
-    }
-  }
-  // Social links show as one compact row under the main buttons, and only the ones that are filled in.
-  function drawSocials(p){
-    var box=$("p-socials"),items=[];box.textContent="";
-    SOC.forEach(function(s){var h=handle(p[s.k]);if(h)items.push([s.n,s.m,s.u+encodeURIComponent(h)])});
-    var sp=safeUrl(p.spotify);if(sp&&/(^|\.)spotify\.com$/.test(new URL(sp).hostname))items.push(["Spotify","SP",sp]);
-    var cu=safeUrl(p.customUrl);if(cu)items.push([p.customLabel||new URL(cu).hostname.replace(/^www\./,""),"\u2197",cu]);
+  function drawChips(items){
+    var box=$("chips");box.textContent="";
     items.forEach(function(it){
-      var a=document.createElement("a");a.className="soc";a.href=it[2];a.target="_blank";a.rel="noopener";a.title=it[0];
-      var i=document.createElement("i");i.textContent=it[1];i.setAttribute("aria-hidden","true");
-      var sp2=document.createElement("span");sp2.textContent=it[0];a.append(i,sp2);box.append(a);
+      var b=document.createElement("button");b.type="button";b.className="chip";b.setAttribute("aria-pressed",String(it.id===linkSel));b.title=it.n;
+      var i=document.createElement("i");i.textContent=it.m;i.setAttribute("aria-hidden","true");
+      var sp=document.createElement("span");sp.textContent=it.n;b.append(i,sp);
+      b.addEventListener("click",function(){linkSel=it.id;renderShare()});
+      box.append(b);
     });
-    box.hidden=!items.length;
   }
-  function renderPublic(){
-    var src=source(),c=src.c,p=src.p;
-    avatar($("p-avatar"),c.name,p.photo);$("p-name").textContent=c.name;
-    setText("p-role",[c.title,c.org].filter(Boolean).join(" · "));setText("p-intro",p.intro);
-    var wa=(p.whatsapp||"").replace(/\D/g,""),web=safeUrl(src.web);
-    link("a-wa",wa&&"https://wa.me/"+wa+"?text="+encodeURIComponent("Hi "+c.name.trim().split(/\s+/)[0]+", I just scanned your card."));
-    link("a-web",web);if(web)$("a-web").textContent="Visit "+new URL(web).hostname.replace(/^www\./,"");
-    drawSocials(p);
-    $("save-contact").classList.toggle("primary",!wa);
-    var sus=!visitor&&pages[0].status==="suspended",rep=pages[0].reports>0;
-    $("pub-card").hidden=$("pub-foot").hidden=$("made-line").hidden=sus;$("pub-suspended").hidden=!sus;
-    $("report-line").hidden=sus||rep;$("report-done").hidden=sus||!rep;if(sus||rep)$("report-box").hidden=true;
-    brand();
+  function empty(msg,btn){
+    $("qrbox").classList.add("empty");$("qr").hidden=true;$("empty-msg").hidden=false;$("empty-btn").hidden=false;
+    $("empty-msg").textContent=msg;$("empty-btn").textContent=btn;
+    $("w-name").textContent=$("w-tel").textContent=$("w-title").textContent="";$("share-help").textContent="";
   }
-  // A paid logo takes the Cardshare logo's place at the top of the owner's own page.
-  function brand(){
-    var on=!visitor&&curView==="public"&&!!data.page.logo&&data.page.logoPaid&&pages[0].status!=="suspended";
-    $("brand-logo").hidden=!on;if(on)$("brand-logo").src=data.page.logo;$("logo").hidden=on||tipOn;
+  function renderShare(){
+    select("sk-",["personal","work","links"],shareKind);
+    $("qrbox").classList.remove("empty");$("qr").hidden=false;$("empty-msg").hidden=true;$("empty-btn").hidden=true;
+    var isLinks=shareKind==="links",items=isLinks?linkItems():[];
+    $("chips").hidden=!items.length;
+    if(isLinks){
+      $("qr-title").textContent="Links";
+      if(!items.length){empty("No links yet","Add your links");return}
+      var it=items.filter(function(x){return x.id===linkSel})[0]||items[0];linkSel=it.id;
+      drawChips(items);drawQR(it.url);
+      $("qr-title").textContent=it.n;$("w-name").textContent="Opens in their browser";$("w-tel").textContent=it.show;$("w-title").textContent="";
+      $("share-help").textContent="Their camera opens your "+(it.id==="web"?"website":it.n)+". Showing the QR needs no signal on your phone.";
+      return;
+    }
+    var c=data.cards[shareKind];
+    $("qr-title").textContent=LABEL[shareKind];
+    if(!c.name){empty("No "+shareKind+" card yet","Add "+shareKind+" card");return}
+    drawQR(vcard(c,data.web));
+    $("w-name").textContent=c.name;$("w-tel").textContent=c.tel||c.email;$("w-title").textContent=[c.title,c.org].filter(Boolean).join(" · ");
+    $("share-help").textContent="Works with no signal. Their camera offers to add you as a contact.";
   }
   function loadForm(){
     select("ek-",["personal","work"],editKind);
     F.forEach(function(k){$("f-"+k).value=draft.cards[editKind][k]||""});
     $("f-web").value=draft.web||"";
-    $("edit-note").textContent=isNew?"Add your details once, then show your QR. No sign-up; your cards stay in this browser.":"No sign-up. Your cards stay in this browser.";
+    LK.forEach(function(k){$("l-"+k).value=draft.links[k]||""});
+    $("edit-note").textContent=isNew?"Add your details once, then show your QR. No sign-up; everything stays in this browser.":"No sign-up. Everything stays in this browser.";
   }
-  function render(){renderShare();renderPublic()}
   function show(view){
-    curView=view;
-    ["edit","share","public","setup","pay","custom","signin","sent","admin"].forEach(function(v){$("view-"+v).hidden=v!==view;var t=$("tab-"+v);if(t)t.setAttribute("aria-selected",String(v===view))});
-    brand();scrollTo(0,0);
+    ["edit","share"].forEach(function(v){$("view-"+v).hidden=v!==view;$("tab-"+v).setAttribute("aria-selected",String(v===view))});
   }
   // After a save the logo gives way to the thank-you nudge for five seconds, then comes back.
-  // The owner sees it after saving their card; a visitor sees it after saving someone's contact.
-  function showTip(lead,label){
+  function showTip(){
     if(tipOn)return;
-    var t=$("tip");$("tip-lead").textContent=lead;$("tip-btn").textContent=label;tipOn=true;brand();t.classList.remove("out");t.hidden=false;
-    setTimeout(function(){t.classList.add("out");setTimeout(function(){t.hidden=true;tipOn=false;brand()},300)},5000);
+    var t=$("tip");tipOn=true;$("logo").hidden=true;t.classList.remove("out");t.hidden=false;
+    setTimeout(function(){t.classList.add("out");setTimeout(function(){t.hidden=true;$("logo").hidden=false;tipOn=false},300)},5000);
   }
   function openEdit(kind,focus){if(kind)editKind=kind;loadForm();show("edit");$(focus||"f-name").focus()}
 
-  /* set up page */
-  function drawSetupPhoto(){avatar($("s-avatar"),source().c.name||"?",setupPhoto);$("s-photo-clear").hidden=!setupPhoto}
-  function drawSetupLogo(){
-    var paid=data.page.logoPaid&&!!setupLogo;
-    $("s-logo-img").hidden=!setupLogo;$("s-logo-none").hidden=!!setupLogo;$("s-logo-clear").hidden=!setupLogo;if(setupLogo)$("s-logo-img").src=setupLogo;
-    $("s-logo-buy").hidden=!setupLogo||paid;$("s-logo-buy").textContent="Use my logo · "+LOGO_PRICE;$("s-logo-on").hidden=!paid;
-  }
-  function openSetup(){
-    var p=data.page;setupPhoto=p.photo;setupLogo=p.logo;
-    $("s-intro").value=p.intro;$("s-whatsapp").value=p.whatsapp;$("s-spotify").value=p.spotify;$("s-customlabel").value=p.customLabel;$("s-customurl").value=p.customUrl;
-    SOC.forEach(function(s){$("s-"+s.k).value=handle(p[s.k])});
-    $("acct-in").hidden=!session;$("acct-out").hidden=!!session;$("session-email").textContent=session;
-    drawSetupPhoto();drawSetupLogo();show("setup");
-  }
-  function commitSetup(){
-    var p=data.page;p.photo=setupPhoto;p.logo=setupLogo;if(!setupLogo)p.logoPaid=false;
-    p.intro=$("s-intro").value.trim();p.whatsapp=$("s-whatsapp").value.trim();p.spotify=$("s-spotify").value.trim();
-    p.customLabel=$("s-customlabel").value.trim();p.customUrl=$("s-customurl").value.trim();
-    SOC.forEach(function(s){p[s.k]=handle($("s-"+s.k).value)});
-    store();render();
-  }
-  function pickImage(input,done,draw){
-    input.addEventListener("change",function(){
-      var f=input.files&&input.files[0];if(!f)return;
-      var r=new FileReader();r.onload=function(){var im=new Image();im.onload=function(){done(draw(im))};im.src=r.result};r.readAsDataURL(f);
-    });
-  }
-  pickImage($("s-photo"),function(v){setupPhoto=v;drawSetupPhoto()},function(im){
-    var s=256,cv=document.createElement("canvas"),m=Math.min(im.width,im.height);cv.width=cv.height=s;
-    cv.getContext("2d").drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,s,s);return cv.toDataURL("image/jpeg",.82);
-  });
-  pickImage($("s-logo"),function(v){setupLogo=v;drawSetupLogo()},function(im){
-    var k=Math.min(1,480/im.width,200/im.height),cv=document.createElement("canvas");
-    cv.width=Math.max(1,Math.round(im.width*k));cv.height=Math.max(1,Math.round(im.height*k));
-    cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);return cv.toDataURL("image/png");
-  });
-  $("s-photo-clear").addEventListener("click",function(){setupPhoto="";$("s-photo").value="";drawSetupPhoto()});
-  $("s-logo-clear").addEventListener("click",function(){setupLogo="";$("s-logo").value="";drawSetupLogo()});
-  $("save-setup").addEventListener("click",function(){commitSetup();show("share")});
-  // The preview of the card page lives here now; a visitor still gets the real page by scanning the QR.
-  $("see-page").addEventListener("click",function(){commitSetup();show("public")});
-  $("pub-back").addEventListener("click",openSetup);
-  $("setup-page").addEventListener("click",openSetup);
-  document.querySelectorAll(".back-setup").forEach(function(b){b.addEventListener("click",openSetup)});
-
-  /* preview only: paying for the logo */
-  $("s-logo-buy").addEventListener("click",function(){commitSetup();$("pay-logo").src=data.page.logo;$("pay-price").textContent=LOGO_PRICE;show("pay")});
-  $("pay-go").addEventListener("click",function(){data.page.logoPaid=true;store();render();show("public")});
-
-  /* preview only: asking for a designer-built page */
-  $("custom-open").addEventListener("click",function(){commitSetup();$("custom-form").hidden=false;$("custom-done").hidden=true;$("custom-note").textContent="";show("custom")});
-  $("custom-send").addEventListener("click",function(){
-    if(!$("c-what").value.trim()){$("custom-note").textContent="Tell us what you do, so the designer knows where to start.";$("c-what").focus();return}
-    if(!/^\S+@\S+\.\S+$/.test($("c-email").value.trim())){$("custom-note").textContent="Add an email address so we can send the quote.";$("c-email").focus();return}
-    $("custom-form").hidden=true;$("custom-done").hidden=false;
-  });
-
-  /* preview only: sign-in by emailed link */
-  $("signin-open").addEventListener("click",function(){commitSetup();show("signin");$("si-email").focus()});
-  function sendLink(){
-    var v=$("si-email").value.trim();
-    if(!/^\S+@\S+\.\S+$/.test(v)){$("si-note").textContent="Enter a full email address, like you@example.com.";$("si-email").focus();return}
-    pending=v;$("sent-email").textContent=v;show("sent");
-  }
-  $("si-send").addEventListener("click",sendLink);
-  $("signin-form").addEventListener("submit",function(e){e.preventDefault();sendLink()});
-  $("open-link").addEventListener("click",function(){session=pending;try{localStorage.setItem(SKEY,session)}catch(e){}openSetup()});
-  $("si-change").addEventListener("click",function(){show("signin");$("si-email").focus()});
-  $("sign-out").addEventListener("click",function(){session="";try{localStorage.removeItem(SKEY)}catch(e){}openSetup()});
-
-  /* preview only: reports and admin */
-  function renderAdmin(){
-    var list=$("admin-list");list.textContent="";
-    pages.forEach(function(pg){
-      var row=document.createElement("div");row.className="arow";
-      var u=document.createElement("div");u.className="u";
-      var b=document.createElement("b");b.textContent=pg.mine?"card of "+(source().c.name||"you")+" (your page)":pg.url;
-      var sm=document.createElement("small");sm.textContent=pg.reports?pg.reports+(pg.reports>1?" reports":" report")+" · "+pg.reason:"No reports";
-      u.append(b,sm);
-      var st=document.createElement("span");st.className="st "+pg.status;st.textContent=pg.status[0].toUpperCase()+pg.status.slice(1);
-      var btn=document.createElement("button");btn.type="button";btn.className="btn small";btn.textContent=pg.status==="suspended"?"Restore":"Suspend";
-      btn.addEventListener("click",function(){
-        if(pg.status==="suspended"){pg.status="live";pg.reports=0;pg.reason=""}else pg.status="suspended";
-        renderAdmin();renderPublic();
-      });
-      row.append(u,st,btn);list.append(row);
-    });
-  }
-  $("report-open").addEventListener("click",function(){$("report-box").hidden=!$("report-box").hidden});
-  $("report-send").addEventListener("click",function(){var m=pages[0];m.reports++;m.reason=$("report-reason").value;if(m.status==="live")m.status="reported";renderPublic()});
-  $("admin-link").addEventListener("click",function(){commitSetup();renderAdmin();show("admin")});
-
-  /* cards and sharing */
   document.querySelectorAll("[data-view]").forEach(function(b){b.addEventListener("click",function(){show(b.dataset.view)})});
-  ["personal","work","web"].forEach(function(k){$("sk-"+k).addEventListener("click",function(){shareKind=k;if(k!=="web")cardKind=k;render()})});
+  ["personal","work","links"].forEach(function(k){$("sk-"+k).addEventListener("click",function(){shareKind=k;renderShare()})});
   ["personal","work"].forEach(function(k){$("ek-"+k).addEventListener("click",function(){editKind=k;loadForm()})});
   F.forEach(function(k){$("f-"+k).addEventListener("input",function(){draft.cards[editKind][k]=$("f-"+k).value})});
   $("f-web").addEventListener("input",function(){draft.web=$("f-web").value});
+  LK.forEach(function(k){$("l-"+k).addEventListener("input",function(){draft.links[k]=$("l-"+k).value})});
   $("card-form").addEventListener("submit",function(e){e.preventDefault()});
-  $("empty-btn").addEventListener("click",function(){shareKind==="web"?openEdit(null,"f-web"):openEdit(shareKind)});
+  $("empty-btn").addEventListener("click",function(){shareKind==="links"?openEdit(null,"f-web"):openEdit(shareKind)});
   $("save-card").addEventListener("click",function(){
     if(!draft.cards[editKind].name.trim()){$("edit-note").textContent="Add a name to your "+editKind+" card first, or switch to the other card.";$("f-name").focus();return}
     ["personal","work"].forEach(function(kd){F.forEach(function(k){draft.cards[kd][k]=(draft.cards[kd][k]||"").trim()})});
     draft.web=(draft.web||"").trim();
-    data.web=draft.web;data.cards=copy(draft.cards);isNew=false;shareKind=cardKind=editKind;
-    store();render();loadForm();show("share");
-    showTip("Saved.","Buy me a beer");
+    LK.forEach(function(k){draft.links[k]=(draft.links[k]||"").trim()});
+    SOC.forEach(function(s){draft.links[s.k]=handle(draft.links[s.k])});
+    data=copy(draft);isNew=false;if(shareKind!=="links")shareKind=editKind;
+    try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}
+    renderShare();loadForm();show("share");
+    showTip();
   });
-  $("portal").addEventListener("click",function(){linkMode=!linkMode;store();render()});
-  $("preview-page").addEventListener("click",function(){cardKind=shareKind;renderPublic();show("public")});
-  $("copy-link").addEventListener("click",function(){
-    var b=$("copy-link"),done=function(t){b.textContent=t;setTimeout(function(){b.textContent="Copy link"},1600)};
-    try{navigator.clipboard.writeText(pageLink(shareKind)).then(function(){done("Copied")},function(){done("Could not copy")})}catch(e){done("Could not copy")}
-  });
-  $("save-contact").addEventListener("click",function(){
-    var src=source(),a=document.createElement("a");
-    a.href=URL.createObjectURL(new Blob([vcard(src.c,safeUrl(src.web))],{type:"text/vcard"}));
-    a.download=(src.c.name.trim().replace(/[^\w]+/g,"-")||"contact")+".vcf";
-    document.body.appendChild(a);a.click();a.remove();
-    if(visitor){scrollTo(0,0);showTip("Contact saved.","Buy Cardshare a beer")}
-  });
-  // From someone else's card this leaves their page and opens your own. Saved cards go straight to the QR; a first-timer gets the form.
-  $("send-back").addEventListener("click",function(){
-    if(visitor){
-      visitor=null;document.documentElement.classList.remove("visitor");document.title="Cardshare";
-      try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}
-      render();
-    }
-    if(!isNew){show("share");return}
-    openEdit("personal");
-  });
-  addEventListener("hashchange",function(){if(unpack(location.hash))location.reload()});
-
   // Add to home screen: Android and desktop Chrome/Edge offer a real install prompt; iPhone and iPad have no
   // prompt, so the button shows the Share-menu steps instead. Hidden once opened from the home screen.
   var standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
@@ -680,11 +334,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     h.hidden=!h.hidden;$("install").setAttribute("aria-expanded",String(!h.hidden));
   });
   if("serviceWorker" in navigator)addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});
-
-  // Opened from someone's QR: show their card. Otherwise a first visit opens on the blank form, and after that on the QR.
-  loadForm();
-  if(visitor){document.documentElement.classList.add("visitor");document.title=visitor.c.name+" · Cardshare";renderPublic();show("public")}
-  else{render();show(isNew?"edit":"share")}
+  // First visit opens on the blank form; once cards are saved, the app always opens on the QR.
+  loadForm();renderShare();show(isNew?"edit":"share");
 })();
 </script>
 
