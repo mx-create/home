@@ -333,19 +333,27 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   // browser is ready, it waits a moment for the prompt. iPhone and iPad have no prompt, so they get the steps.
   var standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
   var ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-  var deferred=null,waiting=null;
+  var deferred=null,waiting=null,installed=false;
   if(!standalone)$("install").hidden=false;
+  // Chrome never offers to install an app that is already on the phone (removing the home-screen icon on
+  // Android leaves it in the app drawer), so say that plainly instead of a button that cannot work.
+  if(!standalone&&navigator.getInstalledRelatedApps)navigator.getInstalledRelatedApps().then(function(apps){
+    if(!apps.length)return;
+    $("install").querySelector("strong").textContent="Cardshare is on this phone";
+    $("install").querySelector("small").textContent="Open it from your home screen or app drawer";
+    installed=true;
+  }).catch(function(){});
   addEventListener("beforeinstallprompt",function(e){e.preventDefault();deferred=e;if(waiting)waiting()});
   addEventListener("appinstalled",function(){deferred=null;$("install").hidden=true;$("install-help").hidden=true});
   function askInstall(){var d=deferred;deferred=null;$("install-help").hidden=true;d.prompt();d.userChoice.catch(function(){})}
   function steps(){
     var h=$("install-help");
-    h.innerHTML=ios?"Tap <b>Share</b> in the browser bar, then <b>Add to Home Screen</b>.":"If Cardshare is already on your home screen, open it from there. Otherwise open your browser menu (<b>⋮</b> or <b>☰</b>) and choose <b>Add to Home screen</b> or <b>Install app</b>.";
+    h.innerHTML=ios?"Tap <b>Share</b> in the browser bar, then <b>Add to Home Screen</b>.":installed?"Cardshare is already installed. Open it from your home screen or app drawer. To install it again, uninstall it first: press and hold its icon, then tap <b>Uninstall</b>.":"If Cardshare is already installed, open it from your home screen or app drawer. Otherwise open your browser menu (<b>⋮</b> or <b>☰</b>) and choose <b>Add to Home screen</b> or <b>Install app</b>.";
     h.hidden=false;$("install").setAttribute("aria-expanded","true");
   }
   $("install").addEventListener("click",function(){
     if(deferred)return askInstall();
-    if(ios)return steps();
+    if(ios||installed)return steps();
     if(waiting)return;
     var label=$("install").querySelector("strong"),was=label.textContent;label.textContent="Getting ready…";
     var t=setTimeout(function(){waiting=null;label.textContent=was;steps()},3000);
