@@ -75,7 +75,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .portal i{font-style:normal}
 .reveal{background:var(--panel);border:1px dashed var(--line);border-radius:16px;padding:14px;font-size:13.5px;color:var(--ink-soft)}
 .reveal b{color:var(--ink);font-weight:600}
-/* top slot: the logo, swapped for the tip for a few seconds after the first save */
+/* top slot: the logo, swapped for the thank-you nudge for a few seconds after a save */
 .top{min-height:58px;display:flex;align-items:center;justify-content:center}
 .tip{flex:1;display:flex;align-items:center;gap:12px;padding:10px 10px 10px 16px;background:var(--panel);border:1px solid var(--lime);border-radius:999px;animation:pop .35s ease-out}
 .tip.out{animation:fade .3s ease-in forwards}
@@ -169,8 +169,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     <img class="brand" id="brand-logo" alt="Logo" hidden>
     <div class="logo" id="logo" aria-label="card share"><span>card</span><span>share</span></div>
     <div class="tip" id="tip" role="status" hidden>
-      <p><b>Saved.</b> Cardshare is free. If it helps, chip in towards hosting.</p>
-      <a class="btn small" href="https://buy.stripe.com/fZu14mbnDgVS5qx26cawo00" target="_blank" rel="noopener">Leave a tip</a>
+      <p><b id="tip-lead">Saved.</b> Cardshare is free. If it helped, say thanks.</p>
+      <a class="btn small" id="tip-btn" href="https://buy.stripe.com/fZu14mbnDgVS5qx26cawo00" target="_blank" rel="noopener">Buy me a beer</a>
     </div>
   </div>
 
@@ -232,7 +232,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     <div class="reveal" id="install-help" hidden></div>
     <a class="tipline" href="https://buy.stripe.com/fZu14mbnDgVS5qx26cawo00" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.2 3.1 4.5 6.7 4.5c2.1 0 3.6 1.1 5.3 3.1 1.7-2 3.2-3.1 5.3-3.1 3.6 0 5.8 3.7 4.3 7.2C19.5 16.4 12 21 12 21z"/></svg>
-      Free to use · <b>Leave a tip</b>
+      Free to use · <b>Buy me a beer</b>
     </a>
   </section>
 
@@ -251,7 +251,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       </div>
       <div class="socials" id="p-socials"></div>
     </div>
-    <p class="made" id="pub-foot"><button type="button" id="send-back">Send mine back</button> · <a href="https://buy.stripe.com/fZu14mbnDgVS5qx26cawo00" target="_blank" rel="noopener">Leave a tip</a></p>
+    <p class="made" id="pub-foot"><button type="button" id="send-back">Send mine back</button> · <a href="https://buy.stripe.com/fZu14mbnDgVS5qx26cawo00" target="_blank" rel="noopener">Buy Cardshare a beer</a></p>
     <p class="made" id="made-line">Made with <b>Cardshare</b></p>
     <p class="made own-only" id="report-line"><button type="button" id="report-open" class="quiet">Report this page</button></p>
     <div class="reveal stack own-only" id="report-box" hidden>
@@ -522,9 +522,11 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     ["edit","share","public","setup","pay","custom","signin","sent","admin"].forEach(function(v){$("view-"+v).hidden=v!==view;var t=$("tab-"+v);if(t)t.setAttribute("aria-selected",String(v===view))});
     brand();scrollTo(0,0);
   }
-  // After the very first save the logo gives way to the tip for five seconds, then comes back.
-  function showTip(){
-    var t=$("tip");tipOn=true;brand();t.classList.remove("out");t.hidden=false;
+  // After a save the logo gives way to the thank-you nudge for five seconds, then comes back.
+  // The owner sees it after saving their card; a visitor sees it after saving someone's contact.
+  function showTip(lead,label){
+    if(tipOn)return;
+    var t=$("tip");$("tip-lead").textContent=lead;$("tip-btn").textContent=label;tipOn=true;brand();t.classList.remove("out");t.hidden=false;
     setTimeout(function(){t.classList.add("out");setTimeout(function(){t.hidden=true;tipOn=false;brand()},300)},5000);
   }
   function openEdit(kind,focus){if(kind)editKind=kind;loadForm();show("edit");$(focus||"f-name").focus()}
@@ -630,9 +632,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     if(!draft.cards[editKind].name.trim()){$("edit-note").textContent="Add a name to your "+editKind+" card first, or switch to the other card.";$("f-name").focus();return}
     ["personal","work"].forEach(function(kd){F.forEach(function(k){draft.cards[kd][k]=(draft.cards[kd][k]||"").trim()})});
     draft.web=(draft.web||"").trim();
-    var first=isNew;data.web=draft.web;data.cards=copy(draft.cards);isNew=false;shareKind=cardKind=editKind;
+    data.web=draft.web;data.cards=copy(draft.cards);isNew=false;shareKind=cardKind=editKind;
     store();render();loadForm();show("share");
-    if(first)showTip();
+    showTip("Saved.","Buy me a beer");
   });
   $("portal").addEventListener("click",function(){linkMode=!linkMode;store();render()});
   $("preview-page").addEventListener("click",function(){cardKind=shareKind;renderPublic();show("public")});
@@ -645,6 +647,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     a.href=URL.createObjectURL(new Blob([vcard(src.c,safeUrl(src.web))],{type:"text/vcard"}));
     a.download=(src.c.name.trim().replace(/[^\w]+/g,"-")||"contact")+".vcf";
     document.body.appendChild(a);a.click();a.remove();
+    if(visitor){scrollTo(0,0);showTip("Contact saved.","Buy Cardshare a beer")}
   });
   // From someone else's card this leaves their page and opens your own. Saved cards go straight to the QR; a first-timer gets the form.
   $("send-back").addEventListener("click",function(){
