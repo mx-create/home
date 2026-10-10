@@ -17,7 +17,7 @@
 <style>
 body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-/* Layout: one phone-width column, three views behind a segmented switch, taken from the 2023 dark theme. Single dark look by design. */
+/* Layout: one phone-width column, two views behind a segmented switch, taken from the 2023 dark theme. Single dark look by design. */
 :root{
   color-scheme:dark;
   --ground:#1b1d25; --panel:#2a2c38; --panel-hi:#343644; --line:#3d4050;
@@ -120,18 +120,18 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     </div>
   </div>
 
-  <div class="seg" role="tablist" aria-label="Screens">
+  <div class="seg two" role="tablist" aria-label="Screens">
     <button role="tab" id="tab-edit" data-view="edit" aria-selected="false">My card</button>
-    <button role="tab" id="tab-links" data-view="links" aria-selected="false">Links</button>
     <button role="tab" id="tab-share" data-view="share" aria-selected="true">Share</button>
   </div>
 
-  <!-- 1. your cards -->
+  <!-- 1. your cards and links: Personal, Work and Links share one screen and one Save button -->
   <section class="view" id="view-edit" hidden>
-    <p class="eyebrow">Create your card</p>
-    <div class="seg two pick" role="tablist" aria-label="Which card">
+    <p class="eyebrow" id="edit-eyebrow">Create your card</p>
+    <div class="seg pick" role="tablist" aria-label="What to edit">
       <button role="tab" id="ek-personal" data-kind="personal" aria-selected="true">Personal</button>
       <button role="tab" id="ek-work" data-kind="work" aria-selected="false">Work</button>
+      <button role="tab" id="ek-links" data-kind="links" aria-selected="false">Links</button>
     </div>
     <form class="panel fields" id="card-form" autocomplete="off">
       <div class="field"><input id="f-name" placeholder="Your name"><label for="f-name">Name</label></div>
@@ -140,14 +140,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       <div class="field"><input id="f-tel" type="tel" inputmode="tel" placeholder="+44 7700 900123"><label for="f-tel">Mobile</label></div>
       <div class="field"><input id="f-email" type="email" inputmode="email" placeholder="you@example.com"><label for="f-email">Email</label></div>
     </form>
-    <button class="btn primary" id="save-card" type="button">Save</button>
-    <p class="note" id="edit-note"></p>
-  </section>
-
-  <!-- 2. your links, kept in one place for both cards -->
-  <section class="view" id="view-links" hidden>
-    <p class="eyebrow">Your links</p>
-    <div class="panel fields" id="link-form">
+    <div class="panel fields" id="link-form" hidden>
       <div class="field"><input id="f-web" inputmode="url" placeholder="yoursite.com" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="f-web">Website</label></div>
       <div class="field"><input id="l-whatsapp" type="tel" inputmode="tel" placeholder="+44 7700 900123" autocomplete="off"><label for="l-whatsapp">WhatsApp</label></div>
       <div class="field"><input id="l-linkedin" placeholder="username" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="l-linkedin">LinkedIn</label></div>
@@ -161,11 +154,11 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
       <div class="field"><input id="l-customLabel" placeholder="e.g. Bookings" autocomplete="off" maxlength="14"><label for="l-customLabel">Link name</label></div>
       <div class="field"><input id="l-customUrl" placeholder="yoursite.com/book" autocomplete="off" autocapitalize="off" spellcheck="false"><label for="l-customUrl">Link</label></div>
     </div>
-    <button class="btn primary" id="save-links" type="button">Save</button>
-    <p class="note">Each link gets its own QR on the Share tab. Usernames only, except Spotify and your own link, which take a pasted link.</p>
+    <button class="btn primary" id="save-card" type="button">Save</button>
+    <p class="note" id="edit-note"></p>
   </section>
 
-  <!-- 3. show a QR: a contact card, or one of your links -->
+  <!-- 2. show a QR: a contact card, or one of your links -->
   <section class="view" id="view-share">
     <div class="panel qrcard">
       <h2 id="qr-title">Personal</h2>
@@ -308,14 +301,18 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     $("share-help").textContent="Works with no signal. Their camera offers to add you as a contact.";
   }
   function loadForm(){
-    select("ek-",["personal","work"],editKind);
-    F.forEach(function(k){$("f-"+k).value=draft.cards[editKind][k]||""});
+    var onLinks=editKind==="links";
+    select("ek-",["personal","work","links"],editKind);
+    $("card-form").hidden=onLinks;$("link-form").hidden=!onLinks;
+    $("edit-eyebrow").textContent=onLinks?"Add your links":"Create your card";
+    if(!onLinks)F.forEach(function(k){$("f-"+k).value=draft.cards[editKind][k]||""});
     $("f-web").value=draft.web||"";
     LK.forEach(function(k){$("l-"+k).value=draft.links[k]||""});
-    $("edit-note").textContent=isNew?"Add your details once, then show your QR. No sign-up; everything stays in this browser.":"No sign-up. Everything stays in this browser.";
+    $("edit-note").textContent=onLinks?"Each link gets its own QR on the Share tab. Usernames only, except Spotify and your own link, which take a pasted link."
+      :isNew?"Add your details once, then show your QR. No sign-up; everything stays in this browser.":"No sign-up. Everything stays in this browser.";
   }
   function show(view){
-    ["edit","links","share"].forEach(function(v){$("view-"+v).hidden=v!==view;$("tab-"+v).setAttribute("aria-selected",String(v===view))});
+    ["edit","share"].forEach(function(v){$("view-"+v).hidden=v!==view;$("tab-"+v).setAttribute("aria-selected",String(v===view))});
   }
   // After a save the logo gives way to the thank-you nudge for five seconds, then comes back.
   function showTip(){
@@ -323,7 +320,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     var t=$("tip");tipOn=true;$("logo").hidden=true;t.classList.remove("out");t.hidden=false;
     setTimeout(function(){t.classList.add("out");setTimeout(function(){t.hidden=true;$("logo").hidden=false;tipOn=false},300)},5000);
   }
-  function openLinks(focus){loadForm();show("links");if(focus)$(focus).focus()}
+  function openLinks(focus){editKind="links";loadForm();show("edit");if(focus)$(focus).focus()}
   function openPicker(){var d=$("picker");if(d.showModal)d.showModal();else d.setAttribute("open","")}
   function closePicker(){var d=$("picker");if(d.close)d.close();else d.removeAttribute("open")}
   function cleanLinks(){
@@ -340,13 +337,14 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   $("sk-links").addEventListener("click",function(){shareKind="links";renderShare();if(linkItems().length>1)openPicker()});
   $("picker").addEventListener("click",function(e){if(e.target===$("picker"))closePicker()});
   $("picker-edit").addEventListener("click",function(){closePicker();openLinks()});
-  ["personal","work"].forEach(function(k){$("ek-"+k).addEventListener("click",function(){editKind=k;loadForm()})});
+  ["personal","work","links"].forEach(function(k){$("ek-"+k).addEventListener("click",function(){editKind=k;loadForm()})});
   F.forEach(function(k){$("f-"+k).addEventListener("input",function(){draft.cards[editKind][k]=$("f-"+k).value})});
   $("f-web").addEventListener("input",function(){draft.web=$("f-web").value});
   LK.forEach(function(k){$("l-"+k).addEventListener("input",function(){draft.links[k]=$("l-"+k).value})});
   $("card-form").addEventListener("submit",function(e){e.preventDefault()});
   $("empty-btn").addEventListener("click",function(){shareKind==="links"?openLinks("f-web"):openEdit(shareKind)});
   $("save-card").addEventListener("click",function(){
+    if(editKind==="links"){saveLinks();return}
     if(!draft.cards[editKind].name.trim()){$("edit-note").textContent="Add a name to your "+editKind+" card first, or switch to the other card.";$("f-name").focus();return}
     ["personal","work"].forEach(function(kd){F.forEach(function(k){draft.cards[kd][k]=(draft.cards[kd][k]||"").trim()})});
     cleanLinks();data=copy(draft);isNew=false;shareKind=editKind;
@@ -354,11 +352,11 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     showTip();
   });
   // Links save on their own, so they can be changed without touching a card.
-  $("save-links").addEventListener("click",function(){
+  function saveLinks(){
     cleanLinks();data.web=draft.web;data.links=copy(draft.links);shareKind="links";
     store();renderShare();loadForm();show("share");
     showTip();
-  });
+  }
   // Add to home screen: Android and desktop Chrome/Edge offer a real install prompt; iPhone and iPad have no
   // prompt, so the button shows the Share-menu steps instead. Hidden once opened from the home screen.
   var standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
