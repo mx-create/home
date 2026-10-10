@@ -185,20 +185,16 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 (function(){
   var KEY="cardshare-lite-v2",OLD="cardshare-lite-card";
   var F=["name","title","org","tel","email"],LABEL={personal:"Personal",work:"Work",web:"Website"};
-  // Example cards, shown until the viewer saves their own. Numbers are from the UK range reserved for fiction.
-  var EXAMPLE={web:"vermastudio.example",cards:{
-    personal:{name:"Asha Verma",title:"",org:"",tel:"+44 7700 900123",email:"asha@example.com"},
-    work:{name:"Asha Verma",title:"Wedding photographer",org:"Verma Studio",tel:"+44 7700 900456",email:"hello@vermastudio.example"}}};
   function blank(){return {name:"",title:"",org:"",tel:"",email:""}}
   function copy(o){return JSON.parse(JSON.stringify(o))}
-  var data=null,isExample=true;
+  var data=null,isNew=true;
   try{
     var s=JSON.parse(localStorage.getItem(KEY)||"null");
-    if(s&&s.cards){data=s;isExample=false}
+    if(s&&s.cards){data=s;isNew=false}
     else{var o=JSON.parse(localStorage.getItem(OLD)||"null");
-      if(o&&o.name){data={web:o.web||"",cards:{personal:Object.assign(blank(),o),work:blank()}};isExample=false}}
+      if(o&&o.name){data={web:o.web||"",cards:{personal:Object.assign(blank(),o),work:blank()}};isNew=false}}
   }catch(e){}
-  if(!data)data=copy(EXAMPLE);
+  if(!data)data={web:"",cards:{personal:blank(),work:blank()}};
   data.cards.personal=Object.assign(blank(),data.cards.personal);data.cards.work=Object.assign(blank(),data.cards.work);
   var draft=copy(data),editKind="personal",shareKind="personal",cardKind="personal";
   var $=function(id){return document.getElementById(id)};
@@ -274,7 +270,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     select("ek-",["personal","work"],editKind);
     F.forEach(function(k){$("f-"+k).value=draft.cards[editKind][k]||""});
     $("f-web").value=draft.web||"";
-    $("edit-note").textContent=isExample?"These are example cards. Change them to yours and save. No sign-up; they stay in this browser.":"No sign-up. Your cards stay in this browser.";
+    $("edit-note").textContent=isNew?"Add your details once, then show your QR. No sign-up; your cards stay in this browser.":"No sign-up. Your cards stay in this browser.";
   }
   function render(){renderShare();renderPublic()}
   function show(view){
@@ -293,7 +289,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     if(!draft.cards[editKind].name.trim()){$("edit-note").textContent="Add a name to your "+editKind+" card first, or switch to the other card.";$("f-name").focus();return}
     ["personal","work"].forEach(function(kd){F.forEach(function(k){draft.cards[kd][k]=(draft.cards[kd][k]||"").trim()})});
     draft.web=(draft.web||"").trim();
-    data=copy(draft);isExample=false;shareKind=cardKind=editKind;
+    data=copy(draft);isNew=false;shareKind=cardKind=editKind;
     try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}
     $("tip").hidden=false;render();loadForm();show("share");
   });
@@ -304,12 +300,10 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     a.download=(c.name.trim().replace(/[^\w]+/g,"-")||"contact")+".vcf";
     document.body.appendChild(a);a.click();a.remove();
   });
-  // Someone with saved cards goes straight to their QR; a first-timer gets a blank form.
+  // Someone with saved cards goes straight to their QR; a first-timer gets the form.
   $("send-back").addEventListener("click",function(){
-    if(!isExample){show("share");return}
-    draft={web:"",cards:{personal:blank(),work:blank()}};
+    if(!isNew){show("share");return}
     openEdit("personal");
-    $("edit-note").textContent="Add your details once. Then show your QR back.";
   });
   // Add to home screen: Android and desktop Chrome/Edge offer a real install prompt; iPhone and iPad have no
   // prompt, so the button shows the Share-menu steps instead. Hidden once opened from the home screen.
@@ -326,7 +320,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
     h.hidden=!h.hidden;$("install").setAttribute("aria-expanded",String(!h.hidden));
   });
   if("serviceWorker" in navigator)addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});
-  loadForm();render();
+  // First visit opens on the blank form; once cards are saved, the app always opens on the QR.
+  loadForm();render();show(isNew?"edit":"share");
 })();
 </script>
 </body>
