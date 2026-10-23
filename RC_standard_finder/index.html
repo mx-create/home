@@ -100,6 +100,34 @@ td.series{font:700 14px var(--f-mono)}
 .dk{font:600 12px var(--f-ui);color:var(--mask);text-decoration:none;border-bottom:1px solid currentColor;justify-self:start;margin-top:4px}
 .dk:hover{color:var(--copper)}
 td .dk{margin:0;font-size:11.5px}
+.opts{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:end}
+.field{display:grid;gap:6px;min-width:0}
+@media (max-width:640px){
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .f-series{grid-column:1/-1}
+  .chips{display:grid;grid-template-columns:repeat(5,1fr)}
+  .chip{text-align:center;padding:8px 0}
+  .field select{width:100%}
+  .controls{padding:14px}
+  .seg{width:100%}.seg button{flex:1;text-align:center}
+  .card .big{font-size:22px}
+  table{min-width:0}
+  thead{display:none}
+  tbody tr{display:grid;grid-template-columns:66px minmax(0,1fr) auto;grid-template-areas:"s n e" "t b a" "g g g" "c c k";gap:4px 10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  tbody tr:last-child{border-bottom:0}
+  td{padding:0;border:0;white-space:normal}
+  td.c-s{grid-area:s}td.c-t{grid-area:t;font-size:12px;color:var(--muted)}td.c-n{grid-area:n}td.c-e{grid-area:e;text-align:right}
+  td.c-b{grid-area:b;font-size:12.5px}td.c-a{grid-area:a;font-size:12.5px;text-align:right}
+  td.c-g{grid-area:g}td.c-c{grid-area:c;font-size:12.5px;color:var(--muted)}td.c-k{grid-area:k;text-align:right}
+  td[data-l]::before{content:attr(data-l);font:600 10px var(--f-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:6px}
+  tbody tr.sel td:first-child{box-shadow:none}
+  tbody tr.sel{box-shadow:inset 3px 0 0 var(--mask)}
+  .ladder{padding:12px}
+  .lrow,.axis{grid-template-columns:40px minmax(0,1fr)}
+  .dlabel{font-size:10px}
+  .pct{display:none}
+  .foot{font-size:12px}
+}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:6px 12px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
@@ -126,14 +154,12 @@ td .dk{margin:0;font-size:11.5px}
       </div>
     </div>
     <div class="reading" id="reading"></div>
-    <div class="row" style="justify-content:space-between">
-      <div class="row" style="gap:8px"><span class="label">Target series</span><div class="chips" id="chips"></div>
-        <label class="label" for="tol" style="margin-left:6px">Tolerance</label>
-        <select id="tol"><option value="">Series default</option><option value="0.05">±5%</option><option value="0.02">±2%</option><option value="0.01" selected>±1%</option><option value="0.005">±0.5%</option><option value="0.0025">±0.25%</option><option value="0.001">±0.1%</option></select>
-        <label class="label" for="pkg" style="margin-left:6px">Package</label>
-        <select id="pkg"><option value="">Any</option><option>0201</option><option selected>0402</option><option>0603</option><option>0805</option><option>1206</option><option>Through hole</option></select></div>
-      <div class="row" style="gap:10px"><span class="label">Try</span><span id="presets" class="row" style="gap:10px"></span></div>
+    <div class="opts">
+      <div class="field f-series"><span class="label">Target series</span><div class="chips" id="chips"></div></div>
+      <div class="field"><label class="label" for="tol">Tolerance</label><select id="tol"><option value="">Series default</option><option value="0.05">±5%</option><option value="0.02">±2%</option><option value="0.01" selected>±1%</option><option value="0.005">±0.5%</option><option value="0.0025">±0.25%</option><option value="0.001">±0.1%</option></select></div>
+      <div class="field"><label class="label" for="pkg">Package</label><select id="pkg"><option value="">Any</option><option>0201</option><option selected>0402</option><option>0603</option><option>0805</option><option>1206</option><option>Through hole</option></select></div>
     </div>
+    <div class="row" style="gap:10px"><span class="label">Try</span><span id="presets" class="row" style="gap:10px"></span></div>
   </section>
 
   <section class="cards" id="cards" aria-label="Answer"></section>
@@ -305,10 +331,10 @@ function render(){
 
   // Table
   $('tbody').innerHTML=SERIES.map(s=>{const r=R[s];return`<tr class="${s===sel?'sel':''}" data-s="${s}" tabindex="0">
-    <td class="series">${s}</td><td class="num">${TOLTXT[s]}</td>
-    <td class="num"><b>${fmt(r.near,mode)}</b></td><td>${errHtml(r.near,x)}</td>
-    <td class="num"><span class="nb">${fmt(r.below,mode)}</span></td><td class="num"><span class="nb">${fmt(r.above,mode)}</span></td>
-    <td>${tagsHtml(r.near,sel)}</td><td class="num">${mode==='res'?resCode(r.near):capCode(r.near)}</td><td>${dk(r.near)}</td></tr>`}).join('');
+    <td class="series c-s">${s}</td><td class="num c-t">${TOLTXT[s]}</td>
+    <td class="num c-n"><b>${fmt(r.near,mode)}</b></td><td class="c-e">${errHtml(r.near,x)}</td>
+    <td class="num c-b" data-l="↓"><span class="nb">${fmt(r.below,mode)}</span></td><td class="num c-a" data-l="↑"><span class="nb">${fmt(r.above,mode)}</span></td>
+    <td class="c-g">${tagsHtml(r.near,sel)}</td><td class="num c-c" data-l="Code">${mode==='res'?resCode(r.near):capCode(r.near)}</td><td class="c-k">${dk(r.near)}</td></tr>`}).join('');
 
   // Ladder
   const lo=x/1.2,hi=x*1.2,L0=Math.log(lo),span=Math.log(hi)-L0;
@@ -326,7 +352,7 @@ function render(){
     if(r.near>hi)dots+=`<span class="edge" style="right:0">${fmt(r.near,mode)} →</span>`;
     html+=`<div class="lrow ${s===sel?'sel':''}"><span class="nm">${s}</span><div class="track"><span class="band" style="left:${bl}%;width:${bh-bl}%"></span><span class="tgt" style="left:50%"></span>${dots}</div></div>`;
   }
-  html+=`<div class="axis"><span></span><div><span>${fmt(lo,mode)} (−17%)</span><span>${fmt(x,mode)}</span><span>${fmt(hi,mode)} (+20%)</span></div></div>`;
+  html+=`<div class="axis"><span></span><div><span>${fmt(lo,mode)}<span class="pct"> (−17%)</span></span><span>${fmt(x,mode)}</span><span>${fmt(hi,mode)}<span class="pct"> (+20%)</span></span></div></div>`;
   $('ladder').innerHTML=html;
 
   $('foot').textContent=mode==='res'
