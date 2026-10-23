@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RC Standard Finder</title>
+<meta name="description" content="Find the nearest E12–E192 standard resistor and capacitor values, with SMD codes and DigiKey search links.">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+/* Layout: one working column — input bar, three answer cards, series table, log-scale ladder. Solder-mask green + copper. */
+:root{
+  --bg:#f3f5f2; --panel:#ffffff; --fg:#17201b; --muted:#5d6a62; --line:#d9dfd9;
+  --mask:#1d6b47; --mask-soft:#e1efe6; --copper:#b4642a; --copper-soft:#f6e8dc;
+  --good:#1d6b47; --warn:#a2560f;
+  --f-ui:"Archivo",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1512; --panel:#16201b; --fg:#e4ebe6; --muted:#93a39a; --line:#2a3631;
+  --mask:#4fbf87; --mask-soft:#1b3227; --copper:#e39a5f; --copper-soft:#3a2819;
+  --good:#4fbf87; --warn:#e9a65c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1512; --panel:#16201b; --fg:#e4ebe6; --muted:#93a39a; --line:#2a3631;
+  --mask:#4fbf87; --mask-soft:#1b3227; --copper:#e39a5f; --copper-soft:#3a2819;
+  --good:#4fbf87; --warn:#e9a65c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-ui);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:920px;margin:0 auto;display:grid;gap:22px}
+h1{font-size:26px;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--mask)}
+.sub{color:var(--muted);margin:2px 0 0;font-size:14px}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+.controls{display:grid;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{all:unset;cursor:pointer;padding:7px 14px;font-weight:600;font-size:14px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--mask);color:var(--panel)}
+.seg button:focus-visible,.chip:focus-visible,.preset:focus-visible,input:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+.inputbox{display:flex;gap:8px;flex:1 1 260px;min-width:0}
+#val{flex:1;min-width:0;font:600 22px var(--f-mono);padding:8px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+#val:focus{border-color:var(--mask);outline:none}
+select{font:500 14px var(--f-ui);padding:8px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+.reading{font-size:13px;color:var(--muted)} .reading b{color:var(--fg);font-family:var(--f-mono)}
+.reading.err b{color:var(--warn)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{all:unset;cursor:pointer;font:600 13px var(--f-mono);padding:5px 10px;border-radius:6px;border:1px solid var(--line);color:var(--fg)}
+.chip[aria-pressed="true"]{border-color:var(--mask);background:var(--mask-soft);color:var(--mask)}
+.preset{all:unset;cursor:pointer;font:500 12px var(--f-mono);color:var(--muted);border-bottom:1px dashed var(--line)}
+.preset:hover{color:var(--fg)}
+
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:720px){.cards{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:4px;align-content:start}
+.card.primary{border-color:var(--mask);box-shadow:inset 0 3px 0 var(--mask)}
+.card .big{font:700 26px var(--f-mono);letter-spacing:-.02em;cursor:copy}
+.card .meta{font-size:13px;color:var(--muted)}
+.card .note{font-size:12.5px;color:var(--muted);margin-top:4px}
+.err-pos,.err-neg{font-family:var(--f-mono);font-weight:600}
+.ok{color:var(--good)} .out{color:var(--warn)}
+
+.tags{display:inline-flex;flex-wrap:wrap;gap:4px}
+.tag{font:600 10.5px var(--f-mono);padding:1px 5px;border-radius:4px;border:1px solid var(--line);color:var(--muted)}
+.tag.sel{border-color:var(--mask);color:var(--mask)}
+.tag.ov{background:var(--copper-soft);border-color:var(--copper);color:var(--copper)}
+
+.tablewrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--mask-soft)}
+tbody tr.sel{background:var(--mask-soft)}
+tbody tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--mask)}
+tbody tr:last-child td{border-bottom:0}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+td .nb{color:var(--muted)}
+td.series{font:700 14px var(--f-mono)}
+
+.ladder{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:4px}
+.lrow{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;height:34px}
+.lrow .nm{font:600 12px var(--f-mono);color:var(--muted)}
+.lrow.sel .nm{color:var(--mask)}
+.track{position:relative;height:100%;border-bottom:1px dashed var(--line)}
+.band{position:absolute;top:0;bottom:0;background:var(--mask-soft);opacity:.8}
+.tgt{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--copper);transform:translateX(-1px)}
+.dot{position:absolute;bottom:-4px;width:8px;height:8px;border-radius:50%;background:var(--muted);transform:translateX(-50%)}
+.dot.ov{background:var(--panel);border:2px solid var(--copper)}
+.dot.near{background:var(--mask);width:11px;height:11px;bottom:-5.5px}
+.dot.near.ov{border-color:var(--copper);background:var(--mask)}
+.dlabel{position:absolute;bottom:8px;transform:translateX(-50%);font:600 11px var(--f-mono);color:var(--fg);white-space:nowrap}
+.edge{position:absolute;bottom:4px;font:500 11px var(--f-mono);color:var(--muted);white-space:nowrap}
+.axis{margin-top:10px;display:grid;grid-template-columns:48px minmax(0,1fr);font:500 11px var(--f-mono);color:var(--muted)}
+.axis div{display:flex;justify-content:space-between}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;vertical-align:middle;margin-right:5px}
+.foot{font-size:12.5px;color:var(--muted);max-width:70ch}
+.dk{font:600 12px var(--f-ui);color:var(--mask);text-decoration:none;border-bottom:1px solid currentColor;justify-self:start;margin-top:4px}
+.dk:hover{color:var(--copper)}
+td .dk{margin:0;font-size:11.5px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:6px 12px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>RC Standard <span>Finder</span></h1>
+    <p class="sub">Type a value. Get the nearest preferred value in every series, and the one you can actually buy.</p>
+  </header>
+
+  <section class="controls" aria-label="Input">
+    <div class="row">
+      <div class="seg" role="group" aria-label="Component">
+        <button id="mRes" aria-pressed="true">Resistor</button>
+        <button id="mCap" aria-pressed="false">Capacitor</button>
+      </div>
+      <div class="inputbox">
+        <input id="val" autocomplete="off" spellcheck="false" inputmode="text" aria-label="Value">
+        <select id="capUnit" aria-label="Unit for plain numbers" hidden>
+          <option value="1e-12">pF</option><option value="1e-9" selected>nF</option><option value="1e-6">µF</option>
+        </select>
+      </div>
+    </div>
+    <div class="reading" id="reading"></div>
+    <div class="row" style="justify-content:space-between">
+      <div class="row" style="gap:8px"><span class="label">Target series</span><div class="chips" id="chips"></div>
+        <label class="label" for="tol" style="margin-left:6px">Tolerance</label>
+        <select id="tol"><option value="">Series default</option><option value="0.05">±5%</option><option value="0.02">±2%</option><option value="0.01" selected>±1%</option><option value="0.005">±0.5%</option><option value="0.0025">±0.25%</option><option value="0.001">±0.1%</option></select>
+        <label class="label" for="pkg" style="margin-left:6px">Package</label>
+        <select id="pkg"><option value="">Any</option><option>0201</option><option selected>0402</option><option>0603</option><option>0805</option><option>1206</option><option>Through hole</option></select></div>
+      <div class="row" style="gap:10px"><span class="label">Try</span><span id="presets" class="row" style="gap:10px"></span></div>
+    </div>
+  </section>
+
+  <section class="cards" id="cards" aria-label="Answer"></section>
+
+  <section class="tablewrap" aria-label="All series">
+    <table>
+      <thead><tr><th>Series</th><th>Tol.</th><th>Nearest</th><th>Error</th><th>Below</th><th>Above</th><th>Nearest also in</th><th id="codeHead">SMD code</th><th>Buy</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </section>
+
+  <section class="ladder" aria-label="Neighbourhood">
+    <div class="row" style="justify-content:space-between"><span class="label">Neighbourhood, log scale ±20%</span><span class="label" id="bandLbl"></span></div>
+    <div id="ladder"></div>
+    <div class="legend">
+      <span><i class="tgt" style="position:static;display:inline-block;width:2px;height:12px"></i>Your value</span>
+      <span><i style="width:10px;height:10px;border-radius:50%;background:var(--mask)"></i>Nearest in that series</span>
+      <span id="ovLegend"><i style="width:9px;height:9px;border-radius:50%;border:2px solid var(--copper)"></i>In both E24 and E96</span>
+      <span><i style="width:14px;height:10px;background:var(--mask-soft)"></i>Within target-series tolerance</span>
+    </div>
+  </section>
+
+  <p class="foot" id="foot"></p>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const SERIES=['E12','E24','E48','E96','E192'];
+const TOL={E3:0.4,E6:0.2,E12:0.1,E24:0.05,E48:0.02,E96:0.01,E192:0.005};
+const TOLTXT={E3:'>±20%',E6:'±20%',E12:'±10%',E24:'±5%',E48:'±2%',E96:'±1%',E192:'±0.5–0.1%'};
+const tolOf=s=>{const o=parseFloat($('tol').value);return o>0?o:TOL[s]};
+const tolTxt=s=>{const o=parseFloat($('tol').value);return o>0?'±'+parseFloat((o*100).toPrecision(3))+'%':(s==='E192'?'±0.5%':TOLTXT[s])};
+const base={
+  E3:[10,22,47],E6:[10,15,22,33,47,68],E12:[10,12,15,18,22,27,33,39,47,56,68,82],
+  E24:[10,11,12,13,15,16,18,20,22,24,27,30,33,36,39,43,47,51,56,62,68,75,82,91]};
+const E192=[];for(let i=0;i<192;i++){let m=Math.round(100*Math.pow(10,i/192));if(m===919)m=920;E192.push(m)}
+const LISTS={E3:base.E3.map(x=>x*10),E6:base.E6.map(x=>x*10),E12:base.E12.map(x=>x*10),E24:base.E24.map(x=>x*10),
+  E48:E192.filter((_,i)=>i%4===0),E96:E192.filter((_,i)=>i%2===0),E192};
+const OVERLAP=LISTS.E24.filter(m=>LISTS.E96.includes(m)); // 100,110,130,150,200,750
+LISTS.OV=OVERLAP;
+const SETS={};for(const k in LISTS)SETS[k]=new Set(LISTS[k]);
+const E96IDX=new Map(LISTS.E96.map((m,i)=>[m,String(i+1).padStart(2,'0')]));
+
+const state={mode:'res',sel:{res:'E96',cap:'E12'},val:{res:'10.4k',cap:'3.9n'}};
+const PRESETS={res:['10.4k','4k7','330R','2.49k','1M2','0R22'],cap:['100n','4u7','22p','3.3n','68u','150p']};
+
+const $=id=>document.getElementById(id);
+const clean=n=>Number(n.toPrecision(12));
+
+function parse(raw,mode){
+  let s=raw.trim().replace(/\s+/g,'').replace(/Ω|[oO]hms?/g,'').replace(/[µμ]/g,'u');
+  if(mode==='cap')s=s.replace(/[Ff]$/,'');
+  const m=s.match(/^(\d*)(?:[.,](\d*))?([pnumkKMGRr])?(\d*)$/);
+  if(!m)return null;
+  const [,ip,fp,L,tr]=m;
+  if(fp!==undefined&&tr)return null;
+  if(!ip&&!fp&&!tr)return null;
+  const MULT={p:1e-12,n:1e-9,u:1e-6,m:1e-3,k:1e3,K:1e3,M:1e6,G:1e9,R:1,r:1};
+  let mult;
+  if(!L)mult=mode==='cap'?parseFloat($('capUnit').value):1;
+  else{
+    if(mode==='cap'&&'kKMGRr'.includes(L))return null;
+    mult=MULT[L];
+  }
+  const v=parseFloat((ip||'0')+'.'+(fp||tr||'0'))*mult;
+  return v>0&&isFinite(v)?clean(v):null;
+}
+
+function fmt(v,mode){
+  const U=mode==='res'
+    ?[[1e9,'GΩ'],[1e6,'MΩ'],[1e3,'kΩ'],[1,'Ω'],[1e-3,'mΩ']]
+    :[[1,'F'],[1e-6,'µF'],[1e-9,'nF'],[1e-12,'pF']];
+  let u=U[U.length-1];
+  for(const x of U){if(v>=x[0]*0.999999){u=x;break}}
+  return parseFloat((v/u[0]).toPrecision(3))+' '+u[1];
+}
+function mant(v){let e=Math.floor(Math.log10(v)+1e-9);let m=Math.round(v/Math.pow(10,e-2));if(m>=1000){m=Math.round(m/10);e++}return{m,e}}
+function members(v){const {m}=mant(v);return SERIES.filter(s=>SETS[s].has(m))}
+
+function neighbours(list,x){
+  const d=Math.floor(Math.log10(x));const c=[];
+  for(let k=d-2;k<=d+2;k++)for(const m of list)c.push(clean(m*Math.pow(10,k-2)));
+  c.sort((a,b)=>a-b);
+  let below=null,above=null;
+  for(const v of c){if(v<=x*(1+1e-9))below=v;if(above===null&&v>=x*(1-1e-9))above=v}
+  const near=Math.abs(Math.log(below/x))<=Math.abs(Math.log(above/x))?below:above;
+  return{below,above,near,all:c};
+}
+const errPct=(v,x)=>(v-x)/x*100;
+function errHtml(v,x){const e=errPct(v,x);if(Math.abs(e)<0.0005)return'<span class="err-pos ok">exact</span>';return`<span class="${e>0?'err-pos':'err-neg'}">${e>0?'+':'−'}${Math.abs(e).toFixed(2)}%</span>`}
+function tagsHtml(v,sel){
+  const ms=members(v);const ov=SETS.E24.has(mant(v).m)&&SETS.E96.has(mant(v).m);
+  return '<span class="tags">'+ms.map(s=>`<span class="tag ${s===sel?'sel':''}">${s}</span>`).join('')+(ov&&state.mode==='res'?'<span class="tag ov">E24∩E96</span>':'')+'</span>';
+}
+
+function resCode(v){
+  const {m,e}=mant(v);const out=[];
+  if(m%10===0){const two=String(m/10);
+    if(e>=1)out.push(two+(e-1));else if(e===0)out.push(two[0]+'R'+two[1]);else if(e===-1)out.push('R'+two);}
+  const L={'-3':'Z','-2':'Y','-1':'X','0':'A','1':'B','2':'C','3':'D','4':'E','5':'F'}[e-2];
+  if(E96IDX.has(m)&&L)out.push(E96IDX.get(m)+L);
+  if(!out.length&&e-2>=0)out.push(String(m)+(e-2));
+  return out.join(' · ')||'—';
+}
+function capCode(v){
+  const p=v*1e12;const {m,e}=mant(p);
+  if(m%10!==0)return'—';const two=String(m/10);
+  if(e>=1)return two+(e-1);if(e===0)return two[0]+'R'+two[1];return'—';
+}
+
+function dkUrl(v){
+  const mode=state.mode,sel=state.sel[mode];
+  let val=fmt(v,mode).replace('\u2009','').replace('Ω',' Ohm').replace('µ','u');
+  const parts=[val];
+  if(mode==='res')parts.push(tolTxt(sel).replace('±','').replace(/–.*%/,'%'));
+  if($('pkg').value)parts.push($('pkg').value);
+  parts.push(mode==='res'?'resistor':'capacitor');
+  return 'https://www.digikey.co.uk/en/products/result?keywords='+encodeURIComponent(parts.join(' '));
+}
+const dk=(v,txt)=>`<a class="dk" href="${dkUrl(v)}" target="_blank" rel="noopener">${txt||'DigiKey ↗'}</a>`;
+function copy(text){
+  const t=$('toast');
+  const done=()=>{t.textContent='Copied '+text;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1200)};
+  try{navigator.clipboard.writeText(text).then(done,()=>{})}catch(e){}
+}
+
+function render(){
+  const mode=state.mode,sel=state.sel[mode];
+  $('mRes').setAttribute('aria-pressed',mode==='res');$('mCap').setAttribute('aria-pressed',mode==='cap');
+  $('capUnit').hidden=mode!=='cap';
+  $('codeHead').textContent=mode==='res'?'SMD code':'Cap code';
+  $('ovLegend').hidden=mode!=='res';
+  $('chips').innerHTML=SERIES.map(s=>`<button class="chip" aria-pressed="${s===sel}" data-s="${s}">${s}</button>`).join('');
+  $('presets').innerHTML=PRESETS[mode].map(p=>`<button class="preset" data-p="${p}">${p}</button>`).join('');
+
+  const x=parse($('val').value,mode);
+  const rd=$('reading');
+  if(x===null){
+    rd.className='reading err';
+    rd.innerHTML=$('val').value.trim()?`<b>Can't read that.</b> Try forms like ${mode==='res'?'4k7, 4.7k, 470R, 0R22, 1M2':'100n, 4u7, 2.2µF, 22pF, 4n7'}.`:'Enter a value to start.';
+    $('cards').innerHTML='';$('tbody').innerHTML='';$('ladder').innerHTML='';return;
+  }
+  rd.className='reading';rd.innerHTML=`Reading as <b>${fmt(x,mode)}</b>`+(mode==='res'&&/m/.test($('val').value)?' (lower-case m = milli, use M for meg)':'');
+
+  const R={};for(const s of SERIES)R[s]=neighbours(LISTS[s],x);
+  const t=tolOf(sel);
+
+  // Cards
+  const p=R[sel].near;
+  const stockS=mode==='res'?'E24':'E12';
+  const stock=R[stockS].near;
+  const thirdS=mode==='res'?'OV':'E24';
+  const third=neighbours(LISTS[thirdS],x).near;
+  const within=v=>Math.abs(errPct(v,x))<=t*100+1e-9;
+  const inBand=v=>`<span class="${within(v)?'ok':'out'}">${within(v)?'within':'outside'} ${tolTxt(sel)} of your value</span>`;
+  $('cards').innerHTML=`
+    <div class="card primary"><span class="label">Closest in ${sel}</span>
+      <span class="big mono" data-copy="${fmt(p,mode)}" title="Click to copy">${fmt(p,mode)}</span>
+      <span class="meta">${errHtml(p,x)} · ${tolTxt(sel)} parts</span>${tagsHtml(p,sel)}
+      ${dk(p,'Search DigiKey ↗')}<span class="note">Below ${fmt(R[sel].below,mode)} · above ${fmt(R[sel].above,mode)}${t<=0.0025&&mode==='res'?'<br>0.1% / 0.25% parts are thin-film. Most ranges (Susumu RG, Vishay TNPW, Panasonic ERA) cover E24 and E192 values, so check stock for E192-only values.':''}</span></div>
+    <div class="card"><span class="label">${mode==='res'?'Easiest to buy (E24)':'Commonly stocked (E12)'}</span>
+      <span class="big mono" data-copy="${fmt(stock,mode)}" title="Click to copy">${fmt(stock,mode)}</span>
+      <span class="meta">${errHtml(stock,x)} · ${inBand(stock)}</span>${tagsHtml(stock,sel)}
+      ${dk(stock,'Search DigiKey ↗')}<span class="note">${mode==='res'?'Every E24 value is stocked in both 5% and 1% ranges.':'E12 covers most C0G, film and MLCC lines.'}</span></div>
+    <div class="card"><span class="label">${mode==='res'?'Nearest in both E24 & E96':'Finer step (E24)'}</span>
+      <span class="big mono" data-copy="${fmt(third,mode)}" title="Click to copy">${fmt(third,mode)}</span>
+      <span class="meta">${errHtml(third,x)} · ${inBand(third)}</span>${tagsHtml(third,sel)}
+      ${dk(third,'Search DigiKey ↗')}<span class="note">${mode==='res'?'Only six values per decade are in both: 1.0, 1.1, 1.3, 1.5, 2.0, 7.5.':'E24 caps are mostly C0G and film parts. Check stock before designing one in.'}</span></div>`;
+
+  // Table
+  $('tbody').innerHTML=SERIES.map(s=>{const r=R[s];return`<tr class="${s===sel?'sel':''}" data-s="${s}" tabindex="0">
+    <td class="series">${s}</td><td class="num">${TOLTXT[s]}</td>
+    <td class="num"><b>${fmt(r.near,mode)}</b></td><td>${errHtml(r.near,x)}</td>
+    <td class="num"><span class="nb">${fmt(r.below,mode)}</span></td><td class="num"><span class="nb">${fmt(r.above,mode)}</span></td>
+    <td>${tagsHtml(r.near,sel)}</td><td class="num">${mode==='res'?resCode(r.near):capCode(r.near)}</td><td>${dk(r.near)}</td></tr>`}).join('');
+
+  // Ladder
+  const lo=x/1.2,hi=x*1.2,L0=Math.log(lo),span=Math.log(hi)-L0;
+  const pos=v=>(Math.log(v)-L0)/span*100;
+  const bl=Math.max(0,pos(x*(1-t))),bh=Math.min(100,pos(x*(1+t)));
+  $('bandLbl').textContent=`Band: ${sel} ${tolTxt(sel)}`;
+  let html='';
+  for(const s of SERIES){
+    const r=R[s];let dots='';
+    for(const v of r.all){if(v<lo||v>hi)continue;
+      const m=mant(v).m;const ov=mode==='res'&&SETS.OV.has(m);const near=v===r.near;
+      dots+=`<span class="dot ${ov?'ov':''} ${near?'near':''}" style="left:${pos(v)}%" title="${fmt(v,mode)}"></span>`;
+      if(near){const lp=Math.min(92,Math.max(8,pos(v)));dots+=`<span class="dlabel" style="left:${lp}%">${fmt(v,mode)}</span>`}}
+    if(r.near<lo)dots+=`<span class="edge" style="left:0">← ${fmt(r.near,mode)}</span>`;
+    if(r.near>hi)dots+=`<span class="edge" style="right:0">${fmt(r.near,mode)} →</span>`;
+    html+=`<div class="lrow ${s===sel?'sel':''}"><span class="nm">${s}</span><div class="track"><span class="band" style="left:${bl}%;width:${bh-bl}%"></span><span class="tgt" style="left:50%"></span>${dots}</div></div>`;
+  }
+  html+=`<div class="axis"><span></span><div><span>${fmt(lo,mode)} (−17%)</span><span>${fmt(x,mode)}</span><span>${fmt(hi,mode)} (+20%)</span></div></div>`;
+  $('ladder').innerHTML=html;
+
+  $('foot').textContent=mode==='res'
+    ?'Codes: 3-digit for E24 values (472 = 4.7 kΩ), EIA-96 for E96 values (01C = 10 kΩ), 4-digit otherwise. E48 is every other E96 value; E96 is every other E192 value. Click a value card to copy it.'
+    :'Cap code is picofarads: two digits plus number of zeros (104 = 100 nF). Plain numbers use the unit picker. E24 and finer are rare outside C0G and film parts. Click a value card to copy it.';
+}
+
+function setMode(m){state.val[state.mode]=$('val').value;state.mode=m;$('val').value=state.val[m];render()}
+$('mRes').onclick=()=>setMode('res');$('mCap').onclick=()=>setMode('cap');
+$('val').addEventListener('input',render);$('capUnit').addEventListener('change',render);$('tol').addEventListener('change',render);$('pkg').addEventListener('change',render);
+document.addEventListener('click',e=>{
+  const c=e.target.closest('.chip');if(c){state.sel[state.mode]=c.dataset.s;render();return}
+  const p=e.target.closest('.preset');if(p){$('val').value=p.dataset.p;render();return}
+  const r=e.target.closest('tbody tr');if(r){state.sel[state.mode]=r.dataset.s;render();return}
+  const cp=e.target.closest('[data-copy]');if(cp)copy(cp.dataset.copy.replace(' ',''));
+});
+document.addEventListener('keydown',e=>{const r=e.target.closest&&e.target.closest('tbody tr');if(r&&(e.key==='Enter'||e.key===' ')){e.preventDefault();state.sel[state.mode]=r.dataset.s;render()}});
+$('val').value=state.val.res;render();
+</script>
+
+</body>
+</html>
