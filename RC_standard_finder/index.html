@@ -94,6 +94,18 @@ td.series{font:700 14px var(--f-mono)}
 td .dk{margin:0;font-size:11.5px}
 .opts{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:end}
 .field{display:grid;gap:6px;min-width:0}
+.tempnote{font-size:12.5px;color:var(--muted);max-width:70ch;min-height:1.4em}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer}
+.wvin{font:500 14px var(--f-ui);padding:8px;border:1.5px solid var(--line);border-radius:0;background:var(--bg);color:var(--fg);width:100%;min-width:0}
+.altwrap{background:var(--panel);border:1px solid var(--line);padding:14px 16px;display:grid;gap:10px}
+.alts{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.alt{border:1px solid var(--line);padding:10px 12px;display:grid;gap:4px;align-content:start;min-width:0}
+.alt.pick{border-color:var(--mask);box-shadow:inset 0 3px 0 var(--mask)}
+.alt .a-top{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;font-size:13px}
+.alt .a-val{font:700 20px var(--f-mono);letter-spacing:-.02em}
+.alt .a-val small{font:600 12px var(--f-mono);letter-spacing:0;margin-left:6px}
+.alt .a-meta{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 8px;align-items:center}
+.alt .fit{margin-left:0}
 .selects{flex:1 1 340px;display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:12px}
 .selects select{width:100%}
 .fit{display:inline-block;margin-left:8px;padding:1px 8px;border:1px solid currentColor;font-size:12px;font-weight:600}
@@ -101,7 +113,8 @@ td .dk{margin:0;font-size:11.5px}
 .fitmore{color:var(--muted);font-size:12.5px}
 @media (max-width:640px){
   .opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .f-series,.selects{grid-column:1/-1}
+  .f-series,.selects,.chk{grid-column:1/-1}
+  .chips.d7{grid-template-columns:repeat(4,1fr)}
   .chips{display:grid;grid-template-columns:repeat(5,1fr)}
   .chip{text-align:center;padding:8px 0}
   .field select{width:100%}
@@ -149,17 +162,21 @@ td .dk{margin:0;font-size:11.5px}
     </div>
     <div class="reading" id="reading"></div>
     <div class="opts">
-      <div class="field f-series"><span class="label">Target series</span><div class="chips" id="chips"></div></div>
+      <div class="field f-series"><span class="label" id="chipLabel">Target series</span><div class="chips" id="chips"></div><div class="tempnote" id="tempnote"></div></div>
       <div class="selects">
         <div class="field"><label class="label" for="tol">Tolerance</label><select id="tol"></select></div>
-        <div class="field" id="dielField"><label class="label" for="diel">Dielectric</label><select id="diel"></select></div>
+        <div class="field cap-only"><label class="label" for="vrate">Rated V</label><select id="vrate"></select></div>
+        <div class="field cap-only"><label class="label" for="wv">Working V</label><input id="wv" class="wvin" inputmode="decimal" autocomplete="off" placeholder="optional"></div>
         <div class="field"><label class="label" for="pkg">Package</label><select id="pkg"></select></div>
       </div>
+      <label class="chk"><input type="checkbox" id="aec"> AEC-Q200 (automotive)</label>
     </div>
     <div class="row" style="gap:10px"><span class="label">Try</span><span id="presets" class="row" style="gap:10px"></span></div>
   </section>
 
   <section class="cards" id="cards" aria-label="Answer"></section>
+
+  <section class="altwrap" id="alts" aria-label="Part options" hidden></section>
 
   <section class="tablewrap" aria-label="All series">
     <table>
@@ -192,45 +209,124 @@ const TOLS={
   Any:[['','Series default'],['0.01','±1%'],['0.02','±2%'],['0.05','±5%'],['0.1','±10%'],['0.2','±20%']],
   C0G:[['a0.1','±0.1 pF'],['a0.25','±0.25 pF'],['a0.5','±0.5 pF'],['0.01','±1%'],['0.02','±2%'],['0.05','±5%'],['0.1','±10%']],
   X7R:[['0.05','±5%'],['0.1','±10%'],['0.2','±20%']],
-  X5R:[['0.1','±10%'],['0.2','±20%']]};
-const TOLDEF={Any:'0.1',C0G:'0.05',X7R:'0.1',X5R:'0.1'};
-const DIELS=[['Any','Any'],['C0G','C0G / NP0'],['X7R','X7R'],['X5R','X5R']];
+  X7S:[['0.05','±5%'],['0.1','±10%'],['0.2','±20%']],
+  X6S:[['0.05','±5%'],['0.1','±10%'],['0.2','±20%']],
+  X5R:[['0.1','±10%'],['0.2','±20%']],
+  Y5V:[['0.2','±20%']]};
+const TOLDEF={Any:'0.1',C0G:'0.05',X7R:'0.1',X7S:'0.1',X6S:'0.1',X5R:'0.1',Y5V:'0.2'};
+const DIELS=['Any','C0G','X7R','X7S','X6S','X5R','Y5V'];
+const DI={
+  C0G:{vmax:630,rank:0,temp:'−55 to 125 °C, ±30 ppm/°C. No DC-bias loss and no ageing. Best for filters, timing and RF.'},
+  X7R:{vmax:630,rank:1,temp:'−55 to 125 °C, ±15%. Loses capacitance under DC bias. The usual choice for decoupling.'},
+  X7S:{vmax:50,rank:2,temp:'−55 to 125 °C, ±22%. More capacitance per size than X7R, with more drift.'},
+  X6S:{vmax:25,rank:3,temp:'−55 to 105 °C, ±22%. Common for low-voltage bulk decoupling.'},
+  X5R:{vmax:100,rank:4,temp:'−55 to 85 °C, ±15%. High capacitance per size, but only to 85 °C.'},
+  Y5V:{vmax:50,rank:5,temp:'−30 to 85 °C, +22/−82%. Loses most of its value with heat and bias. Avoid.'}};
+const VOLTS=['6.3','10','16','25','50','100','250','630'];
 const PKGS={res:['','0201','0402','0603','0805','1206','2512','Through hole'],cap:['','0201','0402','0603','0805','1206','1210']};
-// Typical MLCC ceilings per package: [widely stocked up to, made up to]. Rough catalogue figures, not limits.
-const MLCC={
+const MLCCPK=['0201','0402','0603','0805','1206','1210'];
+// Typical MLCC ceilings per package at about 16 V: [widely stocked up to, made up to]. Rough catalogue figures, not limits.
+const MLCC0={
   C0G:{'0201':[100e-12,1e-9],'0402':[1e-9,10e-9],'0603':[10e-9,47e-9],'0805':[22e-9,100e-9],'1206':[47e-9,220e-9],'1210':[100e-9,470e-9]},
   X7R:{'0201':[10e-9,100e-9],'0402':[100e-9,1e-6],'0603':[1e-6,2.2e-6],'0805':[2.2e-6,10e-6],'1206':[10e-6,22e-6],'1210':[22e-6,47e-6]},
   X5R:{'0201':[100e-9,1e-6],'0402':[1e-6,10e-6],'0603':[10e-6,22e-6],'0805':[22e-6,47e-6],'1206':[47e-6,100e-6],'1210':[100e-6,220e-6]}};
+const SCALE={X7S:['X5R',.6],X6S:['X5R',.85],Y5V:['X5R',1.5]};
+const VF={c:{'6.3':2,'10':1.5,'16':1,'25':1,'50':.7,'100':.35,'250':.12,'630':.03},k:{'6.3':3,'10':2,'16':1,'25':.8,'50':.5,'100':.15,'250':.04,'630':.01}};
+const PKGV={'0201':25,'0402':100,'0603':250,'0805':630,'1206':630,'1210':630};
+const BIAS0={'0201':.7,'0402':.6,'0603':.5,'0805':.4,'1206':.3,'1210':.25};
+const BIASM={X7R:1,X7S:1.05,X6S:1,X5R:1.1,Y5V:1.4};
+function mlcc(d,pk){const sc=SCALE[d];const t=(MLCC0[sc?sc[0]:d]||{})[pk];if(!t)return null;const k=sc?sc[1]:1;return[t[0]*k,t[1]*k]}
+function avail(x,d,pk,v){
+  const vn=parseFloat(v);
+  if(vn>DI[d].vmax)return{tier:'none',why:`${d} is rarely made above ${DI[d].vmax} V.`};
+  if(d!=='C0G'&&x<47e-12)return{tier:'none',why:`Too small for ${d}. Use C0G.`};
+  const f=(d==='C0G'?VF.c:VF.k)[v];
+  const lim=p=>{if(vn>PKGV[p])return null;const t=mlcc(d,p);return t?[t[0]*f,t[1]*f]:null};
+  const pks=pk?[pk]:MLCCPK;
+  for(const tier of ['common','scarce'])for(const p of pks){const l=lim(p);if(l&&x<=(tier==='common'?l[0]:l[1]))return{tier,pk:p}}
+  if(pk&&vn>PKGV[pk])return{tier:'none',why:`${pk} is rarely made above ${PKGV[pk]} V.`};
+  const l=pk?lim(pk):null;
+  return{tier:'none',why:l?`${pk} ${d} tops out near ${fmt(l[1],'cap')} at ${v} V.`:`Beyond typical ${d} ranges at ${v} V.`};
+}
+const commonIn=(x,pk,v,excl)=>DIELS.filter(k=>k!=='Any'&&k!=='Y5V'&&k!==excl&&avail(x,k,pk,v).tier==='common');
+function workV(){const w=parseFloat(String(state.opts.cap.wv).replace(',','.'));return w>0?w:null}
+function biasLoss(d,pk,v){
+  if(d==='C0G'||d==='Any')return 0;
+  const rated=parseFloat(v),w=workV()??rated*0.5;
+  return Math.min(.9,(BIAS0[pk]||.5)*BIASM[d]*Math.pow(Math.min(1.2,w/rated),1.2));
+}
+function biasNote(x,d,pk,v){
+  if(d==='C0G'||d==='Any')return'';
+  const rated=parseFloat(v),w=workV();
+  if(w&&w>rated)return`<span class="fit bad">Over rating</span> <span class="fitmore">${w} V on a ${v} V part. Pick a higher rated voltage.</span>`;
+  const l=biasLoss(d,pk,v),use=w??rated*.5,cls=l>.5?'bad':l>.3?'warn':'ok';
+  return`<span class="fit ${cls}">DC bias −${Math.round(l*100)}%</span> <span class="fitmore">About ${fmt(x*(1-l),'cap')} at ${parseFloat(use.toPrecision(3))} V${w?'':' (half the rating assumed)'}. Rough estimate for ${pk||'0603'}.</span>`;
+}
+function capSeriesFor(d,tl){if(d==='C0G')return'E24';const n=parseFloat(tl);return n>0&&n<=0.05?'E24':'E12'}
+const capSeries=()=>capSeriesFor(state.opts.cap.diel,state.opts.cap.tol);
 let curX=1;
 const tolList=()=>state.mode==='res'?TOLS.res:TOLS[state.opts.cap.diel];
+const tolLabel=(tv,list,s)=>{const o=list.find(t=>t[0]===tv);return tv&&o?o[1]:(s==='E192'?'±0.5%':TOLTXT[s])};
 const tolOf=s=>{const v=state.opts[state.mode].tol;if(v&&v[0]==='a')return parseFloat(v.slice(1))*1e-12/curX;const o=parseFloat(v);return o>0?o:TOL[s]};
-const tolTxt=s=>{const v=state.opts[state.mode].tol;const o=tolList().find(t=>t[0]===v);return v&&o?o[1]:(s==='E192'?'±0.5%':TOLTXT[s])};
+const tolTxt=s=>tolLabel(state.opts[state.mode].tol,tolList(),s);
 function fillSelects(){
-  const o=state.opts[state.mode];
-  if(!tolList().some(t=>t[0]===o.tol))o.tol=state.mode==='cap'?TOLDEF[o.diel]:'0.01';
+  const cap=state.mode==='cap',o=state.opts[state.mode];
+  if(!tolList().some(t=>t[0]===o.tol))o.tol=cap?TOLDEF[o.diel]:'0.01';
   $('tol').innerHTML=tolList().map(([v,l])=>`<option value="${v}"${v===o.tol?' selected':''}>${l}</option>`).join('');
   $('pkg').innerHTML=PKGS[state.mode].map(v=>`<option value="${v}"${v===o.pkg?' selected':''}>${v||'Any'}</option>`).join('');
-  $('dielField').hidden=state.mode!=='cap';
-  $('diel').innerHTML=DIELS.map(([v,l])=>`<option value="${v}"${v===state.opts.cap.diel?' selected':''}>${l}</option>`).join('');
+  $('vrate').innerHTML=VOLTS.map(v=>`<option value="${v}"${v===state.opts.cap.v?' selected':''}>${v} V</option>`).join('');
+  document.querySelectorAll('.cap-only').forEach(e=>e.hidden=!cap);
 }
 function fitNote(x){
   if(state.mode!=='cap')return'';
-  const d=state.opts.cap.diel,pk=state.opts.cap.pkg;
-  const f=v=>fmt(v,'cap');
+  const o=state.opts.cap,d=o.diel,pk=o.pkg,v=o.v,at=pk?`${pk}, ${v} V`:`${v} V`;
   if(d==='Any'){
-    const opts=['X5R','X7R','C0G'].filter(k=>Object.values(MLCC[k]).some(r=>x<=r[1]));
-    return opts.length?'':`<span class="fit warn">Beyond typical MLCC</span> <span class="fitmore">Look at electrolytic, polymer or tantalum.</span>`;
+    const com=commonIn(x,pk,v,null);
+    if(com.length)return`<span class="fit ok">Common in ${com.join(', ')}</span> <span class="fitmore">${at}</span>`;
+    const sc=DIELS.filter(k=>k!=='Any'&&k!=='Y5V'&&avail(x,k,pk,v).tier==='scarce');
+    if(sc.length)return`<span class="fit warn">Scarce</span> <span class="fitmore">Only ${sc.join(', ')} at ${at}.</span>`;
+    return`<span class="fit bad">Not an MLCC value</span> <span class="fitmore">At ${at}. Look at electrolytic, polymer or tantalum.</span>`;
   }
-  const tab=MLCC[d],pk0=Object.keys(tab);
-  const smallest=pk0.find(k=>x<=tab[k][0]);
-  const alt=['C0G','X7R','X5R'].filter(k=>k!==d&&Object.values(MLCC[k]).some(r=>x<=r[0]));
-  const madeIn=pk0.find(k=>x<=tab[k][1]);
-  const hint=smallest?`Commonly from ${smallest} up.`:(madeIn?`Scarce in ${d}, from ${madeIn} up only. `:`Not made in ${d}. `)+(alt.length?`Try ${alt.join(' or ')}.`:`Look at electrolytic, polymer or tantalum.`);
-  if(!pk||!tab[pk])return smallest?`<span class="fit ok">Typical ${d}</span> <span class="fitmore">${hint}</span>`:`<span class="fit bad">Rare in ${d}</span> <span class="fitmore">${hint}</span>`;
-  const [c,m]=tab[pk];
-  if(x<=c)return`<span class="fit ok">Common in ${pk} ${d}</span>`;
-  if(x<=m)return`<span class="fit warn">Scarce in ${pk} ${d}</span> <span class="fitmore">Common up to ${f(c)}. ${hint}</span>`;
-  return`<span class="fit bad">Not made in ${pk} ${d}</span> <span class="fitmore">Max about ${f(m)}. ${hint}</span>`;
+  const a=avail(x,d,pk,v),oth=commonIn(x,pk,v,d);
+  const hint=oth.length?`Common in ${oth.join(', ')}.`:'Look at electrolytic, polymer or tantalum.';
+  if(a.tier==='none')return`<span class="fit bad">Not available in ${d}</span> <span class="fitmore">${a.why} ${hint}</span>`;
+  const bias=biasNote(x,d,a.pk,v);
+  const lab=a.tier==='common'
+    ?`<span class="fit ok">${pk?`Common in ${pk} ${d}`:`Common in ${d} from ${a.pk} up`}</span> <span class="fitmore">${v} V</span>`
+    :`<span class="fit warn">${pk?`Scarce in ${pk} ${d}`:`Scarce in ${d}, from ${a.pk} up only`}</span> <span class="fitmore">${v} V. ${hint}</span>`;
+  return lab+(bias?'<br>'+bias:'');
+}
+function altRows(x,v,pk){
+  const o=state.opts.cap,rows=[];
+  for(const d of DIELS){
+    if(d==='Any'||(d==='Y5V'&&o.diel!=='Y5V'))continue;
+    const a=avail(x,d,pk,v);if(a.tier==='none')continue;
+    const tl=TOLS[d].some(t=>t[0]===o.tol)?o.tol:TOLDEF[d];
+    const near=neighbours(LISTS[capSeriesFor(d,tl)],x).near;
+    rows.push({d,a,tl,near,v,loss:biasLoss(d,a.pk,v),pick:d===o.diel});
+  }
+  return rows;
+}
+function altsHtml(x){
+  const o=state.opts.cap,pk0=o.pkg,w0=workV();
+  let v=o.v,notes=[];
+  if(w0&&w0>parseFloat(v)){const nv=VOLTS.find(q=>parseFloat(q)>=w0);if(nv){notes.push(`Working voltage is above ${v} V, so these are ${nv} V parts.`);v=nv}}
+  let pk=pk0,rows=altRows(x,v,pk);
+  if(!rows.length&&pk){pk='';rows=altRows(x,v,'');if(rows.length)notes.push(`Nothing fits in ${pk0}, so larger sizes are shown.`)}
+  rows.sort((p,q)=>(p.a.tier==='scarce')-(q.a.tier==='scarce')||Math.round(p.loss*10)-Math.round(q.loss*10)||DI[p.d].rank-DI[q.d].rank);
+  const top=rows.slice(0,4),sel=rows.find(r=>r.pick);
+  if(sel&&!top.includes(sel))top[top.length-1]=sel;
+  const head=`<span class="label">Part options at ${v} V${pk?', '+pk:''}</span>`;
+  if(!top.length)return head+`<p class="fitmore" style="margin:0">No ceramic option at this value, voltage and size. Look at electrolytic, polymer or tantalum.</p>`;
+  const w=workV(),use=w??parseFloat(v)*.5;
+  return head+'<ul class="alts">'+top.map(r=>{
+    const eff=r.loss?`About ${fmt(r.near*(1-r.loss),'cap')} at ${parseFloat(use.toPrecision(3))} V (−${Math.round(r.loss*100)}%)`:'No DC-bias loss';
+    return`<li class="alt ${r.pick?'pick':''}"><div class="a-top"><b class="mono">${r.d}</b><span class="mono">${r.a.pk}</span><span class="mono">${v} V</span>${r.pick?'<span class="tag sel">Your pick</span>':''}</div>
+      <div class="a-val">${fmt(r.near,'cap')}<small>${errHtml(r.near,x)}</small></div>
+      <div class="a-meta"><span class="fit ${r.a.tier==='common'?'ok':'warn'}">${r.a.tier==='common'?'Common':'Scarce'}</span><span>${eff}</span></div>
+      <div class="a-meta">${DI[r.d].temp.split('. ')[0]}</div>
+      ${dk(r.near,'Search DigiKey ↗',{d:r.d,pk:r.a.pk,tol:r.tl})}</li>`}).join('')+'</ul>'
+    +`<p class="fitmore" style="margin:0">${notes.join(' ')} ${w?'':'Working V is blank, so bias loss assumes half the rated voltage. '}Sizes and bias figures are rough catalogue estimates. Confirm against the manufacturer's DC-bias curve.</p>`;
 }
 const base={
   E3:[10,22,47],E6:[10,15,22,33,47,68],E12:[10,12,15,18,22,27,33,39,47,56,68,82],
@@ -243,7 +339,7 @@ LISTS.OV=OVERLAP;
 const SETS={};for(const k in LISTS)SETS[k]=new Set(LISTS[k]);
 const E96IDX=new Map(LISTS.E96.map((m,i)=>[m,String(i+1).padStart(2,'0')]));
 
-const state={mode:'res',sel:{res:'E96',cap:'E12'},val:{res:'10.4k',cap:'3.9n'},opts:{res:{tol:'0.01',pkg:'0402'},cap:{tol:'0.1',pkg:'0402',diel:'X7R'}}};
+const state={mode:'res',sel:{res:'E96',cap:'E12'},val:{res:'10.4k',cap:'3.9n'},opts:{res:{tol:'0.01',pkg:'0402'},cap:{tol:'0.1',pkg:'0402',diel:'X7R',v:'25',wv:''}},aec:false};
 const PRESETS={res:['10.4k','4k7','330R','2.49k','1M2','0R22'],cap:['100n','4u7','22p','3.3n','68u','150p']};
 
 const $=id=>document.getElementById(id);
@@ -310,17 +406,21 @@ function capCode(v){
   if(e>=1)return two+(e-1);if(e===0)return two[0]+'R'+two[1];return'—';
 }
 
-function dkUrl(v){
-  const mode=state.mode,sel=state.sel[mode];
-  let val=fmt(v,mode).replace('\u2009','').replace('Ω',' Ohm').replace('µ','u');
-  const parts=[val];
-  if(mode==='cap'&&state.opts.cap.diel!=='Any')parts.push(state.opts.cap.diel);
-  parts.push(tolTxt(sel).replace('±','').replace(/–.*%/,'%').replace(' ',''));
-  if(state.opts[mode].pkg)parts.push(state.opts[mode].pkg);
-  parts.push(mode==='res'?'resistor':'capacitor');
+function dkUrl(v,opt){
+  opt=opt||{};
+  const mode=state.mode,o=state.opts[mode],cap=mode==='cap';
+  const d=opt.d||(cap?o.diel:null),pk=opt.pk!==undefined?opt.pk:o.pkg,tl=opt.tol!==undefined?opt.tol:o.tol;
+  const sel=state.sel[mode];
+  const parts=[fmt(v,mode).replace(/\s+/,'').replace('Ω',' Ohm').replace('µ','u')];
+  if(cap&&d&&d!=='Any')parts.push(d);
+  parts.push(cap&&d==='C0G'&&v<10e-12&&!(tl&&tl[0]==='a')?'0.25pF':tolLabel(tl,cap?TOLS[d]:TOLS.res,sel).replace('±','').replace(/–.*%/,'%').replace(/\s/g,''));
+  if(cap)parts.push(o.v+'V');
+  if(pk)parts.push(pk);
+  if(state.aec)parts.push('AEC-Q200');
+  parts.push(cap?'capacitor':'resistor');
   return 'https://www.digikey.co.uk/en/products/result?keywords='+encodeURIComponent(parts.join(' '));
 }
-const dk=(v,txt)=>`<a class="dk" href="${dkUrl(v)}" target="_blank" rel="noopener">${txt||'DigiKey ↗'}</a>`;
+const dk=(v,txt,opt)=>`<a class="dk" href="${dkUrl(v,opt)}" target="_blank" rel="noopener">${txt||'DigiKey ↗'}</a>`;
 function copy(text){
   const t=$('toast');
   const done=()=>{t.textContent='Copied '+text;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1200)};
@@ -328,11 +428,17 @@ function copy(text){
 }
 
 function render(){
+  if(state.mode==='cap')state.sel.cap=capSeries();
   const mode=state.mode,sel=state.sel[mode];
   $('mRes').setAttribute('aria-pressed',mode==='res');$('mCap').setAttribute('aria-pressed',mode==='cap');
   $('codeHead').textContent=mode==='res'?'SMD code':'Cap code';
   $('ovLegend').hidden=mode!=='res';
-  $('chips').innerHTML=SERIES.map(s=>`<button class="chip" aria-pressed="${s===sel}" data-s="${s}">${s}</button>`).join('');
+  $('chipLabel').textContent=mode==='cap'?'Dielectric':'Target series';
+  $('chips').className='chips'+(mode==='cap'?' d7':'');
+  $('chips').innerHTML=mode==='cap'
+    ?DIELS.map(d=>`<button class="chip" aria-pressed="${d===state.opts.cap.diel}" data-d="${d}">${d}</button>`).join('')
+    :SERIES.map(s=>`<button class="chip" aria-pressed="${s===sel}" data-s="${s}">${s}</button>`).join('');
+  $('tempnote').textContent=mode==='cap'&&state.opts.cap.diel!=='Any'?DI[state.opts.cap.diel].temp:'';
   $('presets').innerHTML=PRESETS[mode].map(p=>`<button class="preset" data-p="${p}">${p}</button>`).join('');
 
   const x=parse($('val').value,mode);
@@ -340,7 +446,7 @@ function render(){
   if(x===null){
     rd.className='reading err';
     rd.innerHTML=(mode==='cap'&&/^\s*\d*[.,]?\d+\s*$/.test($('val').value))?`<b>Add a unit.</b> Use p, n or u, e.g. ${$('val').value.trim()}n or ${$('val').value.trim()}u.`:$('val').value.trim()?`<b>Can't read that.</b> Try forms like ${mode==='res'?'4k7, 4.7k, 470R, 0R22, 1M2':'100n, 4u7, 2.2µF, 22pF, 4n7'}.`:'Enter a value to start.';
-    $('cards').innerHTML='';$('tbody').innerHTML='';$('ladder').innerHTML='';return;
+    $('cards').innerHTML='';$('tbody').innerHTML='';$('ladder').innerHTML='';$('alts').hidden=true;return;
   }
   curX=x;
   rd.className='reading';rd.innerHTML=`Reading as <b>${fmt(x,mode)}</b>`+(mode==='res'&&/m/.test($('val').value)?' (lower-case m = milli, use M for meg)':'')+fitNote(x);
@@ -352,12 +458,12 @@ function render(){
   const p=R[sel].near;
   const stockS=mode==='res'?'E24':'E12';
   const stock=R[stockS].near;
-  const thirdS=mode==='res'?'OV':'E24';
+  const thirdS=mode==='res'?'OV':(sel==='E24'?'E48':'E24');
   const third=neighbours(LISTS[thirdS],x).near;
   const within=v=>Math.abs(errPct(v,x))<=t*100+1e-9;
   const inBand=v=>`<span class="${within(v)?'ok':'out'}">${within(v)?'within':'outside'} ${tolTxt(sel)} of your value</span>`;
   $('cards').innerHTML=`
-    <div class="card primary"><span class="label">Closest in ${sel}</span>
+    <div class="card primary"><span class="label">Closest in ${mode==='cap'&&state.opts.cap.diel!=='Any'?state.opts.cap.diel+' · ':''}${sel}</span>
       <span class="big mono" data-copy="${fmt(p,mode)}" title="Click to copy">${fmt(p,mode)}</span>
       <span class="meta">${errHtml(p,x)} · ${tolTxt(sel)} parts</span>${tagsHtml(p,sel)}
       ${dk(p,'Search DigiKey ↗')}<span class="note">Below ${fmt(R[sel].below,mode)} · above ${fmt(R[sel].above,mode)}${t<=0.0025&&mode==='res'?'<br>0.1% / 0.25% parts are thin-film. Most ranges (Susumu RG, Vishay TNPW, Panasonic ERA) cover E24 and E192 values, so check stock for E192-only values.':''}</span></div>
@@ -365,10 +471,12 @@ function render(){
       <span class="big mono" data-copy="${fmt(stock,mode)}" title="Click to copy">${fmt(stock,mode)}</span>
       <span class="meta">${errHtml(stock,x)} · ${inBand(stock)}</span>${tagsHtml(stock,sel)}
       ${dk(stock,'Search DigiKey ↗')}<span class="note">${mode==='res'?'Every E24 value is stocked in both 5% and 1% ranges.':'E12 covers most C0G, film and MLCC lines.'}</span></div>
-    <div class="card"><span class="label">${mode==='res'?'Nearest in both E24 & E96':'Finer step (E24)'}</span>
+    <div class="card"><span class="label">${mode==='res'?'Nearest in both E24 & E96':'Finer step ('+thirdS+')'}</span>
       <span class="big mono" data-copy="${fmt(third,mode)}" title="Click to copy">${fmt(third,mode)}</span>
       <span class="meta">${errHtml(third,x)} · ${inBand(third)}</span>${tagsHtml(third,sel)}
-      ${dk(third,'Search DigiKey ↗')}<span class="note">${mode==='res'?'Only six values per decade are in both: 1.0, 1.1, 1.3, 1.5, 2.0, 7.5.':'E24 caps are mostly C0G and film parts. Check stock before designing one in.'}</span></div>`;
+      ${dk(third,'Search DigiKey ↗')}<span class="note">${mode==='res'?'Only six values per decade are in both: 1.0, 1.1, 1.3, 1.5, 2.0, 7.5.':(thirdS==='E48'?'E48 and finer are rare in capacitors. Check stock before designing one in.':'E24 caps are mostly C0G and film parts. Check stock before designing one in.')}</span></div>`;
+
+  $('alts').hidden=mode!=='cap';if(mode==='cap')$('alts').innerHTML=altsHtml(x);
 
   // Table
   $('tbody').innerHTML=SERIES.map(s=>{const r=R[s];return`<tr class="${s===sel?'sel':''}" data-s="${s}" tabindex="0">
@@ -398,19 +506,24 @@ function render(){
 
   $('foot').textContent=mode==='res'
     ?'Codes: 3-digit for E24 values (472 = 4.7 kΩ), EIA-96 for E96 values (01C = 10 kΩ), 4-digit otherwise. E48 is every other E96 value; E96 is every other E192 value. Click a value card to copy it.'
-    :'Cap code is picofarads: two digits plus number of zeros (104 = 100 nF). Type the unit with the value (100n, 4u7, 22p). E24 and finer are rare outside C0G and film parts. Click a value card to copy it.';
+    :'Cap code is picofarads: two digits plus number of zeros (104 = 100 nF). Type the unit with the value (100n, 4u7, 22p). The dielectric picks the series: C0G steps in E24, X7R and X5R in E12. Space and high-reliability parts follow their own specs (for example ESCC 3009 and MIL-PRF-55681), so this covers commercial parts only. Click a value card to copy it.';
 }
 
 function setMode(m){state.val[state.mode]=$('val').value;state.mode=m;$('val').value=state.val[m];fillSelects();render()}
 $('mRes').onclick=()=>setMode('res');$('mCap').onclick=()=>setMode('cap');
-$('val').addEventListener('input',render);$('tol').addEventListener('change',()=>{state.opts[state.mode].tol=$('tol').value;render()});$('pkg').addEventListener('change',()=>{state.opts[state.mode].pkg=$('pkg').value;render()});$('diel').addEventListener('change',()=>{state.opts.cap.diel=$('diel').value;state.opts.cap.tol=TOLDEF[$('diel').value];fillSelects();render()});
+$('val').addEventListener('input',render);
+$('tol').addEventListener('change',()=>{state.opts[state.mode].tol=$('tol').value;render()});
+$('pkg').addEventListener('change',()=>{state.opts[state.mode].pkg=$('pkg').value;render()});
+$('vrate').addEventListener('change',()=>{state.opts.cap.v=$('vrate').value;render()});
+$('wv').addEventListener('input',()=>{state.opts.cap.wv=$('wv').value;render()});
+$('aec').addEventListener('change',()=>{state.aec=$('aec').checked;render()});
 document.addEventListener('click',e=>{
-  const c=e.target.closest('.chip');if(c){state.sel[state.mode]=c.dataset.s;render();return}
+  const c=e.target.closest('.chip');if(c){if(c.dataset.d){state.opts.cap.diel=c.dataset.d;state.opts.cap.tol=TOLDEF[c.dataset.d];fillSelects();render();return}state.sel[state.mode]=c.dataset.s;render();return}
   const p=e.target.closest('.preset');if(p){$('val').value=p.dataset.p;render();return}
-  const r=e.target.closest('tbody tr');if(r){state.sel[state.mode]=r.dataset.s;render();return}
+  const r=e.target.closest('tbody tr');if(r&&state.mode==='res'){state.sel.res=r.dataset.s;render();return}
   const cp=e.target.closest('[data-copy]');if(cp)copy(cp.dataset.copy.replace(' ',''));
 });
-document.addEventListener('keydown',e=>{const r=e.target.closest&&e.target.closest('tbody tr');if(r&&(e.key==='Enter'||e.key===' ')){e.preventDefault();state.sel[state.mode]=r.dataset.s;render()}});
+document.addEventListener('keydown',e=>{const r=e.target.closest&&e.target.closest('tbody tr');if(r&&state.mode==='res'&&(e.key==='Enter'||e.key===' ')){e.preventDefault();state.sel.res=r.dataset.s;render()}});
 $('val').value=state.val.res;fillSelects();render();
 </script>
 
