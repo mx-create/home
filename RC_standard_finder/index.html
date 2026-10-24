@@ -33,27 +33,27 @@ h1 span{color:var(--mask)}
 .label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
 .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 
-.controls{display:grid;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.controls{display:grid;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:0;padding:16px}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:0;overflow:hidden}
 .seg button{all:unset;cursor:pointer;padding:7px 14px;font-weight:600;font-size:14px;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--mask);color:var(--panel)}
 .seg button:focus-visible,.chip:focus-visible,.preset:focus-visible,input:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
 .inputbox{display:flex;gap:8px;flex:1 1 260px;min-width:0}
-#val{flex:1;min-width:0;font:600 22px var(--f-mono);padding:8px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+#val{flex:1;min-width:0;font:600 22px var(--f-mono);padding:8px 12px;border:1.5px solid var(--line);border-radius:0;background:var(--bg);color:var(--fg)}
 #val:focus{border-color:var(--mask);outline:none}
-select{font:500 14px var(--f-ui);padding:8px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+select{font:500 14px var(--f-ui);padding:8px;border:1.5px solid var(--line);border-radius:0;background:var(--bg);color:var(--fg)}
 .reading{font-size:13px;color:var(--muted)} .reading b{color:var(--fg);font-family:var(--f-mono)}
 .reading.err b{color:var(--warn)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{all:unset;cursor:pointer;font:600 13px var(--f-mono);padding:5px 10px;border-radius:6px;border:1px solid var(--line);color:var(--fg)}
+.chip{all:unset;cursor:pointer;font:600 13px var(--f-mono);padding:5px 10px;border-radius:0;border:1px solid var(--line);color:var(--fg)}
 .chip[aria-pressed="true"]{border-color:var(--mask);background:var(--mask-soft);color:var(--mask)}
 .preset{all:unset;cursor:pointer;font:500 12px var(--f-mono);color:var(--muted);border-bottom:1px dashed var(--line)}
 .preset:hover{color:var(--fg)}
 
 .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 @media (max-width:720px){.cards{grid-template-columns:1fr}}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:4px;align-content:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:0;padding:14px 16px;display:grid;gap:4px;align-content:start}
 .card.primary{border-color:var(--mask);box-shadow:inset 0 3px 0 var(--mask)}
 .card .big{font:700 26px var(--f-mono);letter-spacing:-.02em;cursor:copy}
 .card .meta{font-size:13px;color:var(--muted)}
@@ -62,11 +62,11 @@ select{font:500 14px var(--f-ui);padding:8px;border:1.5px solid var(--line);bord
 .ok{color:var(--good)} .out{color:var(--warn)}
 
 .tags{display:inline-flex;flex-wrap:wrap;gap:4px}
-.tag{font:600 10.5px var(--f-mono);padding:1px 5px;border-radius:4px;border:1px solid var(--line);color:var(--muted)}
+.tag{font:600 10.5px var(--f-mono);padding:1px 5px;border-radius:0;border:1px solid var(--line);color:var(--muted)}
 .tag.sel{border-color:var(--mask);color:var(--mask)}
 .tag.ov{background:var(--copper-soft);border-color:var(--copper);color:var(--copper)}
 
-.tablewrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.tablewrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:0}
 table{width:100%;border-collapse:collapse;min-width:640px}
 th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
 th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
@@ -79,14 +79,14 @@ td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 td .nb{color:var(--muted)}
 td.series{font:700 14px var(--f-mono)}
 
-.ladder{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:4px}
+.ladder{background:var(--panel);border:1px solid var(--line);border-radius:0;padding:14px 16px;display:grid;gap:4px}
 .lrow{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;height:34px}
 .lrow .nm{font:600 12px var(--f-mono);color:var(--muted)}
 .lrow.sel .nm{color:var(--mask)}
 .track{position:relative;height:100%;border-bottom:1px dashed var(--line)}
 .band{position:absolute;top:0;bottom:0;background:var(--mask-soft);opacity:.8}
 .tgt{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--copper);transform:translateX(-1px)}
-.dot{position:absolute;bottom:-4px;width:8px;height:8px;border-radius:50%;background:var(--muted);transform:translateX(-50%)}
+.dot{position:absolute;bottom:-4px;width:8px;height:8px;border-radius:0;background:var(--muted);transform:translateX(-50%)}
 .dot.ov{background:var(--panel);border:2px solid var(--copper)}
 .dot.near{background:var(--mask);width:11px;height:11px;bottom:-5.5px}
 .dot.near.ov{border-color:var(--copper);background:var(--mask)}
@@ -128,7 +128,7 @@ td .dk{margin:0;font-size:11.5px}
   .pct{display:none}
   .foot{font-size:12px}
 }
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:6px 12px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:6px 12px;border-radius:0;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
 </style>
@@ -176,8 +176,8 @@ td .dk{margin:0;font-size:11.5px}
     <div id="ladder"></div>
     <div class="legend">
       <span><i class="tgt" style="position:static;display:inline-block;width:2px;height:12px"></i>Your value</span>
-      <span><i style="width:10px;height:10px;border-radius:50%;background:var(--mask)"></i>Nearest in that series</span>
-      <span id="ovLegend"><i style="width:9px;height:9px;border-radius:50%;border:2px solid var(--copper)"></i>In both E24 and E96</span>
+      <span><i style="width:10px;height:10px;border-radius:0;background:var(--mask)"></i>Nearest in that series</span>
+      <span id="ovLegend"><i style="width:9px;height:9px;border-radius:0;border:2px solid var(--copper)"></i>In both E24 and E96</span>
       <span><i style="width:14px;height:10px;background:var(--mask-soft)"></i>Within target-series tolerance</span>
     </div>
   </section>
