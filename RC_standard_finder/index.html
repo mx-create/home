@@ -10,19 +10,11 @@
 <style>
 /* Layout: one working column — input bar, three answer cards, series table, log-scale ladder. Solder-mask green + copper. */
 :root{
-  --bg:#f3f5f2; --panel:#ffffff; --fg:#17201b; --muted:#5d6a62; --line:#d9dfd9;
-  --mask:#1d6b47; --mask-soft:#e1efe6; --copper:#b4642a; --copper-soft:#f6e8dc;
-  --good:#1d6b47; --warn:#a2560f;
+  --bg:#0f1512; --panel:#16201b; --fg:#e4ebe6; --muted:#93a39a; --line:#2a3631;
+  --mask:#4fbf87; --mask-soft:#1b3227; --copper:#e39a5f; --copper-soft:#3a2819;
+  --good:#4fbf87; --warn:#e9a65c; color-scheme:dark;
   --f-ui:"Archivo",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0f1512; --panel:#16201b; --fg:#e4ebe6; --muted:#93a39a; --line:#2a3631;
-  --mask:#4fbf87; --mask-soft:#1b3227; --copper:#e39a5f; --copper-soft:#3a2819;
-  --good:#4fbf87; --warn:#e9a65c; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#0f1512; --panel:#16201b; --fg:#e4ebe6; --muted:#93a39a; --line:#2a3631;
-  --mask:#4fbf87; --mask-soft:#1b3227; --copper:#e39a5f; --copper-soft:#3a2819;
-  --good:#4fbf87; --warn:#e9a65c; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-ui);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
