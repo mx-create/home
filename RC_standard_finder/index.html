@@ -140,9 +140,6 @@ td .dk{margin:0;font-size:11.5px}
       </div>
       <div class="inputbox">
         <input id="val" autocomplete="off" spellcheck="false" inputmode="text" aria-label="Value">
-        <select id="capUnit" aria-label="Unit for plain numbers" hidden>
-          <option value="1e-12">pF</option><option value="1e-9" selected>nF</option><option value="1e-6">µF</option>
-        </select>
       </div>
     </div>
     <div class="reading" id="reading"></div>
@@ -211,7 +208,7 @@ function parse(raw,mode){
   if(!ip&&!fp&&!tr)return null;
   const MULT={p:1e-12,n:1e-9,u:1e-6,m:1e-3,k:1e3,K:1e3,M:1e6,G:1e9,R:1,r:1};
   let mult;
-  if(!L)mult=mode==='cap'?parseFloat($('capUnit').value):1;
+  if(!L){if(mode==='cap')return null;mult=1;}
   else{
     if(mode==='cap'&&'kKMGRr'.includes(L))return null;
     mult=MULT[L];
@@ -281,7 +278,6 @@ function copy(text){
 function render(){
   const mode=state.mode,sel=state.sel[mode];
   $('mRes').setAttribute('aria-pressed',mode==='res');$('mCap').setAttribute('aria-pressed',mode==='cap');
-  $('capUnit').hidden=mode!=='cap';
   $('codeHead').textContent=mode==='res'?'SMD code':'Cap code';
   $('ovLegend').hidden=mode!=='res';
   $('chips').innerHTML=SERIES.map(s=>`<button class="chip" aria-pressed="${s===sel}" data-s="${s}">${s}</button>`).join('');
@@ -291,7 +287,7 @@ function render(){
   const rd=$('reading');
   if(x===null){
     rd.className='reading err';
-    rd.innerHTML=$('val').value.trim()?`<b>Can't read that.</b> Try forms like ${mode==='res'?'4k7, 4.7k, 470R, 0R22, 1M2':'100n, 4u7, 2.2µF, 22pF, 4n7'}.`:'Enter a value to start.';
+    rd.innerHTML=(mode==='cap'&&/^\s*\d*[.,]?\d+\s*$/.test($('val').value))?`<b>Add a unit.</b> Use p, n or u, e.g. ${$('val').value.trim()}n or ${$('val').value.trim()}u.`:$('val').value.trim()?`<b>Can't read that.</b> Try forms like ${mode==='res'?'4k7, 4.7k, 470R, 0R22, 1M2':'100n, 4u7, 2.2µF, 22pF, 4n7'}.`:'Enter a value to start.';
     $('cards').innerHTML='';$('tbody').innerHTML='';$('ladder').innerHTML='';return;
   }
   rd.className='reading';rd.innerHTML=`Reading as <b>${fmt(x,mode)}</b>`+(mode==='res'&&/m/.test($('val').value)?' (lower-case m = milli, use M for meg)':'');
@@ -349,12 +345,12 @@ function render(){
 
   $('foot').textContent=mode==='res'
     ?'Codes: 3-digit for E24 values (472 = 4.7 kΩ), EIA-96 for E96 values (01C = 10 kΩ), 4-digit otherwise. E48 is every other E96 value; E96 is every other E192 value. Click a value card to copy it.'
-    :'Cap code is picofarads: two digits plus number of zeros (104 = 100 nF). Plain numbers use the unit picker. E24 and finer are rare outside C0G and film parts. Click a value card to copy it.';
+    :'Cap code is picofarads: two digits plus number of zeros (104 = 100 nF). Type the unit with the value (100n, 4u7, 22p). E24 and finer are rare outside C0G and film parts. Click a value card to copy it.';
 }
 
 function setMode(m){state.val[state.mode]=$('val').value;state.mode=m;$('val').value=state.val[m];render()}
 $('mRes').onclick=()=>setMode('res');$('mCap').onclick=()=>setMode('cap');
-$('val').addEventListener('input',render);$('capUnit').addEventListener('change',render);$('tol').addEventListener('change',render);$('pkg').addEventListener('change',render);
+$('val').addEventListener('input',render);$('tol').addEventListener('change',render);$('pkg').addEventListener('change',render);
 document.addEventListener('click',e=>{
   const c=e.target.closest('.chip');if(c){state.sel[state.mode]=c.dataset.s;render();return}
   const p=e.target.closest('.preset');if(p){$('val').value=p.dataset.p;render();return}
