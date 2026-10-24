@@ -94,6 +94,16 @@ td.series{font:700 14px var(--f-mono)}
 td .dk{margin:0;font-size:11.5px}
 .opts{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:end}
 .field{display:grid;gap:6px;min-width:0}
+.srch{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin-top:4px}
+.srch .dk{margin-top:0}
+.stockbtn{font:600 12px var(--f-ui);padding:3px 10px;border:1px solid var(--mask);color:var(--mask);background:transparent;cursor:pointer;border-radius:0}
+.stockbtn:hover{background:var(--mask-soft)}.stockbtn:disabled{opacity:.6;cursor:wait}
+.stockbtn:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+.stockout{font-size:12.5px;display:grid;gap:6px;margin-top:2px;min-width:0}
+.stockout:empty{display:none}
+.sp{border-top:1px solid var(--line);padding-top:6px;display:grid;gap:1px;min-width:0;overflow-wrap:anywhere}
+.sp a{font:600 12.5px var(--f-mono);color:var(--mask)}
+.sp small{color:var(--muted);font-size:12px}
 .tempnote{font-size:12.5px;color:var(--muted);max-width:70ch;min-height:1.4em}
 .chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer}
 .wvin{font:500 14px var(--f-ui);padding:8px;border:1.5px solid var(--line);border-radius:0;background:var(--bg);color:var(--fg);width:100%;min-width:0}
@@ -325,7 +335,7 @@ function altsHtml(x){
       <div class="a-val">${fmt(r.near,'cap')}<small>${errHtml(r.near,x)}</small></div>
       <div class="a-meta"><span class="fit ${r.a.tier==='common'?'ok':'warn'}">${r.a.tier==='common'?'Common':'Scarce'}</span><span>${eff}</span></div>
       <div class="a-meta">${DI[r.d].temp.split('. ')[0]}</div>
-      ${dk(r.near,'Search DigiKey ↗',{d:r.d,pk:r.a.pk,tol:r.tl})}</li>`}).join('')+'</ul>'
+      ${shop(r.near,{d:r.d,pk:r.a.pk,tol:r.tl,v:r.v})}</li>`}).join('')+'</ul>'
     +`<p class="fitmore" style="margin:0">${notes.join(' ')} ${w?'':'Working V is blank, so bias loss assumes half the rated voltage. '}Sizes and bias figures are rough catalogue estimates. Confirm against the manufacturer's DC-bias curve.</p>`;
 }
 const base={
@@ -406,21 +416,70 @@ function capCode(v){
   if(e>=1)return two+(e-1);if(e===0)return two[0]+'R'+two[1];return'—';
 }
 
-function dkUrl(v,opt){
+function kwOf(v,opt){
   opt=opt||{};
   const mode=state.mode,o=state.opts[mode],cap=mode==='cap';
-  const d=opt.d||(cap?o.diel:null),pk=opt.pk!==undefined?opt.pk:o.pkg,tl=opt.tol!==undefined?opt.tol:o.tol;
+  const d=opt.d||(cap?o.diel:null),pk=opt.pk!==undefined?opt.pk:o.pkg,tl=opt.tol!==undefined?opt.tol:o.tol,vr=opt.v||o.v;
   const sel=state.sel[mode];
   const parts=[fmt(v,mode).replace(/\s+/,'').replace('Ω',' Ohm').replace('µ','u')];
   if(cap&&d&&d!=='Any')parts.push(d);
   parts.push(cap&&d==='C0G'&&v<10e-12&&!(tl&&tl[0]==='a')?'0.25pF':tolLabel(tl,cap?TOLS[d]:TOLS.res,sel).replace('±','').replace(/–.*%/,'%').replace(/\s/g,''));
-  if(cap)parts.push(o.v+'V');
+  if(cap)parts.push(vr+'V');
   if(pk)parts.push(pk);
   if(state.aec)parts.push('AEC-Q200');
   parts.push(cap?'capacitor':'resistor');
-  return 'https://www.digikey.co.uk/en/products/result?keywords='+encodeURIComponent(parts.join(' '));
+  return parts.join(' ');
 }
+const dkUrl=(v,opt)=>'https://www.digikey.co.uk/en/products/result?keywords='+encodeURIComponent(kwOf(v,opt));
+const mouserUrl=(v,opt)=>'https://www.mouser.co.uk/c/?q='+encodeURIComponent(kwOf(v,opt));
 const dk=(v,txt,opt)=>`<a class="dk" href="${dkUrl(v,opt)}" target="_blank" rel="noopener">${txt||'DigiKey ↗'}</a>`;
+
+// Live stock: set STOCK_API to the Cloudflare Worker URL (see worker/README.md). Empty hides the button.
+const STOCK_API='';
+const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function shop(v,opt){
+  const o=encodeURIComponent(JSON.stringify(opt||{}));
+  return `<div class="srch">${dk(v,'DigiKey ↗',opt)}<a class="dk" href="${mouserUrl(v,opt)}" target="_blank" rel="noopener">Mouser ↗</a>`
+    +(STOCK_API?`<button class="stockbtn" data-v="${v}" data-opt="${o}">Check Mouser stock</button>`:'')+`</div><div class="stockout"></div>`;
+}
+const normT=t=>String(t).toLowerCase().replace(/µ|μ/g,'u').replace(/ω/g,'ohm').replace(/(\d)\s+(?=[a-z])/g,'$1').replace(/\s+/g,' ').replace(/ohms/g,'ohm');
+const hasTok=(d,t)=>new RegExp('(^|[^0-9.])'+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).test(d);
+function valToks(v){
+  if(state.mode==='res')return[normT(fmt(v,'res'))];
+  return[[1e-12,'pf'],[1e-9,'nf'],[1e-6,'uf']].map(([u,n])=>parseFloat((v/u).toPrecision(3))+n);
+}
+function stockHtml(data,v,opt){
+  const mode=state.mode,o=state.opts[mode],cap=mode==='cap';
+  const d=opt.d||(cap?o.diel:null),pk=opt.pk!==undefined?opt.pk:o.pkg,vr=opt.v||o.v;
+  const toks=valToks(v);
+  const ok=(data.parts||[]).filter(p=>{
+    const t=normT(p.desc);
+    if(!toks.some(k=>hasTok(t,k)))return false;
+    if(pk&&pk!=='Through hole'&&!t.includes(pk))return false;
+    if(cap&&d&&d!=='Any'&&!t.includes(d.toLowerCase()))return false;
+    if(cap&&!hasTok(t,vr.toLowerCase()+'v'))return false;
+    return true;
+  }).sort((a,b)=>b.stock-a.stock).slice(0,5);
+  const link=`<a href="${mouserUrl(v,opt)}" target="_blank" rel="noopener" class="dk">See all on Mouser ↗</a>`;
+  if(!ok.length)return`<span class="fit warn">No close match in stock</span> <span class="fitmore">${(data.parts||[]).length?'Mouser returned other parts, but none with this exact value, size and rating. ':''}Try a nearby value or a different size.</span>${link}`;
+  return ok.map(p=>{
+    const safe=/^https:\/\/www\.mouser\./.test(p.url);
+    const pr=[p.p1&&`${esc(p.p1.price)} @${p.p1.qty}`,p.p100&&p.p100.qty>1&&`${esc(p.p100.price)} @${p.p100.qty}`].filter(Boolean).join(' · ');
+    return`<div class="sp"><span>${safe?`<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.mpn)}</a>`:`<b class="mono">${esc(p.mpn)}</b>`} <small>${esc(p.mfr)}</small></span>
+      <span><span class="ok">${p.stock.toLocaleString('en-GB')} in stock</span> <small>${pr}${p.min>1?' · min '+p.min:''}</small></span>
+      <small>${esc(p.desc.length>90?p.desc.slice(0,90)+'…':p.desc)}</small></div>`}).join('')+link;
+}
+const stockCache=new Map();
+async function checkStock(btn){
+  const out=btn.closest('.srch').nextElementSibling,v=parseFloat(btn.dataset.v),opt=JSON.parse(decodeURIComponent(btn.dataset.opt));
+  const q=kwOf(v,opt);btn.disabled=true;out.innerHTML='<small>Checking Mouser…</small>';
+  try{
+    let data=stockCache.get(q);
+    if(!data){const r=await fetch(STOCK_API+'/stock?q='+encodeURIComponent(q));data=await r.json();if(!r.ok)throw new Error(data.error||('HTTP '+r.status));stockCache.set(q,data)}
+    out.innerHTML=stockHtml(data,v,opt);
+  }catch(e){out.innerHTML=`<span class="fit bad">Stock check failed</span> <span class="fitmore">${esc(e.message)}. Use the Mouser link instead.</span>`}
+  btn.disabled=false;
+}
 function copy(text){
   const t=$('toast');
   const done=()=>{t.textContent='Copied '+text;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1200)};
@@ -466,15 +525,15 @@ function render(){
     <div class="card primary"><span class="label">Closest in ${mode==='cap'&&state.opts.cap.diel!=='Any'?state.opts.cap.diel+' · ':''}${sel}</span>
       <span class="big mono" data-copy="${fmt(p,mode)}" title="Click to copy">${fmt(p,mode)}</span>
       <span class="meta">${errHtml(p,x)} · ${tolTxt(sel)} parts</span>${tagsHtml(p,sel)}
-      ${dk(p,'Search DigiKey ↗')}<span class="note">Below ${fmt(R[sel].below,mode)} · above ${fmt(R[sel].above,mode)}${t<=0.0025&&mode==='res'?'<br>0.1% / 0.25% parts are thin-film. Most ranges (Susumu RG, Vishay TNPW, Panasonic ERA) cover E24 and E192 values, so check stock for E192-only values.':''}</span></div>
+      ${shop(p)}<span class="note">Below ${fmt(R[sel].below,mode)} · above ${fmt(R[sel].above,mode)}${t<=0.0025&&mode==='res'?'<br>0.1% / 0.25% parts are thin-film. Most ranges (Susumu RG, Vishay TNPW, Panasonic ERA) cover E24 and E192 values, so check stock for E192-only values.':''}</span></div>
     <div class="card"><span class="label">${mode==='res'?'Easiest to buy (E24)':'Commonly stocked (E12)'}</span>
       <span class="big mono" data-copy="${fmt(stock,mode)}" title="Click to copy">${fmt(stock,mode)}</span>
       <span class="meta">${errHtml(stock,x)} · ${inBand(stock)}</span>${tagsHtml(stock,sel)}
-      ${dk(stock,'Search DigiKey ↗')}<span class="note">${mode==='res'?'Every E24 value is stocked in both 5% and 1% ranges.':'E12 covers most C0G, film and MLCC lines.'}</span></div>
+      ${shop(stock)}<span class="note">${mode==='res'?'Every E24 value is stocked in both 5% and 1% ranges.':'E12 covers most C0G, film and MLCC lines.'}</span></div>
     <div class="card"><span class="label">${mode==='res'?'Nearest in both E24 & E96':'Finer step ('+thirdS+')'}</span>
       <span class="big mono" data-copy="${fmt(third,mode)}" title="Click to copy">${fmt(third,mode)}</span>
       <span class="meta">${errHtml(third,x)} · ${inBand(third)}</span>${tagsHtml(third,sel)}
-      ${dk(third,'Search DigiKey ↗')}<span class="note">${mode==='res'?'Only six values per decade are in both: 1.0, 1.1, 1.3, 1.5, 2.0, 7.5.':(thirdS==='E48'?'E48 and finer are rare in capacitors. Check stock before designing one in.':'E24 caps are mostly C0G and film parts. Check stock before designing one in.')}</span></div>`;
+      ${shop(third)}<span class="note">${mode==='res'?'Only six values per decade are in both: 1.0, 1.1, 1.3, 1.5, 2.0, 7.5.':(thirdS==='E48'?'E48 and finer are rare in capacitors. Check stock before designing one in.':'E24 caps are mostly C0G and film parts. Check stock before designing one in.')}</span></div>`;
 
   $('alts').hidden=mode!=='cap';if(mode==='cap')$('alts').innerHTML=altsHtml(x);
 
@@ -518,6 +577,7 @@ $('vrate').addEventListener('change',()=>{state.opts.cap.v=$('vrate').value;rend
 $('wv').addEventListener('input',()=>{state.opts.cap.wv=$('wv').value;render()});
 $('aec').addEventListener('change',()=>{state.aec=$('aec').checked;render()});
 document.addEventListener('click',e=>{
+  const sb=e.target.closest('.stockbtn');if(sb){checkStock(sb);return}
   const c=e.target.closest('.chip');if(c){if(c.dataset.d){state.opts.cap.diel=c.dataset.d;state.opts.cap.tol=TOLDEF[c.dataset.d];fillSelects();render();return}state.sel[state.mode]=c.dataset.s;render();return}
   const p=e.target.closest('.preset');if(p){$('val').value=p.dataset.p;render();return}
   const r=e.target.closest('tbody tr');if(r&&state.mode==='res'){state.sel.res=r.dataset.s;render();return}

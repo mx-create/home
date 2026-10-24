@@ -1,0 +1,7 @@
+name = "rc-stock"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+ALLOWED_ORIGINS = "https://mxdesign.uk"
+# Add the key as a secret, never in this file:  npx wrangler secret put MOUSER_KEY
