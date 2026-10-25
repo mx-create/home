@@ -151,9 +151,23 @@ td .dk{margin:0;font-size:11.5px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:6px 12px;border-radius:0;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
+
+/* MX site bar */
+body>.mxbar{margin:-28px calc(-1*max(16px,env(safe-area-inset-right,0px))) 28px calc(-1*max(16px,env(safe-area-inset-left,0px)))}
+.mxbar{background:#0d1210;color:#e4ebe6;border-bottom:1px solid #2a3631;font:500 14px/1.2 "IBM Plex Sans",Archivo,system-ui,sans-serif}
+.mxbar-in{max-width:1200px;margin:0 auto;padding:10px max(16px,env(safe-area-inset-left));display:flex;align-items:center;gap:6px 18px;flex-wrap:wrap}
+.mxbar a{color:#e4ebe6;text-decoration:none}
+.mxbar a:hover,.mxbar a:focus-visible{color:#e39a5f;text-decoration:underline}
+.mxbar .mxlogo{font-weight:700;letter-spacing:.06em;margin-right:auto;display:inline-flex;align-items:center;gap:8px}
+.mxbar .mxlogo b{color:#4fbf87}
+.mxfoot{border-top:1px solid #2a3631;margin-top:40px;padding:18px 0 0;font-size:13px;color:#93a39a;text-align:center}
+.mxfoot a{color:#4fbf87;text-decoration:none}.mxfoot a:hover{text-decoration:underline}
+@media print{.mxbar,.mxfoot{display:none!important}}
+body.reporting .mxfoot{display:none}
 </style>
 </head>
 <body>
+<nav class="mxbar" aria-label="MX Design"><div class="mxbar-in"><a class="mxlogo" href="https://blog.mxdesign.uk" title="Back to blog.mxdesign.uk">&larr; <span>MX <b>DESIGN</b>.uk</span></a><a href="https://blog.mxdesign.uk">Blog</a><a href="https://mxdesign.uk/buck_compensation/">Buck Compensation Designer</a><a href="https://www.linkedin.com/in/manu-r-engineer" target="_blank" rel="noopener">LinkedIn</a></div></nav>
 <div class="wrap">
   <header>
     <h1>RC Standard <span>Finder</span></h1>
@@ -586,6 +600,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{const r=e.target.closest&&e.target.closest('tbody tr');if(r&&state.mode==='res'&&(e.key==='Enter'||e.key===' ')){e.preventDefault();state.sel.res=r.dataset.s;render()}});
 $('val').value=state.val.res;fillSelects();render();
 </script>
-
+<div class="wrap" style="padding-top:0"><footer class="mxfoot">Made by Manu R &middot; <a href="https://blog.mxdesign.uk">blog.mxdesign.uk</a> &middot; <a href="https://www.linkedin.com/in/manu-r-engineer" target="_blank" rel="noopener">LinkedIn</a> &middot; <a href="https://mxdesign.uk/buck_compensation/">Buck Compensation Designer</a> &middot; <a href="https://blog.mxdesign.uk/blog/choosing-standard-resistors-to-make-your-design-cheaper.html">Read the article behind this tool</a></footer>
+</div>
 </body>
 </html>
