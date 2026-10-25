@@ -1,0 +1,1653 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Buck Compensation Designer | MX Tools</title>
+<meta name="description" content="Design Type I, II and III compensation for buck converters. Voltage or current mode, op-amp or gm amplifier, mixed output capacitor banks, Bode plots, and a full PDF design report.">
+<meta property="og:title" content="Buck Compensation Designer">
+<meta property="og:description" content="Loop compensation for buck converters with a worked PDF design report.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0c6a60">
+<link rel="icon" href="../images/mx-mark.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<style>
+/* Layout: bench worksheet — a parameter rail on the left, results column (summary → Bode → network → capacitor → types → equations) on the right */
+:root{
+  --paper:#e9eeed; --sheet:#f8faf9; --ink:#16201e; --muted:#5a6866; --rule:#cdd6d4; --field:#ffffff;
+  --accent:#0c6a60; --accent-ink:#ffffff; --accent-soft:#d5ebe7;
+  --ps:#3a62a9; --gc:#b06c0c; --lt:#0c6a60;
+  --warn:#9c4a0c; --warn-bg:#f8eadb; --bad:#ad2e27; --bad-bg:#f6dedc; --good:#2a7539; --good-bg:#dff0e1;
+  --grid:#dde4e2; --grid2:#eef2f1; --shade:rgba(22,32,30,.055);
+  color-scheme:light;
+  --f-disp:"Barlow Condensed","Arial Narrow",sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0d1312; --sheet:#141c1b; --ink:#e0e9e7; --muted:#92a19e; --rule:#293432; --field:#0f1615;
+  --accent:#3fbfac; --accent-ink:#04201b; --accent-soft:#16332e;
+  --ps:#86a7ea; --gc:#e6a64e; --lt:#3fbfac;
+  --warn:#eb9a5c; --warn-bg:#32220f; --bad:#f07f77; --bad-bg:#371816; --good:#74c886; --good-bg:#132a18;
+  --grid:#24302e; --grid2:#1a2321; --shade:rgba(255,255,255,.045); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0d1312; --sheet:#141c1b; --ink:#e0e9e7; --muted:#92a19e; --rule:#293432; --field:#0f1615;
+  --accent:#3fbfac; --accent-ink:#04201b; --accent-soft:#16332e;
+  --ps:#86a7ea; --gc:#e6a64e; --lt:#3fbfac;
+  --warn:#eb9a5c; --warn-bg:#32220f; --bad:#f07f77; --bad-bg:#371816; --good:#74c886; --good-bg:#132a18;
+  --grid:#24302e; --grid2:#1a2321; --shade:rgba(255,255,255,.045); color-scheme:dark}
+
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.5 var(--f-body)}
+.wrap{max-width:1440px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:18px}
+h1{font:700 2.1rem/1 var(--f-disp);letter-spacing:.01em;margin:0;text-wrap:balance}
+h1 small{display:block;font:500 .78rem/1.4 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.top p{margin:0;max-width:62ch;color:var(--muted)}
+.hactions{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;justify-content:flex-end;flex:1 1 420px}
+.btn-primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;padding:8px 14px;font-size:.88rem;white-space:nowrap}
+.btn-primary:hover{border-color:var(--ink)}
+.layout{display:grid;grid-template-columns:350px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:960px){.layout{grid-template-columns:minmax(0,1fr)}}
+aside.rail{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;background:var(--sheet);border:1px solid var(--rule);border-radius:6px}
+@media (max-width:960px){aside.rail{position:static;max-height:none}}
+fieldset{border:0;border-top:1px solid var(--rule);margin:0;padding:12px 14px 14px}
+fieldset:first-child{border-top:0}
+legend{font:600 .95rem/1 var(--f-disp);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);padding:0;margin-bottom:8px;float:left;width:100%}
+legend+*{clear:both}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 96px 44px;align-items:center;gap:6px;margin-top:6px}
+.row label{font-size:.83rem;color:var(--muted);line-height:1.25}
+.row label .sym{font-family:var(--f-mono);font-size:.8rem;color:var(--ink);margin-right:5px}
+.row .u{font:.78rem var(--f-mono);color:var(--muted)}
+.row.wide{grid-template-columns:minmax(0,1fr) 146px}
+input[type=number],select{width:100%;font:500 .86rem var(--f-mono);color:var(--ink);background:var(--field);border:1px solid var(--rule);border-radius:4px;padding:5px 6px;font-variant-numeric:tabular-nums}
+select{font-family:var(--f-body);font-size:.84rem}
+input:disabled{color:var(--muted);background:var(--grid2)}
+input:focus-visible,select:focus-visible,button:focus-visible,.seg label:focus-within{outline:2px solid var(--accent);outline-offset:1px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--ink);border-radius:5px;overflow:hidden;margin-top:4px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{text-align:center;padding:7px 4px;font:600 1rem/1 var(--f-disp);letter-spacing:.05em;cursor:pointer;border-left:1px solid var(--ink)}
+.seg label:first-child{border-left:0}
+.seg input:checked+span{color:var(--accent-ink)}
+.seg label:has(input:checked){background:var(--ink);color:var(--paper)}
+.hint{font-size:.76rem;color:var(--muted);margin:6px 0 0}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+button{font:500 .8rem var(--f-body);color:var(--ink);background:transparent;border:1px solid var(--rule);border-radius:4px;padding:5px 10px;cursor:pointer}
+button:hover{border-color:var(--ink)}
+.cg{border:1px solid var(--rule);border-left:4px solid var(--bc,var(--ink));border-radius:5px;padding:8px 8px 9px;margin-top:8px;background:var(--paper)}
+.cg-h{display:flex;gap:6px;align-items:center}
+.cg-h b{font:700 .95rem var(--f-disp);letter-spacing:.05em;min-width:26px}
+.cg-h select{flex:1}
+.cg-h button{padding:4px 8px;line-height:1}
+.cg-g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 6px;margin-top:6px}
+.cg-g label{display:grid;gap:2px;font-size:.68rem;color:var(--muted);line-height:1.2;min-width:0;white-space:nowrap}
+.cg-g input{padding:4px 5px;font-size:.8rem}
+.mctext{width:100%;height:340px;resize:vertical;font:.8rem/1.55 var(--f-mono);color:var(--ink);background:var(--field);border:1px solid var(--rule);border-radius:4px;padding:10px;white-space:pre;overflow:auto;tab-size:2}
+code{font:.82em var(--f-mono);background:var(--grid2);padding:1px 4px;border-radius:3px}
+.chk{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:.83rem;color:var(--muted)}
+
+main{display:grid;gap:18px;min-width:0}
+.card{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:16px;min-width:0}
+.card h2{font:700 1.3rem/1.1 var(--f-disp);letter-spacing:.02em;margin:0 0 4px;text-wrap:balance}
+.card h2 .tag{font:500 .72rem var(--f-mono);letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-left:8px;vertical-align:middle}
+.card .sub{color:var(--muted);margin:0 0 12px;max-width:72ch;font-size:.88rem}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0;background:var(--sheet);border:1px solid var(--rule);border-right:0;border-bottom:0;border-radius:6px;overflow:hidden}
+.metric{background:var(--sheet);padding:10px 12px;min-width:0;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.metric .k{font:600 .78rem var(--f-disp);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.metric .v{font:500 1.3rem/1.2 var(--f-mono);font-variant-numeric:tabular-nums;margin-top:2px;white-space:nowrap}
+.metric .d{font-size:.74rem;color:var(--muted)}
+.metric.good .v{color:var(--good)} .metric.warn .v{color:var(--warn)} .metric.bad .v{color:var(--bad)}
+.notes{display:grid;gap:6px;margin-top:12px}
+.note{font-size:.84rem;padding:7px 10px;border-radius:4px;border-left:3px solid var(--warn);background:var(--warn-bg)}
+.note.bad{border-color:var(--bad);background:var(--bad-bg)}
+.note.ok{border-color:var(--good);background:var(--good-bg)}
+.note b{font-weight:600}
+
+.plotbox{overflow-x:auto}
+.plotbox svg{display:block;width:100%;min-width:560px;height:auto;touch-action:pan-y}
+svg text{font-family:var(--f-mono)}
+.ax{fill:var(--muted);font-size:10.5px}
+.axt{fill:var(--muted);font-size:10px;letter-spacing:.06em}
+.gl{stroke:var(--grid);stroke-width:1}
+.gl2{stroke:var(--grid2);stroke-width:1}
+.frame{fill:none;stroke:var(--rule)}
+.s-ps{stroke:var(--ps);fill:none;stroke-width:1.8}
+.s-gc{stroke:var(--gc);fill:none;stroke-width:1.8}
+.s-lt{stroke:var(--lt);fill:none;stroke-width:2.6}
+.s-z{stroke:var(--ink);fill:none;stroke-width:2}
+.s-esr{stroke:var(--gc);fill:none;stroke-width:2}
+.s-xc{stroke:var(--ps);fill:none;stroke-width:1.3;stroke-dasharray:4 4}
+.mk{stroke:var(--muted);stroke-dasharray:3 3;stroke-width:1}
+.mkt{fill:var(--muted);font-size:10px}
+.mk-fc{stroke:var(--lt);stroke-width:1.2;stroke-dasharray:none}
+.mkt-fc{fill:var(--lt);font-size:10.5px;font-weight:500}
+.shade{fill:var(--shade)}
+.pmline{stroke:var(--lt);stroke-width:3;opacity:.45}
+.zero{stroke:var(--muted);stroke-width:1}
+.hoverl{stroke:var(--ink);stroke-width:1;opacity:.5}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:4px 0 8px;font-size:.82rem}
+.legend label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.legend .sw{width:22px;height:3px;border-radius:2px;display:inline-block}
+.readout{font:.8rem var(--f-mono);color:var(--muted);min-height:1.5em;margin-top:6px;font-variant-numeric:tabular-nums}
+.readout b{color:var(--ink);font-weight:500}
+
+.net{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:1100px){.net{grid-template-columns:minmax(0,1fr)}}
+.sch{background:var(--paper);border:1px solid var(--rule);border-radius:5px;overflow-x:auto}
+.sch svg{display:block;width:100%;min-width:420px;height:auto}
+.w{stroke:var(--ink);stroke-width:1.6;fill:none;stroke-linejoin:round;stroke-linecap:round}
+.wf{fill:var(--sheet);stroke:var(--ink);stroke-width:1.6}
+.dot{fill:var(--ink)}
+.term{fill:var(--paper);stroke:var(--ink);stroke-width:1.5}
+.cl{fill:var(--ink);font-size:11.5px;font-weight:500}
+.cv{fill:var(--accent);font-size:11px}
+.tl{fill:var(--muted);font-size:10.5px;letter-spacing:.04em}
+.opt{fill:var(--ink);font-size:15px}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{font:600 .78rem var(--f-disp);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);text-align:left;border-bottom:1px solid var(--ink);padding:5px 6px}
+td{border-bottom:1px solid var(--rule);padding:6px;vertical-align:top}
+td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+td.n.std{color:var(--accent);font-weight:500}
+td .role{color:var(--muted);font-size:.78rem;display:block}
+.tblwrap{overflow-x:auto}
+.pz{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{font:.76rem var(--f-mono);padding:3px 8px;border:1px solid var(--rule);border-radius:999px;color:var(--muted);white-space:nowrap}
+.chip b{color:var(--ink);font-weight:500}
+
+.types{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:1100px){.types{grid-template-columns:minmax(0,1fr)}}
+.type{border:1px solid var(--rule);border-radius:6px;padding:12px;min-width:0;background:var(--sheet)}
+.type.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.type h3{font:700 1.15rem/1 var(--f-disp);letter-spacing:.03em;margin:0 0 2px;display:flex;justify-content:space-between;gap:8px}
+.type h3 span{font:500 .72rem var(--f-mono);color:var(--muted);letter-spacing:.04em;align-self:center}
+.type .mini{background:var(--paper);border:1px solid var(--rule);border-radius:4px;margin-top:8px;overflow:hidden}
+.type .mini svg{display:block;width:100%;height:auto}
+.type dl{margin:10px 0 0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;font-size:.82rem}
+.type dt{color:var(--muted);font:600 .75rem var(--f-disp);letter-spacing:.08em;text-transform:uppercase;padding-top:2px}
+.type dd{margin:0}
+
+.eqs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px}
+.eqg{border-top:2px solid var(--ink);padding-top:8px;min-width:0}
+.eqg h3{font:700 1.05rem var(--f-disp);letter-spacing:.06em;text-transform:uppercase;margin:0 0 6px}
+.eq{padding:7px 0;border-bottom:1px dotted var(--rule);min-width:0}
+.eq .f{font:500 .86rem/1.5 var(--f-mono);overflow-wrap:anywhere}
+.eq .v{font:.8rem/1.5 var(--f-mono);color:var(--accent);overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.eq .c{font-size:.78rem;color:var(--muted)}
+sub,sup{font-size:.72em;line-height:0}
+
+/* ---------- design report ---------- */
+.report-view{display:none}
+body.reporting header.top,body.reporting .layout{display:none}
+body.reporting .report-view{display:block}
+.rbar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--paper);border-bottom:1px solid var(--rule);padding:10px 0}
+.rbar .sp{flex:1}
+.rhelp{max-width:210mm;margin:10px auto 0;color:var(--muted);font-size:.82rem}
+.report{
+  --paper:#ffffff; --sheet:#ffffff; --ink:#16201e; --muted:#4b5957; --rule:#cdd6d4; --field:#fff; --accent:#0c6a60;
+  --ps:#3a62a9; --gc:#b06c0c; --lt:#0c6a60; --grid:#dde4e2; --grid2:#eef2f1; --shade:rgba(22,32,30,.06);
+  --good:#2a7539; --warn:#9c4a0c; --bad:#ad2e27;
+  background:#fff;color:#16201e;max-width:210mm;margin:12px auto 0;padding:16mm 15mm 18mm;border:1px solid var(--rule);
+  font:10.5pt/1.55 var(--f-body);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.report *{min-width:0}
+.rtitle{border-bottom:2px solid #16201e;padding-bottom:10px;margin-bottom:6px}
+.rkick{font:500 .72rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:#4b5957}
+.report h1{font:700 2.1rem/1.05 var(--f-disp);letter-spacing:.01em;margin:6px 0 4px}
+.rsub{font:.82rem var(--f-mono);color:#4b5957}
+.report h2{font:700 1.45rem/1.15 var(--f-disp);letter-spacing:.02em;margin:26px 0 6px;padding-top:8px;border-top:1px solid var(--rule);display:flex;gap:10px;align-items:baseline;break-after:avoid;text-wrap:balance}
+.report h3{font:700 1.08rem/1.2 var(--f-disp);letter-spacing:.05em;text-transform:uppercase;margin:16px 0 4px;color:#0c6a60;display:flex;gap:10px;align-items:baseline;break-after:avoid}
+.report .hn{font:500 .82rem var(--f-mono);color:#0c6a60;min-width:2.1em}
+.report p{margin:6px 0;max-width:none}
+.report ul{margin:6px 0 6px 1.2em;padding:0}
+.report li{margin:3px 0}
+.report .katex{font-size:1.04em}
+.eqrow{margin:8px 0;overflow-x:auto;position:relative;break-inside:avoid}
+.eqrow .katex-display{margin:.5em 0}
+div.tw{overflow-x:auto;max-width:100%;position:relative}
+table.rt{width:100%;border-collapse:collapse;margin:12px 0;font-size:.86rem;break-inside:avoid}
+table.rt caption{caption-side:top;text-align:left;font-size:.8rem;color:#4b5957;padding-bottom:4px}
+table.rt th{font:600 .74rem var(--f-disp);letter-spacing:.09em;text-transform:uppercase;color:#4b5957;border-bottom:1.5px solid #16201e;padding:4px 6px}
+table.rt td{border-bottom:1px solid var(--rule);padding:4px 6px;vertical-align:top;overflow-wrap:anywhere}
+table.rt .l,table.rt .w{text-align:left} table.rt .r{text-align:right} table.rt .c{text-align:center}
+table.rt td.ok{color:var(--good);font-weight:600} table.rt td.warn{color:var(--warn);font-weight:600} table.rt td.bad{color:var(--bad);font-weight:600}
+.rbox{border:1px solid #0c6a60;background:#e7f3f1;padding:8px 12px;margin:12px 0;break-inside:avoid}
+.rbox p{margin:3px 0 0}
+figure.rfig{margin:14px 0;break-inside:avoid}
+figure.rfig svg{display:block;width:100%;height:auto}
+figure.rfig .sch{background:#fff;border:1px solid var(--rule);overflow:visible}
+figure.rfig .sch svg{min-width:0}
+figure.rfig figcaption{font-size:.8rem;color:#4b5957;margin-top:4px}
+@media (max-width:700px){.report{padding:14px 12px}.report h1{font-size:1.7rem}}
+@media print{
+  @page{size:A4;margin:14mm 13mm 16mm}
+  html,body{background:#fff!important}
+  .wrap{padding:0!important;max-width:none!important}
+  body.reporting .rbar,body.reporting .rhelp{display:none!important}
+  .report{border:0;margin:0;padding:0;max-width:none;box-shadow:none}
+  .eqrow,div.tw{overflow:visible}
+  .report h2{margin-top:18px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header class="top">
+  <h1>Buck Compensation Designer<small>Voltage mode · peak current mode · Type I / II / III · op-amp or g<sub>m</sub> amplifier</small></h1>
+  <div class="hactions">
+    <p>Enter the power stage and output capacitor. The tool models the control-to-output gain, places the compensator poles and zeros for your crossover and phase-margin target, sizes the network, and plots the loop.</p>
+    <button type="button" id="btnReport" class="btn-primary">Design report (PDF)</button>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="rail" aria-label="Design inputs">
+<form id="f" autocomplete="off" onsubmit="return false">
+<fieldset>
+  <legend>Converter</legend>
+  <div class="row"><label for="vin"><span class="sym">V<sub>IN</sub></span>Input voltage</label><input id="vin" type="number" step="any" value="12"><span class="u">V</span></div>
+  <div class="row"><label for="vout"><span class="sym">V<sub>OUT</sub></span>Output voltage</label><input id="vout" type="number" step="any" value="3.3"><span class="u">V</span></div>
+  <div class="row"><label for="iout"><span class="sym">I<sub>OUT</sub></span>Load current</label><input id="iout" type="number" step="any" value="3"><span class="u">A</span></div>
+  <div class="row"><label for="fsw"><span class="sym">f<sub>SW</sub></span>Switching frequency</label><input id="fsw" type="number" step="any" value="500"><span class="u">kHz</span></div>
+</fieldset>
+<fieldset>
+  <legend>Inductor</legend>
+  <div class="row"><label for="L"><span class="sym">L</span>Inductance</label><input id="L" type="number" step="any" value="4.7"><span class="u">µH</span></div>
+  <div class="row"><label for="dcr"><span class="sym">DCR</span>Winding resistance</label><input id="dcr" type="number" step="any" value="15"><span class="u">mΩ</span></div>
+</fieldset>
+<fieldset>
+  <legend>Output capacitor bank</legend>
+  <div id="bank"></div>
+  <div class="btnrow"><button type="button" id="addCap">+ Add capacitor group</button></div>
+  <p class="hint">Each group is N identical parts. Groups are combined as complex impedances in parallel, so ESR, ESL and anti-resonance all come through. Per part: ESR = (R<sub>S</sub> + tanδ/(2πfC))·k<sub>T</sub>. k<sub>C</sub> is the capacitance left after DC bias, temperature and ageing; k<sub>T</sub> is the cold-ESR multiplier.</p>
+</fieldset>
+<fieldset>
+  <legend>Control &amp; power stage</legend>
+  <div class="row wide"><label for="mode">Control method</label>
+    <select id="mode"><option value="vm">Voltage mode (PWM ramp)</option><option value="cm">Peak current mode</option></select></div>
+  <div class="row wide"><label for="src">Power-stage gain</label>
+    <select id="src"><option value="calc">Calculate from discrete parts</option><option value="known">Use known DC gain</option></select></div>
+  <div class="row" data-show="vm&amp;calc"><label for="vramp"><span class="sym">V<sub>RAMP</sub></span>PWM ramp, peak-peak</label><input id="vramp" type="number" step="any" value="1"><span class="u">V</span></div>
+  <div class="row" data-show="cm"><label for="ri"><span class="sym">R<sub>i</sub></span>Current-sense gain (R<sub>SENSE</sub>·A<sub>CS</sub>)</label><input id="ri" type="number" step="any" value="0.1"><span class="u">V/A</span></div>
+  <div class="row" data-show="cm"><label for="se"><span class="sym">S<sub>e</sub></span>Slope-comp ramp</label><input id="se" type="number" step="any" value="0.035"><span class="u">V/µs</span></div>
+  <div class="btnrow" data-show="cm"><button type="button" id="seHalf">Set S<sub>e</sub> = ½ · S<sub>f</sub></button></div>
+  <div class="row" data-show="known"><label for="gknown"><span class="sym">G<sub>0</sub></span>Control-to-output DC gain</label><input id="gknown" type="number" step="any" value="21.6"><span class="u">dB</span></div>
+  <p class="hint" data-show="known">The pole/zero shape still comes from L, C and ESR; only the DC gain is replaced. For voltage mode this is 20·log(V<sub>IN</sub>/V<sub>RAMP</sub>); for current-mode ICs use the datasheet g<sub>m,PS</sub>·R<sub>LOAD</sub>.</p>
+</fieldset>
+<fieldset>
+  <legend>Error amplifier</legend>
+  <div class="row wide"><label for="amp">Amplifier</label>
+    <select id="amp"><option value="opamp">Voltage op-amp</option><option value="ota">Transconductance (g<sub>m</sub>)</option></select></div>
+  <div class="row" data-show="ota"><label for="gm"><span class="sym">g<sub>m</sub></span>EA transconductance</label><input id="gm" type="number" step="any" value="1000"><span class="u">µS</span></div>
+  <div class="row"><label for="vref"><span class="sym">V<sub>REF</sub></span>Reference</label><input id="vref" type="number" step="any" value="0.8"><span class="u">V</span></div>
+  <div class="row"><label for="rtop"><span class="sym">R<sub>TOP</sub></span>Upper divider (R1)</label><input id="rtop" type="number" step="any" value="10"><span class="u">kΩ</span></div>
+</fieldset>
+<fieldset>
+  <legend>Compensation</legend>
+  <div class="seg" role="radiogroup" aria-label="Compensator type">
+    <label><input type="radio" name="ctypeSel" value="1"><span>TYPE I</span></label>
+    <label><input type="radio" name="ctypeSel" value="2"><span>TYPE II</span></label>
+    <label><input type="radio" name="ctypeSel" value="3" checked><span>TYPE III</span></label>
+  </div>
+  <div class="row wide" data-show="t23"><label for="method">Pole/zero placement</label>
+    <select id="method"><option value="k">K-factor (Venable)</option><option value="manual">Manual placement</option></select></div>
+  <div class="row"><label for="fc"><span class="sym">f<sub>C</sub></span>Target crossover</label><input id="fc" type="number" step="any" value="40"><span class="u">kHz</span></div>
+  <div class="row" data-show="t23&amp;kf"><label for="pm"><span class="sym">PM</span>Target phase margin</label><input id="pm" type="number" step="any" value="60"><span class="u">°</span></div>
+  <div class="row" data-show="t23"><label for="fz1"><span class="sym">f<sub>Z1</sub></span>Compensator zero 1</label><input id="fz1" type="number" step="any" value="5"><span class="u">kHz</span></div>
+  <div class="row" data-show="t3"><label for="fz2"><span class="sym">f<sub>Z2</sub></span>Compensator zero 2</label><input id="fz2" type="number" step="any" value="10"><span class="u">kHz</span></div>
+  <div class="row" data-show="t3"><label for="fp1"><span class="sym">f<sub>P1</sub></span>Compensator pole 1</label><input id="fp1" type="number" step="any" value="200"><span class="u">kHz</span></div>
+  <div class="row" data-show="t23"><label for="fp2"><span class="sym">f<sub>P2</sub></span>Compensator pole 2 (HF)</label><input id="fp2" type="number" step="any" value="250"><span class="u">kHz</span></div>
+  <div class="btnrow" data-show="t23&amp;manual"><button type="button" id="resetPz">Reset to recommended placement</button></div>
+  <label class="chk"><input type="checkbox" id="snap" checked> Use standard values (E96 resistors, E12 capacitors) in the plots</label>
+  <div class="btnrow"><button type="button" id="loadEx">Load example (12 V → 3.3 V)</button></div>
+</fieldset>
+</form>
+</aside>
+
+<main>
+  <section class="card" aria-labelledby="h-sum">
+    <h2 id="h-sum">Loop result <span class="tag" id="recTag"></span></h2>
+    <div class="metrics" id="metrics"></div>
+    <div class="notes" id="notes"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-bode">
+    <h2 id="h-bode">Bode plot</h2>
+    <p class="sub">Power stage G<sub>PS</sub> (control-to-output, including the modulator), compensator G<sub>C</sub>, and loop gain T = G<sub>PS</sub>·G<sub>C</sub>. The shaded band above f<sub>SW</sub>/2 is outside the range where the averaged model holds.</p>
+    <div class="legend">
+      <label><input type="checkbox" id="lgPs" checked><span class="sw" style="background:var(--ps)"></span>Power stage</label>
+      <label><input type="checkbox" id="lgGc" checked><span class="sw" style="background:var(--gc)"></span>Compensator</label>
+      <label><input type="checkbox" id="lgLt" checked><span class="sw" style="background:var(--lt);height:4px"></span>Loop gain T</label>
+    </div>
+    <div class="plotbox"><svg id="bode" viewBox="0 0 780 500" role="img" aria-label="Bode magnitude and phase plot"></svg></div>
+    <div class="readout" id="readout">Move across the plot to read values.</div>
+  </section>
+
+  <section class="card" aria-labelledby="h-net">
+    <h2 id="h-net">Compensation network <span class="tag" id="netTag"></span></h2>
+    <p class="sub" id="netSub"></p>
+    <div class="net">
+      <div class="sch" id="sch"></div>
+      <div>
+        <div class="tblwrap"><table><thead><tr><th>Part</th><th style="text-align:right">Calculated</th><th style="text-align:right">Standard</th></tr></thead><tbody id="comps"></tbody></table></div>
+        <div class="pz" id="pz"></div>
+        <div class="btnrow"><button type="button" id="copyBtn">Copy values</button><span class="hint" id="copyMsg" style="margin:0;align-self:center"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="h-cap">
+    <h2 id="h-cap">Output capacitor across frequency</h2>
+    <p class="sub">Bank impedance |Z|, ESR and the ideal capacitive reactance. The ESR that matters for the loop is the value near f<sub>C</sub>; the value at f<sub>SW</sub> sets ripple.</p>
+    <div class="metrics" id="capMetrics"></div>
+    <div class="plotbox" style="margin-top:12px"><svg id="capPlot" viewBox="0 0 780 290" role="img" aria-label="Capacitor impedance and ESR versus frequency"></svg></div>
+    <h3 style="font:700 1.05rem var(--f-disp);letter-spacing:.06em;text-transform:uppercase;margin:14px 0 6px">How the groups share the work</h3>
+    <div class="tblwrap"><table><thead><tr><th>Group</th><th style="text-align:right">C<sub>eff</sub></th><th style="text-align:right">ESR @ f<sub>C</sub></th><th style="text-align:right">|Z| @ f<sub>SW</sub></th><th style="text-align:right">Ripple I<sub>rms</sub></th><th style="text-align:right">Share</th></tr></thead><tbody id="branchTbl"></tbody></table></div>
+    <p class="hint">Ripple current divides by admittance at f<sub>SW</sub>: I<sub>i</sub> ≈ I<sub>C,rms</sub>·|Y<sub>i</sub>/Y<sub>bank</sub>|. Check each group against its rated ripple current. A dip-then-peak in |Z| between two groups is an anti-resonance between the ceramic ESL and the bulk capacitor.</p>
+  </section>
+
+  <section class="card" aria-labelledby="h-types">
+    <h2 id="h-types">Type I, II and III compared</h2>
+    <p class="sub">Each type adds one more pole–zero pair to the integrator. The extra zeros are what buy phase at crossover; the extra poles roll the gain off again before switching noise gets through.</p>
+    <div class="types" id="types"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-eq">
+    <h2 id="h-eq">Equations with your numbers</h2>
+    <p class="sub">Every value on this page comes from these relations. Curves are computed from the full complex expressions; the asymptotic forms are shown for reading.</p>
+    <div class="eqs" id="eqs"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-mc">
+    <h2 id="h-mc">Mathcad export <span class="tag">plain text</span></h2>
+    <p class="sub">Every input, the capacitor bank, all equations and the component values for the current design, written as Mathcad definitions (<code>name := expression</code>). It updates with the design. Download it or copy it, and paste it into a Mathcad Prime worksheet.</p>
+    <div class="btnrow" style="margin:0 0 8px"><button type="button" id="mcDl" class="btn-primary">Download .txt</button><button type="button" id="mcCopy">Copy Mathcad text</button><button type="button" id="mcSel">Select all</button><span class="hint" id="mcMsg" style="margin:0;align-self:center"></span></div>
+    <textarea id="mcText" class="mctext" readonly spellcheck="false" aria-label="Mathcad export text"></textarea>
+    <p class="hint">Written to Mathcad's syntax but not tested against Prime here. Units are typed as <code>*kHz</code> style products and j is written <code>1i</code>. If a pasted line lands as text, retype the <code>:=</code> and it converts to a math region.</p>
+  </section>
+</main>
+</div>
+
+<section class="report-view" id="reportView" aria-label="Design report">
+  <div class="rbar">
+    <button type="button" id="rClose">&larr; Back to calculator</button>
+    <span class="sp"></span>
+    <span class="hint" id="rMsg" style="margin:0"></span>
+    <button type="button" id="rCopy">Copy LaTeX</button>
+    <button type="button" id="rTex">Download .tex</button>
+    <button type="button" id="rPdf" class="btn-primary">Download PDF</button>
+  </div>
+  <p class="rhelp">Download PDF opens your browser's print dialog. Choose <b>Save as PDF</b> as the destination, A4, and leave margins on Default.</p>
+  <article class="report" id="reportBody"></article>
+</section>
+</div>
+
+<script src="vendor/katex/katex.min.js"></script>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const TAU=2*Math.PI, D2R=Math.PI/180;
+/* ---------- complex helpers ---------- */
+const cadd=(a,b)=>[a[0]+b[0],a[1]+b[1]];
+const cmul=(a,b)=>[a[0]*b[0]-a[1]*b[1],a[0]*b[1]+a[1]*b[0]];
+const cdiv=(a,b)=>{const d=b[0]*b[0]+b[1]*b[1];return[(a[0]*b[0]+a[1]*b[1])/d,(a[1]*b[0]-a[0]*b[1])/d]};
+const cabs=a=>Math.hypot(a[0],a[1]);
+const carg=a=>Math.atan2(a[1],a[0])/D2R;
+const inv=a=>cdiv([1,0],a);
+const cpar=(a,b)=>cdiv(cmul(a,b),cadd(a,b));
+const re=x=>[x,0];
+const dB=x=>20*Math.log10(x);
+
+/* ---------- formatting ---------- */
+const PFX=[[1e9,'G'],[1e6,'M'],[1e3,'k'],[1,''],[1e-3,'m'],[1e-6,'µ'],[1e-9,'n'],[1e-12,'p'],[1e-15,'f']];
+function fe(v,u='',d=3){
+  if(v===Infinity) return '∞'; if(!isFinite(v)) return '—'; if(v===0) return '0 '+u;
+  const a=Math.abs(v);
+  for(const [m,s] of PFX){ if(a>=m*0.9995){ return parseFloat((v/m).toPrecision(d))+' '+s+u; } }
+  return v.toExponential(2)+' '+u;
+}
+const fd=(v,d=1)=>isFinite(v)?v.toFixed(d):'—';
+const fHz=v=>fe(v,'Hz');
+
+/* ---------- standard values ---------- */
+const E12=[1,1.2,1.5,1.8,2.2,2.7,3.3,3.9,4.7,5.6,6.8,8.2];
+const E96=Array.from({length:96},(_,i)=>Math.round(Math.pow(10,i/96)*100)/100);
+function snap(v,ser){
+  if(!(v>0)||!isFinite(v)) return v;
+  const e=Math.floor(Math.log10(v)), m=v/Math.pow(10,e);
+  let best=ser[0],bd=1e9; for(const s of [...ser,10]){const d=Math.abs(Math.log(m/s)); if(d<bd){bd=d;best=s;}}
+  return best*Math.pow(10,e);
+}
+
+/* ---------- capacitor presets ---------- */
+const CAPS={
+  x7r:{df:0.025,fspec:1000,esl:0.5,kbias:60,esr:3,txt:'Class II ceramic: tiny ESR, so the ESR zero sits in the MHz range. Capacitance drops hard with DC bias; check the vendor curve.'},
+  c0g:{df:0.001,fspec:1000,esl:0.4,kbias:100,esr:5,txt:'Class I ceramic: stable C, negligible loss. Usually too small in value to be the bulk output cap.'},
+  poly:{df:0.1,fspec:100,esl:1.5,kbias:100,esr:15,txt:'Polymer: moderate ESR, flat over temperature. ESR zero often lands near the crossover.'},
+  tant:{df:0.08,fspec:100,esl:2,kbias:100,esr:100,txt:'MnO₂ tantalum: high ESR gives a low-frequency ESR zero. Derate voltage per your standard.'},
+  alu:{df:0.16,fspec:100,esl:8,kbias:100,esr:80,txt:'Wet aluminium: large ESR rising sharply when cold. ESR zero is low, often below crossover.'},
+  custom:null
+};
+const CAPNAME={x7r:'MLCC X7R/X5R',c0g:'MLCC C0G',poly:'Polymer',tant:'Tantalum MnO₂',alu:'Al electrolytic',custom:'Custom'};
+const BCOL=['var(--ps)','var(--gc)','#8a5bb8','#b0466b','#4f8a3a','#6b7a3a'];
+const DEFAULT_BANK=[
+  {type:'x7r',c:47,n:2,kb:60,esr:3,fs:1000,df:0.025,esl:0.5,kt:1},
+  {type:'poly',c:150,n:1,kb:100,esr:15,fs:100,df:0.1,esl:1.5,kt:1}
+];
+let bank=JSON.parse(JSON.stringify(DEFAULT_BANK));
+const BK=[['c','C µF'],['n','Qty'],['kb','k<sub>C</sub> %'],['esr','ESR mΩ'],['fs','@ kHz'],['df','tanδ'],['esl','ESL nH'],['kt','k<sub>T</sub> ×']];
+function renderBank(){
+  $('bank').innerHTML=bank.map((g,i)=>`<div class="cg" style="--bc:${BCOL[i%BCOL.length]}">
+    <div class="cg-h"><b>C${i+1}</b><select id="bk${i}_type" data-i="${i}" data-k="type" aria-label="Technology of group ${i+1}">${Object.keys(CAPNAME).map(k=>`<option value="${k}"${k===g.type?' selected':''}>${CAPNAME[k]}</option>`).join('')}</select>
+    ${bank.length>1?`<button type="button" data-del="${i}" aria-label="Remove group ${i+1}">✕</button>`:''}</div>
+    <div class="cg-g">${BK.map(([k,l])=>`<label>${l}<input id="bk${i}_${k}" type="number" step="any" data-i="${i}" data-k="${k}" value="${g[k]}"></label>`).join('')}</div></div>`).join('');
+}
+$('bank').addEventListener('input',e=>{const t=e.target,i=+t.dataset.i,k=t.dataset.k; if(isNaN(i)||!k)return;
+  if(k==='type'){bank[i].type=t.value; const c=CAPS[t.value]; if(c){bank[i].df=c.df;bank[i].fs=c.fspec;bank[i].esl=c.esl;bank[i].kb=c.kbias;bank[i].esr=c.esr;} renderBank(); compute(); return;}
+  bank[i][k]=parseFloat(t.value);});
+$('bank').addEventListener('change',e=>{if(e.target.dataset.k&&e.target.dataset.k!=='type')compute();});
+$('bank').addEventListener('click',e=>{const d=e.target.closest('[data-del]'); if(!d)return; bank.splice(+d.dataset.del,1); renderBank(); compute();});
+$('addCap').addEventListener('click',()=>{bank.push({type:'x7r',c:10,n:1,kb:70,esr:5,fs:1000,df:0.025,esl:0.4,kt:1}); renderBank(); compute();});
+
+/* ---------- state & visibility ---------- */
+function typeSel(){return +document.querySelector('input[name=ctypeSel]:checked').value}
+function flags(){
+  const t=typeSel(), m=$('method').value;
+  return {vm:$('mode').value==='vm',cm:$('mode').value==='cm',calc:$('src').value==='calc',known:$('src').value==='known',
+    opamp:$('amp').value==='opamp',ota:$('amp').value==='ota',t1:t===1,t2:t===2,t3:t===3,t23:t>1,kf:m==='k',manual:m==='manual'};
+}
+function applyVis(){
+  const fl=flags();
+  document.querySelectorAll('[data-show]').forEach(el=>{
+    const ok=el.dataset.show.split('&').every(part=>part.split('|').some(tok=>fl[tok.trim()]));
+    el.hidden=!ok;
+  });
+}
+
+/* ---------- models ---------- */
+function read(){
+  const g=id=>parseFloat($(id).value);
+  return {vin:g('vin'),vout:g('vout'),iout:g('iout'),fsw:g('fsw')*1e3,L:g('L')*1e-6,dcr:g('dcr')*1e-3,
+    bank:bank.map(b=>({type:b.type,c:b.c*1e-6,n:Math.max(1,Math.round(b.n||1)),kb:b.kb/100,esr:b.esr*1e-3,fs:b.fs*1e3,df:b.df||0,esl:(b.esl||0)*1e-9,kt:b.kt||1})),
+    mode:$('mode').value,src:$('src').value,vramp:g('vramp'),ri:g('ri'),se:g('se')*1e6,gk:g('gknown'),
+    amp:$('amp').value,gm:g('gm')*1e-6,vref:g('vref'),rtop:g('rtop')*1e3,
+    type:typeSel(),method:typeSel()===1?'k':$('method').value,fc:g('fc')*1e3,pm:g('pm'),snap:$('snap').checked};
+}
+function capModel(p){
+  const clamped=[];
+  const br=p.bank.map((b,i)=>{
+    let Rs=b.esr-b.df/(TAU*b.fs*b.c); if(Rs<0){Rs=0;clamped.push(i+1);}
+    const Ce=b.c*b.kb;
+    const esrPart=f=>(Rs+b.df/(TAU*f*b.c))*b.kt;
+    const Zb=f=>{const w=TAU*f;return[esrPart(f)/b.n,(w*b.esl-1/(w*Ce))/b.n]};
+    const srf=b.esl>0?1/(TAU*Math.sqrt(b.esl*Ce)):Infinity;
+    return {...b,i,Rs,Ce,Ctot:Ce*b.n,esrPart,Z:Zb,srf,label:`C${i+1}: ${b.n}× ${fe(b.c,'F')} ${CAPNAME[b.type]}`};
+  });
+  const Ceff=br.reduce((a,b)=>a+b.Ctot,0);
+  const Y=f=>br.reduce((a,b)=>cadd(a,inv(b.Z(f))),[0,0]);
+  const Z=f=>inv(Y(f));
+  const esr=f=>Z(f)[0];
+  // first series resonance of the bank (Im Z crosses 0 going up)
+  let srf=Infinity, fesr=Infinity, prevIm=null, prevF=null;
+  for(let i=0;i<=900;i++){const f=10*Math.pow(1e9,i/900), z=Z(f);
+    if(fesr===Infinity&&z[0]*TAU*f*Ceff>=1) fesr=f;
+    if(prevIm!==null&&prevIm<0&&z[1]>=0&&srf===Infinity) srf=Math.sqrt(prevF*f);
+    prevIm=z[1]; prevF=f;}
+  // ESL seen at high frequency
+  const fh=1e9, esl=Z(fh)[1]/(TAU*fh);
+  return {Ceff,br,clamped,esr,esl,Z,Y,srf,fesr};
+}
+function stage(p,cap){
+  const D=p.vout/p.vin, R=p.vout/p.iout, Tsw=1/p.fsw;
+  const f0=1/(TAU*Math.sqrt(p.L*cap.Ceff)), fload=1/(TAU*R*cap.Ceff);
+  const info={D,R,f0,fload,Tsw};
+  let G;
+  if(p.mode==='vm'){
+    const raw=f=>{const w=TAU*f, Zo=cpar(re(R),cap.Z(f)), Zl=[p.dcr,w*p.L]; return cmul(re(p.vin),cdiv(Zo,cadd(Zo,Zl)));};
+    const gvdDC=p.vin*R/(R+p.dcr);
+    const k=p.src==='calc'?1/p.vramp:Math.pow(10,p.gk/20)/gvdDC;
+    G=f=>cmul(raw(f),re(k));
+    info.gdc=gvdDC*k; info.gvdDC=gvdDC; info.k=k;
+    info.Q=1/(TAU*f0*(p.L/R+cap.Ceff*(cap.esr(f0)+p.dcr)));
+  } else {
+    const Sn=(p.vin-p.vout)/p.L*p.ri, Sf=p.vout/p.L*p.ri;
+    const mc=1+p.se/Sn, t=mc*(1-D)-0.5;
+    const Rp=1/(1/R+Tsw*t/p.L);           // R′: load in parallel with the current-loop damping term
+    const A0=Rp/p.ri;
+    const wp=1/(cap.Ceff*Rp);
+    const wn=Math.PI/Tsw, Qp=1/(Math.PI*t);
+    const k=p.src==='calc'?1:Math.pow(10,p.gk/20)/A0;
+    G=f=>{const w=TAU*f;
+      const Zo=cpar(re(Rp),cap.Z(f));
+      const He=inv([1-(w*w)/(wn*wn), w*Math.PI*t/wn]);
+      return cmul(re(k/p.ri),cmul(Zo,He));};
+    Object.assign(info,{Sn,Sf,mc,t,Qp,fn:wn/TAU,fp:wp/TAU,A0,Rp,gdc:A0*k,k});
+  }
+  return {G,info};
+}
+function phaseTo(fn,f){
+  let prev=null,off=0; const N=400, f1=1;
+  for(let i=0;i<=N;i++){const fi=f1*Math.pow(f/f1,i/N); const a=carg(fn(fi));
+    if(prev!==null){ while(a+off-prev>180)off-=360; while(a+off-prev<-180)off+=360; } prev=a+off;}
+  return prev;
+}
+function shape(f,zs,ps){
+  let v=inv([0,TAU*f]);
+  zs.forEach(z=>v=cmul(v,[1,f/z])); ps.forEach(q=>v=cdiv(v,[1,f/q]));
+  return v;
+}
+function recommend(p,cap,info){
+  const half=p.fsw/2, fesr=cap.fesr;
+  const pHF=Math.min(fesr,half);
+  if(p.type===2){
+    if(p.mode==='cm') return {fz1:Math.max(info.fload,p.fc/20),fp2:pHF};
+    return {fz1:0.8*info.f0,fp2:fesr>p.fc?pHF:half};
+  }
+  return {fz1:0.5*info.f0,fz2:info.f0,fp1:pHF,fp2:half};
+}
+function design(p,G,info,cap){
+  const out={warn:[],err:[]};
+  const H0=p.vref/p.vout;
+  const gps=G(p.fc); out.mag=cabs(gps); out.ph=phaseTo(G,p.fc);
+  out.boost=p.pm-90-out.ph;
+  let z={};
+  if(p.type>1){
+    if(p.method==='k'){
+      if(p.type===2){
+        const b=Math.min(Math.max(out.boost,1),89); out.K=Math.tan((b/2+45)*D2R);
+        z={fz1:p.fc/out.K,fp2:p.fc*out.K};
+        if(out.boost>89) out.warn.push(['bad',`Type II can add at most ~90° of phase; this loop needs <b>${fd(out.boost,0)}°</b> at f<sub>C</sub>. Use Type III, or lower f<sub>C</sub>.`]);
+      } else if(p.amp==='opamp'){
+        const b=Math.min(Math.max(out.boost,1),178); out.K=Math.pow(Math.tan((b/4+45)*D2R),2); const sk=Math.sqrt(out.K);
+        z={fz1:p.fc/sk,fz2:p.fc/sk,fp1:p.fc*sk,fp2:p.fc*sk};
+        if(out.boost>178) out.warn.push(['bad',`Required boost <b>${fd(out.boost,0)}°</b> exceeds what Type III can deliver. Lower f<sub>C</sub>.`]);
+      } else {
+        const r=1/H0; out.phiCff=Math.asin((r-1)/(r+1))/D2R;
+        const b2=Math.min(Math.max(out.boost-out.phiCff,1),89); out.K=Math.tan((b2/2+45)*D2R);
+        z={fz1:p.fc/out.K,fp2:p.fc*out.K,fz2:p.fc*Math.sqrt(H0),fp1:p.fc/Math.sqrt(H0)};
+        if(out.boost-out.phiCff>89) out.warn.push(['bad',`With a g<sub>m</sub> amplifier the feed-forward cap adds only ${fd(out.phiCff,0)}° (fixed by V<sub>OUT</sub>/V<sub>REF</sub>); the rest needs more than 90°. Lower f<sub>C</sub> or use an op-amp Type III.`]);
+      }
+    } else {
+      const g=id=>parseFloat($(id).value)*1e3;
+      z={fz1:g('fz1'),fp2:g('fp2')}; if(p.type===3){z.fz2=g('fz2'); z.fp1=p.amp==='ota'?z.fz2/H0:g('fp1');}
+    }
+  }
+  out.z=z;
+  const zs=p.type===1?[]:p.type===2?[z.fz1]:[z.fz1,z.fz2];
+  const ps=p.type===1?[]:p.type===2?[z.fp2]:[z.fp1,z.fp2];
+  out.zs=zs; out.ps=ps;
+  out.S=cabs(shape(p.fc,zs,ps));
+  out.wi=1/(out.S*out.mag);
+  const c={Rtop:p.rtop,Rbot:p.rtop*p.vref/(p.vout-p.vref)};
+  const r=p.type>1?z.fp2/z.fz1:1;
+  if(p.type>1&&!(r>1)) out.err.push('The high-frequency pole must sit above the first zero (f<sub>P2</sub> > f<sub>Z1</sub>).');
+  if(p.amp==='opamp'){
+    const R1=p.rtop; c.R1=R1;
+    const Ct=1/(R1*out.wi);
+    if(p.type===1){c.C1=Ct;}
+    else{
+      c.C2=Ct/r; c.C1=Ct-c.C2; c.R2=1/(TAU*z.fz1*c.C1);
+      if(p.type===3){
+        if(!(z.fp1>z.fz2)) out.err.push('Zero 2 must sit below pole 1 (f<sub>Z2</sub> < f<sub>P1</sub>) for the R3–C3 branch to exist.');
+        c.C3=(1/z.fz2-1/z.fp1)/(TAU*R1); c.R3=1/(TAU*z.fp1*c.C3);
+      }
+    }
+  } else {
+    const Ct=H0*p.gm/out.wi;
+    if(p.type===1){c.Cc=Ct;}
+    else{ c.Cp=Ct/r; c.Cc=Ct-c.Cp; c.Rc=1/(TAU*z.fz1*c.Cc);
+      if(p.type===3) c.Cff=1/(TAU*p.rtop*z.fz2); }
+  }
+  out.c=c;
+  const s={}; for(const k in c){ s[k]=k.startsWith('R')?snap(c[k],E96):snap(c[k],E12); }
+  out.cs=s;
+  return out;
+}
+function GcOf(p,c,f){
+  const s=[0,TAU*f], Zc=C=>inv(cmul(s,re(C)));
+  if(p.amp==='opamp'){
+    const Zf=p.type===1?Zc(c.C1):cpar(cadd(re(c.R2),Zc(c.C1)),Zc(c.C2));
+    const Zi=p.type===3?cpar(re(c.R1),cadd(re(c.R3),Zc(c.C3))):re(c.R1);
+    return cdiv(Zf,Zi);
+  }
+  const Zt=p.type===3?cpar(re(c.Rtop),Zc(c.Cff)):re(c.Rtop);
+  const H=cdiv(re(c.Rbot),cadd(Zt,re(c.Rbot)));
+  const Zo=p.type===1?Zc(c.Cc):cpar(cadd(re(c.Rc),Zc(c.Cc)),Zc(c.Cp));
+  return cmul(cmul(H,re(p.gm)),Zo);
+}
+function sweep(p,G,Gc,fmin,fmax,N=600){
+  const f=[],ps=[],gc=[],t=[],pps=[],pgc=[],pt=[];
+  let o1=0,o2=0,o3=0,l1=null,l2=null,l3=null;
+  const un=(a,l,o)=>{if(l===null)return[a,o]; while(a+o-l>180)o-=360; while(a+o-l<-180)o+=360; return[a,o];};
+  for(let i=0;i<N;i++){
+    const fi=fmin*Math.pow(fmax/fmin,i/(N-1)); f.push(fi);
+    const a=G(fi), b=Gc(fi), c=cmul(a,b);
+    ps.push(dB(cabs(a))); gc.push(dB(cabs(b))); t.push(dB(cabs(c)));
+    let x; x=un(carg(a),l1,o1); o1=x[1]; l1=x[0]+o1; pps.push(l1);
+    x=un(carg(b),l2,o2); o2=x[1]; l2=x[0]+o2; pgc.push(l2);
+    pt.push(l1+l2);
+  }
+  // metrics
+  let fc=NaN,pm=NaN,ic=-1;
+  for(let i=1;i<N;i++){ if(t[i-1]>0&&t[i]<=0){ const a=t[i-1]/(t[i-1]-t[i]); fc=Math.exp(Math.log(f[i-1])+a*(Math.log(f[i])-Math.log(f[i-1]))); pm=180+pt[i-1]+a*(pt[i]-pt[i-1]); ic=i; break; } }
+  let gm=Infinity,f180=NaN;
+  const st=ic>0?ic:1;
+  for(let i=st;i<N;i++){ if(pt[i-1]>-180&&pt[i]<=-180){ const a=(pt[i-1]+180)/(pt[i-1]-pt[i]); const tdb=t[i-1]+a*(t[i]-t[i-1]); gm=-tdb; f180=Math.exp(Math.log(f[i-1])+a*(Math.log(f[i])-Math.log(f[i-1]))); break; } }
+  return {f,ps,gc,t,pps,pgc,pt,fc,pm,gm,f180};
+}
+
+/* ---------- plotting ---------- */
+let uid=0;
+function panel(o){
+  const id='cp'+(uid++), L0=Math.log10(o.fmin), L1=Math.log10(o.fmax);
+  const lx=f=>o.x+(Math.log10(f)-L0)/(L1-L0)*o.w;
+  const ly=v=>{const t=o.ylog?(Math.log10(v)-Math.log10(o.ymin))/(Math.log10(o.ymax)-Math.log10(o.ymin)):(v-o.ymin)/(o.ymax-o.ymin); return o.y+o.h-t*o.h;};
+  let s=`<clipPath id="${id}"><rect x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}"/></clipPath>`;
+  if(o.shadeFrom&&o.shadeFrom<o.fmax){const x=lx(Math.max(o.shadeFrom,o.fmin)); s+=`<rect class="shade" x="${x}" y="${o.y}" width="${o.x+o.w-x}" height="${o.h}"/>`;}
+  for(let d=Math.floor(L0);d<=Math.ceil(L1);d++){
+    for(let m=1;m<10;m++){const f=m*Math.pow(10,d); if(f<o.fmin*0.999||f>o.fmax*1.001)continue; const x=lx(f).toFixed(1);
+      s+=`<line class="${m===1?'gl':'gl2'}" x1="${x}" x2="${x}" y1="${o.y}" y2="${o.y+o.h}"/>`;
+      if(m===1&&o.showX) s+=`<text class="ax" x="${x}" y="${o.y+o.h+14}" text-anchor="middle">${fe(f,'').trim()||'1'}</text>`;}
+  }
+  if(o.ylog){ for(let d=Math.ceil(Math.log10(o.ymin));d<=Math.floor(Math.log10(o.ymax));d++){const v=Math.pow(10,d),y=ly(v).toFixed(1); s+=`<line class="gl" x1="${o.x}" x2="${o.x+o.w}" y1="${y}" y2="${y}"/><text class="ax" x="${o.x-6}" y="${+y+3.5}" text-anchor="end">${fe(v,'').trim()}</text>`;} }
+  else { for(let v=o.ymin;v<=o.ymax+1e-9;v+=o.ystep){const y=ly(v).toFixed(1); s+=`<line class="${Math.abs(v-(o.zeroAt??1e9))<1e-9?'zero':'gl'}" x1="${o.x}" x2="${o.x+o.w}" y1="${y}" y2="${y}"/><text class="ax" x="${o.x-6}" y="${+y+3.5}" text-anchor="end">${v}</text>`;} }
+  if(o.ylab) s+=`<text class="axt" transform="translate(${o.x-38},${o.y+o.h/2}) rotate(-90)" text-anchor="middle">${o.ylab}</text>`;
+  (o.marks||[]).forEach((m,i)=>{ if(!(m.f>o.fmin&&m.f<o.fmax))return; const x=lx(m.f).toFixed(1);
+    s+=`<line class="${m.cls||'mk'}" x1="${x}" x2="${x}" y1="${o.y}" y2="${o.y+o.h}"/>`;
+    if(m.label) s+=`<text class="${m.tcls||'mkt'}" x="${+x+3}" y="${o.y+11+(m.row||0)*12}">${m.label}</text>`;});
+  s+=`<g clip-path="url(#${id})">`;
+  (o.series||[]).forEach(se=>{ if(se.hide)return; let d='';
+    se.v.forEach((v,i)=>{ if(!isFinite(v)||(o.ylog&&v<=0))return; let yy=ly(v); yy=Math.max(o.y-50,Math.min(o.y+o.h+50,yy)); d+=(d?'L':'M')+lx(se.f[i]).toFixed(1)+' '+yy.toFixed(1);});
+    s+=`<path class="${se.cls}" d="${d}"/>`;});
+  s+=(o.extra||'')+'</g>';
+  s+=`<rect class="frame" x="${o.x}" y="${o.y}" width="${o.w}" height="${o.h}"/>`;
+  return {s,lx,ly};
+}
+const niceRange=(arr,step,lo,hi)=>{let mn=Infinity,mx=-Infinity; arr.forEach(a=>a.forEach(v=>{if(isFinite(v)){mn=Math.min(mn,v);mx=Math.max(mx,v);}}));
+  mn=Math.max(lo,Math.floor(mn/step)*step); mx=Math.min(hi,Math.ceil(mx/step)*step); if(mx-mn<step*2){mx+=step;mn-=step;} return [mn,mx];};
+
+/* ---------- schematics ---------- */
+function resH(x1,x2,y){const a=x1+9,b=x2-9,n=6,st=(b-a)/n;let d=`M${x1} ${y}H${a}`;for(let i=0;i<n;i++)d+=`L${(a+st*(i+.5)).toFixed(1)} ${y+(i%2?6:-6)}`;return `<path class="w" d="${d}L${b} ${y}H${x2}"/>`;}
+function resV(x,y1,y2){const a=y1+9,b=y2-9,n=6,st=(b-a)/n;let d=`M${x} ${y1}V${a}`;for(let i=0;i<n;i++)d+=`L${x+(i%2?6:-6)} ${(a+st*(i+.5)).toFixed(1)}`;return `<path class="w" d="${d}L${x} ${b}V${y2}"/>`;}
+function capH(x1,x2,y){const m=(x1+x2)/2;return `<path class="w" d="M${x1} ${y}H${m-3}M${m+3} ${y}H${x2}M${m-3} ${y-10}V${y+10}M${m+3} ${y-10}V${y+10}"/>`;}
+function capV(x,y1,y2){const m=(y1+y2)/2;return `<path class="w" d="M${x} ${y1}V${m-3}M${x} ${m+3}V${y2}M${x-10} ${m-3}H${x+10}M${x-10} ${m+3}H${x+10}"/>`;}
+const gnd=(x,y)=>`<path class="w" d="M${x} ${y}V${y+4}M${x-9} ${y+4}H${x+9}M${x-5.5} ${y+8}H${x+5.5}M${x-2} ${y+12}H${x+2}"/>`;
+const wire=pts=>`<path class="w" d="M${pts.map(p=>p.join(' ')).join('L')}"/>`;
+const dot=(x,y)=>`<circle class="dot" cx="${x}" cy="${y}" r="2.8"/>`;
+const term=(x,y)=>`<circle class="term" cx="${x}" cy="${y}" r="4"/>`;
+const lab=(x,y,n,v,anc='middle')=>`<text class="cl" x="${x}" y="${y}" text-anchor="${anc}">${n}${v?`<tspan class="cv" dx="5">${v}</tspan>`:''}</text>`;
+const tl=(x,y,t,anc='middle')=>`<text class="tl" x="${x}" y="${y}" text-anchor="${anc}">${t}</text>`;
+
+function schOpamp(type,v){
+  const V=k=>v?v[k]:'';
+  let s='';
+  s+=term(22,150)+tl(22,136,'V<tspan baseline-shift="sub" font-size="8">OUT</tspan>');
+  s+=wire([[26,150],[50,150]])+resH(50,140,150)+lab(95,134,'R1',V('R1'));
+  s+=wire([[140,150],[270,150]])+dot(170,150)+dot(215,150);
+  s+=resV(215,150,214)+gnd(215,214)+lab(198,178,'R<tspan baseline-shift="sub" font-size="8">BOT</tspan>','','end')+(v?`<text class="cv" x="198" y="192" text-anchor="end">${V('Rbot')}</text>`:'');
+  s+=`<path class="wf" d="M270 118L270 222L352 170Z"/><text class="opt" x="277" y="155">−</text><text class="opt" x="277" y="195">+</text>`;
+  s+=wire([[270,190],[250,190],[250,226]])+term(250,230)+tl(250,248,'V<tspan baseline-shift="sub" font-size="8">REF</tspan>');
+  s+=wire([[352,170],[466,170]])+dot(410,170)+term(470,170)+tl(470,156,'COMP');
+  if(type===1){
+    s+=wire([[170,150],[170,95],[275,95]])+capH(275,305,95)+wire([[305,95],[410,95],[410,170]])+lab(290,78,'C1',V('C1'));
+  } else {
+    s+=wire([[170,150],[170,40],[215,40]])+resH(215,285,40)+wire([[285,40],[325,40]])+capH(325,355,40)+wire([[355,40],[410,40],[410,170]]);
+    s+=lab(250,24,'R2',V('R2'))+lab(340,24,'C1',V('C1'));
+    s+=dot(170,95)+dot(410,95)+wire([[170,95],[275,95]])+capH(275,305,95)+wire([[305,95],[410,95]])+lab(290,80,'C2',V('C2'));
+  }
+  if(type===3){
+    s+=dot(50,150)+wire([[50,150],[50,228],[58,228]])+resH(58,118,228)+wire([[118,228],[128,228]])+capH(128,158,228)+wire([[158,228],[170,228],[170,150]]);
+    s+=lab(88,252,'R3',V('R3'))+lab(143,266,'C3',V('C3'));
+  }
+  return `<svg viewBox="0 0 500 275" role="img" aria-label="Op-amp Type ${type} compensator">${s}</svg>`;
+}
+function schOta(type,v){
+  const V=k=>v?v[k]:'';
+  let s='';
+  s+=term(22,120)+tl(22,106,'V<tspan baseline-shift="sub" font-size="8">OUT</tspan>');
+  s+=wire([[26,120],[60,120]])+resH(60,140,120)+lab(100,144,'R<tspan baseline-shift="sub" font-size="8">TOP</tspan>',V('Rtop'));
+  s+=wire([[140,120],[240,120]])+dot(170,120);
+  if(type===3){ s+=dot(48,120)+wire([[48,120],[48,70],[85,70]])+capH(85,115,70)+wire([[115,70],[155,70],[155,120]])+dot(155,120)+lab(100,52,'C<tspan baseline-shift="sub" font-size="8">FF</tspan>',V('Cff')); }
+  s+=resV(170,120,196)+gnd(170,196)+lab(156,160,'R<tspan baseline-shift="sub" font-size="8">BOT</tspan>','','end')+(v?`<text class="cv" x="156" y="174" text-anchor="end">${V('Rbot')}</text>`:'');
+  s+=`<path class="wf" d="M240 96L240 184L320 140Z"/><text class="opt" x="246" y="125">−</text><text class="opt" x="246" y="165">+</text><text class="cl" x="266" y="144">g<tspan baseline-shift="sub" font-size="8">m</tspan></text>`;
+  s+=wire([[240,160],[214,160],[214,214]])+term(214,218)+tl(214,236,'V<tspan baseline-shift="sub" font-size="8">REF</tspan>');
+  s+=wire([[320,140],[466,140]])+dot(360,140)+term(470,140)+tl(470,126,'COMP');
+  if(type===1){
+    s+=capV(360,140,214)+gnd(360,214)+lab(374,181,'C<tspan baseline-shift="sub" font-size="8">C</tspan>',V('Cc'),'start');
+  } else {
+    s+=resV(360,140,192)+capV(360,192,232)+gnd(360,232)+lab(372,170,'R<tspan baseline-shift="sub" font-size="8">C</tspan>',V('Rc'),'start')+lab(372,216,'C<tspan baseline-shift="sub" font-size="8">C</tspan>',V('Cc'),'start');
+    s+=dot(430,140)+capV(430,140,232)+gnd(430,232)+lab(442,190,'C<tspan baseline-shift="sub" font-size="8">P</tspan>','','start')+(v?`<text class="cv" x="442" y="204">${V('Cp')}</text>`:'');
+  }
+  return `<svg viewBox="0 0 500 255" role="img" aria-label="Transconductance Type ${type} compensator">${s}</svg>`;
+}
+
+/* ---------- type comparison (static content, live highlight) ---------- */
+const TYPES=[
+  {t:1,pz:'1 pole at origin',boost:'0°',zs:[],ps:[],use:'Peak current mode with a slow loop, or LDO-like duty. Phase at f<sub>C</sub> is 90° plus whatever the power stage leaves.',lim:'No phase boost. Crossover must sit well below the LC resonance in voltage mode.'},
+  {t:2,pz:'Origin pole · 1 zero · 1 pole',boost:'up to ~90°',zs:[2e3],ps:[2e5],use:'Peak current mode (the usual choice), or voltage mode when a high-ESR cap places the ESR zero below crossover.',lim:'Cannot recover the 180° drop of an undamped LC double pole with ceramic caps.'},
+  {t:3,pz:'Origin pole · 2 zeros · 2 poles',boost:'up to ~180°',zs:[3e3,6e3],ps:[7e4,1.4e5],use:'Voltage mode with ceramic or polymer caps: the zero pair cancels the LC double pole.',lim:'More parts and more sensitivity; the high-frequency gain hump amplifies ripple if poles are placed too high.'}
+];
+function renderTypes(sel,amp){
+  const fmin=10,fmax=1e6,f=[];for(let i=0;i<200;i++)f.push(fmin*Math.pow(fmax/fmin,i/199));
+  $('types').innerHTML=TYPES.map(T=>{
+    const m=f.map(x=>dB(cabs(shape(x,T.zs,T.ps))*TAU*1e4)), ph=f.map(x=>{let a=carg(shape(x,T.zs,T.ps)); return a;});
+    const A=panel({x:34,y:8,w:200,h:62,fmin,fmax,ymin:-40,ymax:80,ystep:40,series:[{f,v:m,cls:'s-gc'}],ylab:''});
+    const B=panel({x:34,y:82,w:200,h:50,fmin,fmax,ymin:-90,ymax:90,ystep:90,zeroAt:0,series:[{f,v:ph,cls:'s-lt'}],showX:true});
+    const sch=amp==='ota'?schOta(T.t,null):schOpamp(T.t,null);
+    return `<article class="type${T.t===sel?' on':''}"><h3>Type ${'I'.repeat(T.t)}<span>${T.t===sel?'selected':''}</span></h3>
+      <div class="mini">${sch}</div>
+      <div class="mini"><svg viewBox="0 0 244 152" role="img" aria-label="Asymptotic gain and phase of Type ${T.t}">${A.s}${B.s}
+        <text class="axt" x="238" y="20" text-anchor="end">GAIN dB</text><text class="axt" x="238" y="94" text-anchor="end">PHASE °</text></svg></div>
+      <dl><dt>Poles/zeros</dt><dd>${T.pz}</dd><dt>Phase boost</dt><dd>${T.boost}</dd><dt>Use when</dt><dd>${T.use}</dd><dt>Limit</dt><dd>${T.lim}</dd></dl></article>`;
+  }).join('');
+}
+
+/* ---------- main ---------- */
+let last=null;
+function syncPlacement(p,cap,info){
+  const rec=recommend(p,cap,info);
+  ['fz1','fz2','fp1','fp2'].forEach(k=>{
+    const el=$(k); const isK=p.method==='k';
+    el.disabled=isK||(k==='fp1'&&p.amp==='ota'&&p.type===3);
+    if(!isK&&el.dataset.user!=='1'&&rec[k]!==undefined) el.value=+(rec[k]/1e3).toPrecision(3);
+  });
+}
+function compute(){
+  applyVis();
+  const p=read();
+  const notes=[];
+  const bad=(['vin','vout','iout','fsw','L','rtop','vref','fc'].filter(k=>!(p[k]>0)));
+  p.bank.forEach((b,i)=>{['c','kb','esr','fs'].forEach(k=>{if(!(b[k]>0))bad.push(`C${i+1} ${k}`);});});
+  if(bad.length||p.vout>=p.vin||p.vref>=p.vout){
+    $('notes').innerHTML=`<div class="note bad">${p.vout>=p.vin?'A buck needs V<sub>OUT</sub> below V<sub>IN</sub>.':p.vref>=p.vout?'V<sub>REF</sub> must be below V<sub>OUT</sub>.':'Some inputs are empty or not positive. Check: '+bad.join(', ')+'.'}</div>`;
+    return;
+  }
+  const cap=capModel(p);
+  const {G,info}=stage(p,cap);
+  syncPlacement(p,cap,info);
+  const d=design(p,G,info,cap);
+  // write K-mode placement back into fields
+  if(p.method==='k'&&p.type>1){ for(const k in d.z){ $(k).value=+(d.z[k]/1e3).toPrecision(3);} }
+  if(p.method==='manual'&&p.type===3&&p.amp==='ota') $('fp1').value=+(d.z.fp1/1e3).toPrecision(3);
+  const comp=p.snap?d.cs:d.c;
+  const Gc=f=>GcOf(p,comp,f);
+  const fmin=10, fmax=p.fsw;
+  const sw=sweep(p,G,Gc,fmin,fmax);
+  last={p,cap,info,d,sw,comp,G,Gc};
+
+  /* notes */
+  d.err.forEach(e=>notes.push(['bad',e]));
+  notes.push(...d.warn);
+  const fl=flags();
+  if(p.fc>p.fsw/5) notes.push(['warn',`Target crossover is above f<sub>SW</sub>/5. The averaged model loses accuracy there; f<sub>SW</sub>/10 or lower is safer.`]);
+  if(p.mode==='vm'&&p.type<3&&cap.fesr>p.fc) notes.push(['warn',`Voltage mode with the ESR zero at ${fHz(cap.fesr)} (above f<sub>C</sub>): the LC double pole at ${fHz(info.f0)} takes the stage toward −180°. Type III is the normal choice here.`]);
+  if(p.type===1&&p.mode==='vm'&&p.fc>info.f0/3) notes.push(['warn',`Type I in voltage mode needs f<sub>C</sub> well below f<sub>0</sub> = ${fHz(info.f0)} (roughly f<sub>0</sub>/5 or less).`]);
+  if(p.mode==='cm'){
+    if(info.t<=0) notes.push(['bad',`m<sub>c</sub>(1−D) − 0.5 = ${fd(info.t,3)} ≤ 0: sub-harmonic oscillation. Increase S<sub>e</sub> (at least ½·S<sub>f</sub> = ${fe(info.Sf/2/1e6,'')} V/µs).`]);
+    else if(info.Qp>2) notes.push(['warn',`Q<sub>p</sub> = ${fd(info.Qp,2)} at f<sub>SW</sub>/2: the sampling double pole peaks. More slope compensation (Q<sub>p</sub> ≈ 0.5–1) damps it.`]);
+  }
+  if(cap.clamped.length) notes.push(['warn',`Group ${cap.clamped.map(i=>'C'+i).join(', ')}: the datasheet ESR is lower than the dielectric-loss term tanδ/(2πfC) at its spec frequency, so R<sub>S</sub> was set to 0. Check tanδ and the spec frequency.`]);
+  if(cap.br.length>1){
+    // anti-resonance: local max of |Z| below 100 MHz
+    const fa=[],ma=[]; for(let i=0;i<=600;i++){const f=1e3*Math.pow(1e5,i/600); fa.push(f); ma.push(cabs(cap.Z(f)));}
+    let peak=null; for(let i=1;i<600;i++){ if(ma[i]>ma[i-1]&&ma[i]>=ma[i+1]){peak=fa[i];break;} }
+    cap.antires=peak;
+    if(peak&&peak<p.fsw*20) notes.push(['warn',`The bank has an anti-resonance peak near ${fHz(peak)} where one group's ESL meets another group's capacitance. Damp it with ESR (a polymer or electrolytic in parallel) or move it well away from f<sub>C</sub> and f<sub>SW</sub>.`]);
+  }
+  const minC=Math.min(...Object.entries(comp).filter(([k])=>k.startsWith('C')).map(([,v])=>v));
+  if(minC<10e-12) notes.push(['warn',`Smallest capacitor is ${fe(minC,'F')}, close to PCB and amplifier parasitics. Lower R<sub>TOP</sub> to scale the capacitors up.`]);
+  if(Object.values(comp).some(v=>!(v>0))) notes.push(['bad','A component came out zero or negative: the placement is not realisable. Check the pole/zero order.']);
+  const okPM=sw.pm>=45&&sw.gm>=6;
+  if(isFinite(sw.pm)&&okPM&&notes.filter(n=>n[0]==='bad').length===0) notes.push(['ok',`Loop crosses at ${fHz(sw.fc)} with ${fd(sw.pm,0)}° phase margin${isFinite(sw.gm)?` and ${fd(sw.gm,1)} dB gain margin`:''}.`]);
+  if(isFinite(sw.pm)&&sw.pm<45) notes.push([sw.pm<30?'bad':'warn',`Phase margin ${fd(sw.pm,0)}° is low; 45–70° gives a well-damped load-step response.`]);
+  if(!isFinite(sw.fc)) notes.push(['bad','The loop gain never crosses 0 dB between 10 Hz and f<sub>SW</sub>.']);
+  $('notes').innerHTML=notes.map(n=>`<div class="note ${n[0]==='ok'?'ok':n[0]==='bad'?'bad':''}">${n[1]}</div>`).join('');
+
+  /* recommended type */
+  let rec=p.mode==='cm'?'II':(cap.fesr<p.fc&&cap.fesr>info.f0?'II':'III');
+  $('recTag').textContent=`suggested: Type ${rec}`;
+
+  /* metrics */
+  const cls=(v,g,w)=>v>=g?'good':v>=w?'warn':'bad';
+  const M=[
+    ['Crossover',fHz(sw.fc),`target ${fHz(p.fc)}`,''],
+    ['Phase margin',isFinite(sw.pm)?fd(sw.pm,1)+'°':'—',p.type>1&&p.method==='k'?`target ${p.pm}°`:'at f<sub>C</sub>',isFinite(sw.pm)?cls(sw.pm,45,30):'bad'],
+    ['Gain margin',isFinite(sw.gm)?fd(sw.gm,1)+' dB':'> range',isFinite(sw.f180)?`at ${fHz(sw.f180)}`:'no −180° crossing',isFinite(sw.gm)?cls(sw.gm,10,6):'good'],
+    [p.mode==='vm'?'LC resonance f₀':'Load pole f<sub>P</sub>',p.mode==='vm'?fHz(info.f0):fHz(info.fp),p.mode==='vm'?`Q ≈ ${fd(info.Q,2)}`:`f₀ = ${fHz(info.f0)}`,''],
+    ['ESR zero',fHz(cap.fesr),`ESR ${fe(cap.esr(cap.fesr),'Ω')}`,''],
+    ['Stage DC gain',fd(dB(info.gdc),1)+' dB',p.src==='known'?'entered':'computed',''],
+    ['Stage at f<sub>C</sub>',fd(dB(d.mag),1)+' dB',`∠ ${fd(d.ph,0)}°`,''],
+    ['Boost needed',p.type>1?fd(d.boost,0)+'°':'—',d.K?`K = ${fd(d.K,2)}`:'',''],
+  ];
+  $('metrics').innerHTML=M.map(m=>`<div class="metric ${m[3]}"><div class="k">${m[0]}</div><div class="v">${m[1]}</div><div class="d">${m[2]}</div></div>`).join('');
+
+  drawBode();
+  drawNet();
+  drawCap();
+  renderTypes(p.type,p.amp);
+  drawEqs();
+  $('mcText').value=buildMathcad();
+  save();
+}
+
+/* ===== REPORT START ===== */
+/* One content model (blocks) is rendered twice: to HTML with KaTeX (screen + print-to-PDF) and to a LaTeX document. */
+const RT=String.raw;
+const PFXL={G:'\\mathrm{G}',M:'\\mathrm{M}',k:'\\mathrm{k}','':'',m:'\\mathrm{m}','µ':'\\mu ',n:'\\mathrm{n}',p:'\\mathrm{p}',f:'\\mathrm{f}'};
+const ULX={'Ω':'\\Omega','F':'\\mathrm{F}','H':'\\mathrm{H}','Hz':'\\mathrm{Hz}','V':'\\mathrm{V}','A':'\\mathrm{A}','S':'\\mathrm{S}','W':'\\mathrm{W}','s':'\\mathrm{s}','rad/s':'\\mathrm{rad/s}','V/A':'\\mathrm{V/A}','V/s':'\\mathrm{V/s}'};
+const LN={R1:'R_1',R2:'R_2',R3:'R_3',C1:'C_1',C2:'C_2',C3:'C_3',Rbot:'R_{\\mathrm{BOT}}',Rtop:'R_{\\mathrm{TOP}}',Rc:'R_C',Cc:'C_C',Cp:'C_P',Cff:'C_{\\mathrm{FF}}'};
+function nl(v,d=3){
+  if(!isFinite(v)) return '\\infty';
+  if(v===0) return '0';
+  let s=(+v.toPrecision(d)).toString();
+  if(/e/.test(s)){const [m,e]=s.split('e');return m+'\\times10^{'+parseInt(e,10)+'}';}
+  return s;
+}
+function Q(v,u,d=3){
+  if(!isFinite(v)) return '\\infty';
+  if(v===0) return '0\\,'+ULX[u];
+  const a=Math.abs(v);
+  for(const [m,s] of PFX){ if(a>=m*0.9995) return nl(v/m,d)+'\\,'+PFXL[s]+ULX[u]; }
+  return nl(v,d)+'\\,'+ULX[u];
+}
+const DEG=(v,d=3)=>nl(v,d)+'^{\\circ}';
+const DBL=(v,d=3)=>nl(v,d)+'\\,\\mathrm{dB}';
+const PCT=(v,d=2)=>nl(v,d)+'\\,\\%';
+
+/* ---------- build the content ---------- */
+function reportBlocks(){
+  const {p,cap,info,d,sw,comp}=last;
+  const B=[];
+  const H=s=>B.push({t:'h',s}), H2=s=>B.push({t:'h2',s}), P=s=>B.push({t:'p',s}), EQ=s=>B.push({t:'eq',s}),
+        UL=a=>B.push({t:'ul',a}), BOX=(title,s)=>B.push({t:'box',title,s}), FIG=(id,c)=>B.push({t:'fig',id,c}),
+        TB=(cols,rows,c)=>B.push({t:'tb',cols,rows,c});
+  const vm=p.mode==='vm', ota=p.amp==='ota', ty=p.type, ro='I'.repeat(ty), z=d.z;
+  const D=info.D, Rl=info.R, dI=last.rip.dI, H0=p.vref/p.vout;
+  const fcA=isFinite(sw.fc)?sw.fc:p.fc;
+  const fl=cap.br.length;
+  const CA=d.c, CS=d.cs;                       // calculated and standard component values
+  const mcN=vm?'voltage-mode':'peak-current-mode';
+  const ampN=ota?'transconductance (g_m)':'voltage op-amp';
+  const rec=recommend(p,cap,info);
+  const Tn=ty===1?'Type I':ty===2?'Type II':'Type III';
+  const real=c=>{const o={};
+    if(!ota){ if(ty>1){o.fz1=1/(TAU*c.R2*c.C1); o.fp2=1/(TAU*c.R2*c.C1*c.C2/(c.C1+c.C2));}
+              if(ty===3){o.fz2=1/(TAU*(c.R1+c.R3)*c.C3); o.fp1=1/(TAU*c.R3*c.C3);} }
+    else { if(ty>1){o.fz1=1/(TAU*c.Rc*c.Cc); o.fp2=1/(TAU*c.Rc*c.Cc*c.Cp/(c.Cc+c.Cp));}
+          if(ty===3){o.fz2=1/(TAU*c.Rtop*c.Cff); o.fp1=1/(TAU*(c.Rtop*c.Rbot/(c.Rtop+c.Rbot))*c.Cff);} }
+    return o;};
+  let slope=NaN;
+  try{ const a=cabs(last.G(fcA*1.1)), b=cabs(last.G(fcA/1.1)); const a2=cabs(last.Gc(fcA*1.1)), b2=cabs(last.Gc(fcA/1.1));
+       slope=(dB(a*a2)-dB(b*b2))/(2*Math.log10(1.1)); }catch(e){}
+
+  /* ===== 1 Summary ===== */
+  H('Design summary');
+  P(RT`This report documents the loop compensation of a ${mcN} buck converter using a **${Tn}** compensator built around a ${ampN} error amplifier. It shows the assumptions, how the power-stage model was formed from your inductor and output capacitors, how the crossover frequency and the compensator poles and zeros were chosen, and how each component value follows from them, so that any input can be changed and the design re-derived.`);
+  TB([{h:'Quantity',a:'l'},{h:'Symbol',a:'c'},{h:'Value',a:'r'}],[
+    ['Input voltage','$V_{IN}$','$'+Q(p.vin,'V')+'$'],['Output voltage','$V_{OUT}$','$'+Q(p.vout,'V')+'$'],
+    ['Load current','$I_{OUT}$','$'+Q(p.iout,'A')+'$'],['Switching frequency','$f_{SW}$','$'+Q(p.fsw,'Hz')+'$'],
+    ['Inductance','$L$','$'+Q(p.L,'H')+'$'],['Inductor DC resistance','$DCR$','$'+Q(p.dcr,'Ω')+'$'],
+    ['Effective output capacitance ('+fl+' group'+(fl>1?'s':'')+')','$C_{eff}$','$'+Q(cap.Ceff,'F')+'$'],
+    ['Control method','',vm?'Voltage mode':'Peak current mode'],['Error amplifier','',ota?'Transconductance':'Voltage op-amp'],
+    ['Compensator','',Tn],['Reference voltage','$V_{REF}$','$'+Q(p.vref,'V')+'$']],'Design inputs');
+  TB([{h:'Result',a:'l'},{h:'Target',a:'r'},{h:'Achieved',a:'r'},{h:'Criterion',a:'l'}],[
+    ['Crossover frequency','$'+Q(p.fc,'Hz')+'$','$'+Q(sw.fc,'Hz')+'$','within a few percent of target'],
+    ['Phase margin',ty>1&&p.method==='k'?'$'+DEG(p.pm)+'$':'-','$'+DEG(sw.pm)+'$','at least $45^{\\circ}$, ideally $60^{\\circ}$'],
+    ['Gain margin','-',isFinite(sw.gm)?'$'+DBL(sw.gm)+'$':'above range','at least $6\\,\\mathrm{dB}$, ideally $10\\,\\mathrm{dB}$'],
+    ['Crossover slope','-',isFinite(slope)?'$'+nl(slope,3)+'\\,\\mathrm{dB/dec}$':'-','close to $-20\\,\\mathrm{dB/dec}$'],
+  ],'Headline results (simulated with '+(p.snap?'standard E96/E12 values':'the calculated values')+')');
+  const sumCols=[{h:'Part',a:'l'},{h:'Calculated',a:'r'},{h:'Standard value',a:'r'},{h:'Error',a:'r'}];
+  const order=ota?['Rtop','Rbot','Rc','Cc','Cp','Cff']:['R1','Rbot','R2','C1','C2','R3','C3'];
+  TB(sumCols,order.filter(k=>CA[k]!==undefined).map(k=>{const u=k[0]==='R'?'Ω':'F';
+    return ['$'+LN[k]+'$','$'+Q(CA[k],u,4)+'$','$'+Q(CS[k],u,3)+'$','$'+PCT(100*(CS[k]-CA[k])/CA[k],2)+'$'];}),'Final compensation components');
+
+  /* ===== 2 Assumptions ===== */
+  H('Assumptions and modelling limits');
+  P('Every number in this report rests on the following assumptions. If any of them is not true for your hardware, the margins should be confirmed on the bench with a network analyser.');
+  UL([
+    RT`**Continuous conduction.** The inductor current never reaches zero at full load (checked in Section 3). Light-load operation in pulse-skipping or discontinuous mode changes the power-stage gain and is not covered.`,
+    RT`**Small-signal averaged model.** The converter is treated as a linear system valid up to roughly $f_{SW}/2$. The crossover is kept at or below $f_{SW}/5$ so that this stays reasonable.`,
+    RT`**Resistive load.** The load is the constant resistance $R=V_{OUT}/I_{OUT}=${Q(Rl,'Ω')}$. A constant-current or constant-power load removes some damping, so the resonance in the power stage gets sharper. Check the loop with the real load.`,
+    vm?RT`**Losses.** Only the inductor DC resistance is modelled. The extra series resistance of the switches adds damping, which makes this model slightly pessimistic about peaking at $f_0$.`
+       :RT`**Current-mode model.** The inner current loop is modelled with the Ridley sampled-data model, including the slope compensation ramp $S_e$ and the sampling double pole at $f_{SW}/2$. The sense gain is $R_i=${Q(p.ri,'V/A')}$.`,
+    RT`**Output capacitors.** Each capacitor group is modelled with a capacitance derating factor, a frequency-dependent ESR and an ESL (Section 4). Part-to-part tolerance, ageing and temperature are not swept in the main design; Section 11 shows how much they move the result.`,
+    ota?RT`**Error amplifier.** The transconductance amplifier is taken as ideal: constant $g_m=${Q(p.gm,'S')}$ with infinite output resistance. A real amplifier has a finite output resistance $r_o$ and bandwidth; keep $r_o\gg R_C$ and the amplifier bandwidth well above $f_{P2}$.`
+        :RT`**Error amplifier.** The op-amp is taken as ideal, with infinite gain and bandwidth. In practice choose a gain-bandwidth product of at least ten times $f_C$ multiplied by the mid-band gain $R_2/R_1$ of the compensator.`,
+    RT`**Supply and feedback.** The input supply is stiff, so line rejection and input-filter interaction are not analysed. The feedback divider is ideal and its tolerance is ignored.`,
+    RT`**Component values.** The standard-value (E96 resistors, E12 capacitors) set is used for the final plots. Tolerance of the standard parts moves each pole and zero by the same percentage.`
+  ]);
+
+  /* ===== 3 Operating point ===== */
+  H('Operating point');
+  P('The duty cycle, load resistance and inductor ripple set the operating point that every later calculation uses.');
+  EQ(RT`D=\frac{V_{OUT}}{V_{IN}}=\frac{${nl(p.vout)}}{${nl(p.vin)}}=${nl(D,4)}`);
+  EQ(RT`R=\frac{V_{OUT}}{I_{OUT}}=\frac{${nl(p.vout)}\,\mathrm{V}}{${nl(p.iout)}\,\mathrm{A}}=${Q(Rl,'Ω')}`);
+  EQ(RT`\Delta I_L=\frac{(V_{IN}-V_{OUT})\,D}{L\,f_{SW}}=\frac{(${nl(p.vin)}-${nl(p.vout)})\cdot${nl(D,4)}}{${Q(p.L,'H')}\cdot${Q(p.fsw,'Hz')}}=${Q(dI,'A')}`);
+  EQ(RT`I_{pk}=I_{OUT}+\frac{\Delta I_L}{2}=${Q(p.iout+dI/2,'A')},\qquad I_{valley}=I_{OUT}-\frac{\Delta I_L}{2}=${Q(p.iout-dI/2,'A')}`);
+  P(RT`The ripple is $${nl(100*dI/p.iout,3)}\,\%$ of the load current${dI/p.iout>=0.2&&dI/p.iout<=0.5?', inside the usual 20 to 40 percent guideline':''}. The inductor current stays above zero while $I_{OUT}>\Delta I_L/2=${Q(dI/2,'A')}$, so the converter is in continuous conduction at full load: **${p.iout>dI/2?'condition met':'condition NOT met, the model does not apply'}**.`);
+
+  /* ===== 4 Capacitor bank ===== */
+  H('Output capacitor bank');
+  P(RT`The output capacitors set the power-stage resonance and, through their ESR, an additional zero. Real capacitors are not constant: ceramic capacitors lose capacitance under DC bias, and the ESR of every type falls with frequency because dielectric or electrolyte loss behaves like a loss tangent $\tan\delta$. Each group of $N_i$ identical parts is therefore modelled as follows.`);
+  H2('Capacitor model');
+  EQ(RT`R_{S,i}=\mathrm{ESR}_{spec,i}-\frac{\tan\delta_i}{2\pi f_{spec,i}\,C_i}`);
+  P('This removes the loss-tangent part from the datasheet ESR, leaving the frequency-independent resistance of terminations and electrodes.');
+  EQ(RT`\mathrm{ESR}_i(f)=k_{T,i}\left(R_{S,i}+\frac{\tan\delta_i}{2\pi f\,C_i}\right)`);
+  EQ(RT`Z_i(f)=\frac{\mathrm{ESR}_i(f)+j\left(2\pi f\,\mathrm{ESL}_i-\dfrac{1}{2\pi f\,k_{C,i}C_i}\right)}{N_i}`);
+  EQ(RT`Z_{bank}(f)=\left(\sum_i \frac{1}{Z_i(f)}\right)^{-1},\qquad C_{eff}=\sum_i N_i\,k_{C,i}\,C_i,\qquad \mathrm{ESR}_{eff}(f)=\mathrm{Re}\{Z_{bank}(f)\}`);
+  P(RT`The groups are combined as complex impedances, so the ESL of one group and the capacitance of another form anti-resonances exactly as they do on the board.`);
+  TB([{h:'Group',a:'l'},{h:'Parts',a:'r'},{h:'$C$',a:'r'},{h:'$k_C$',a:'r'},{h:'ESR spec',a:'r'},{h:'at',a:'r'},{h:'$\\tan\\delta$',a:'r'},{h:'ESL',a:'r'},{h:'$R_S$',a:'r'}],
+    cap.br.map(b=>['C'+(b.i+1)+' '+CAPNAME[b.type],String(b.n),'$'+Q(b.c,'F')+'$','$'+nl(b.kb,3)+'$','$'+Q(b.esr,'Ω')+'$','$'+Q(b.fs,'Hz')+'$','$'+nl(b.df,3)+'$','$'+Q(b.esl,'H')+'$','$'+Q(b.Rs,'Ω')+'$']),
+    'Capacitor groups as entered, with the derived $R_S$');
+  H2('Bank behaviour at the frequencies that matter');
+  const fcs=[['$f_0$',info.f0],['$f_C$',fcA],['$f_{SW}$',p.fsw]];
+  TB([{h:'Frequency',a:'l'},{h:'Value',a:'r'},{h:'$|Z_{bank}|$',a:'r'},{h:'$\\mathrm{ESR}_{eff}$',a:'r'}],
+    fcs.map(([n,f])=>[n,'$'+Q(f,'Hz')+'$','$'+Q(cabs(cap.Z(f)),'Ω')+'$','$'+Q(cap.esr(f),'Ω')+'$']),'Bank impedance and ESR');
+  EQ(RT`f_{ESR}:\quad \mathrm{ESR}_{eff}(f)\cdot 2\pi f\,C_{eff}=1\;\Rightarrow\; f_{ESR}=${Q(cap.fesr,'Hz')}`);
+  P(RT`This is the frequency where the bank stops looking like a capacitor. Below it the ESR zero has little effect, above it the capacitor acts like its ESR. The first series resonance of the whole bank is at $${Q(cap.srf,'Hz')}$.`);
+  FIG('cap','Impedance of the bank and of each group, with the ESR. The curve that matters for the loop is the bank |Z| between $f_0$ and $f_C$.');
+  H2('Ripple and capacitor current');
+  EQ(RT`\Delta V_{OUT}\approx \Delta I_L\,\mathrm{ESR}_{eff}(f_{SW})+\frac{\Delta I_L}{8f_{SW}C_{eff}}=${Q(last.rip.vEsr,'V')}+${Q(last.rip.vC,'V')}=${Q(last.rip.vEsr+last.rip.vC,'V')}`);
+  const Irms=dI/Math.sqrt(12), Ytot=cap.Y(p.fsw);
+  TB([{h:'Group',a:'l'},{h:'$|Z|$ at $f_{SW}$',a:'r'},{h:'Share',a:'r'},{h:'Group $I_{rms}$',a:'r'},{h:'Per part',a:'r'}],
+    cap.br.map(b=>{const sh=cabs(inv(b.Z(p.fsw)))/cabs(Ytot);
+      return ['C'+(b.i+1)+' '+CAPNAME[b.type],'$'+Q(cabs(b.Z(p.fsw)),'Ω')+'$','$'+nl(sh*100,3)+'\\,\\%$','$'+Q(Irms*sh,'A')+'$','$'+Q(Irms*sh/b.n,'A')+'$'];}),
+    'Ripple current share at $f_{SW}$. Check each per-part value against its rated ripple current. Shares can add up to more than 100 percent because the branch currents are out of phase.');
+
+  /* ===== 5 Power stage ===== */
+  H('Power-stage model');
+  if(vm){
+    P(RT`In voltage mode the modulator turns the control voltage into duty cycle with gain $F_M=1/V_{RAMP}$, and the duty cycle drives the LC filter. With $Z_o=R\parallel Z_{bank}$ the duty-to-output transfer function is:`);
+    EQ(RT`G_{vd}(s)=V_{IN}\,\frac{Z_o(s)}{Z_o(s)+DCR+sL},\qquad Z_o(s)=R\parallel Z_{bank}(s)`);
+    P('For reading the shape, the same function is close to a double pole with one ESR zero:');
+    EQ(RT`G_{vd}(s)\approx V_{IN}\,\frac{1+s/\omega_{ESR}}{1+\dfrac{s}{Q\,\omega_0}+\dfrac{s^2}{\omega_0^2}},\qquad \omega_0=\frac{1}{\sqrt{L\,C_{eff}}}`);
+    EQ(RT`f_0=\frac{1}{2\pi\sqrt{${Q(p.L,'H')}\cdot${Q(cap.Ceff,'F')}}}=${Q(info.f0,'Hz')}`);
+    EQ(RT`Q=\frac{1}{\omega_0\left(\dfrac{L}{R}+C_{eff}\,(\mathrm{ESR}_{eff}(f_0)+DCR)\right)}=${nl(info.Q,3)}`);
+    P(RT`The resonance is at $f_0=${Q(info.f0,'Hz')}$ and the ESR zero at $f_{ESR}=${Q(cap.fesr,'Hz')}$. ${info.Q>1.5?'A quality factor above about 1.5 means a visible gain peak and a steep phase drop of almost 180 degrees around $f_0$. ':'The quality factor is low, so the resonance is well damped. '}${cap.fesr<p.fc?'The ESR zero is below the crossover, so it gives back some phase before $f_C$.':'The ESR zero is above the crossover, so the compensator has to supply the phase lost at the resonance.'}`);
+    if(p.src==='calc'){
+      EQ(RT`F_M=\frac{1}{V_{RAMP}}=\frac{1}{${Q(p.vramp,'V')}},\qquad G_{PS}(s)=F_M\,G_{vd}(s)`);
+      EQ(RT`G_{PS}(0)=\frac{V_{IN}}{V_{RAMP}}\cdot\frac{R}{R+DCR}=${DBL(dB(info.gdc))}`);
+    } else {
+      P(RT`The DC gain was entered as $G_0=${DBL(p.gk)}$ instead of being computed, so $F_M$ is scaled to match it ($F_M=${nl(info.k,4)}\,\mathrm{V^{-1}}$). The positions of the poles and zeros still come from $L$, $C$ and ESR.`);
+      EQ(RT`G_{PS}(s)=F_M\,G_{vd}(s),\qquad G_{PS}(0)=${DBL(dB(info.gdc))}`);
+    }
+  } else {
+    P(RT`In peak current mode an inner loop controls the inductor current, which turns the inductor into a controlled current source. At low frequency only the load pole and the ESR zero remain; at high frequency the sampling of the current loop adds a double pole at $f_{SW}/2$. The Ridley model needs the following slopes and ratios.`);
+    EQ(RT`S_n=\frac{V_{IN}-V_{OUT}}{L}R_i=${Q(info.Sn,'V/s')},\qquad S_f=\frac{V_{OUT}}{L}R_i=${Q(info.Sf,'V/s')},\qquad m_c=1+\frac{S_e}{S_n}=${nl(info.mc,4)}`);
+    EQ(RT`Q_p=\frac{1}{\pi\left(m_c(1-D)-\tfrac12\right)}=${nl(info.Qp,3)},\qquad \omega_n=\pi f_{SW}\;\Rightarrow\; f_n=${Q(info.fn,'Hz')}`);
+    EQ(RT`R'=\left(\frac1R+\frac{T_{SW}}{L}\Big(m_c(1-D)-\tfrac12\Big)\right)^{-1}=${Q(info.Rp,'Ω')},\qquad f_p=\frac{1}{2\pi R'C_{eff}}=${Q(info.fp,'Hz')}`);
+    EQ(RT`G_{PS}(s)=\frac{k_G}{R_i}\,\Big(R'\parallel Z_{bank}(s)\Big)\,\frac{1}{1+\dfrac{s}{\omega_nQ_p}+\dfrac{s^2}{\omega_n^2}},\qquad G_{PS}(0)=\frac{R'}{R_i}=${DBL(dB(info.gdc))}`);
+    P(RT`The factor $k_G$ is 1 unless a known DC gain was entered${p.src==='known'?RT`; here it is $${nl(info.k,4)}$ so that $G_{PS}(0)$ matches the entered $${nl(p.gk,3)}\,\mathrm{dB}$`:''}. The slope compensation must satisfy $m_c(1-D)>\tfrac12$ to avoid sub-harmonic oscillation: here $m_c(1-D)-\tfrac12=${nl(info.t,3)}$, which is **${info.t>0?'satisfied':'NOT satisfied'}**. Setting $S_e\approx\tfrac12S_f=${Q(info.Sf/2,'V/s')}$ gives $Q_p\approx 1$.`);
+  }
+  P(RT`At the target crossover the power stage has a gain of $${DBL(dB(d.mag))}$ and a phase of $${DEG(d.ph)}$. These two numbers drive the whole compensator design.`);
+
+  /* ===== 6 Crossover and margin ===== */
+  H('Choosing the crossover frequency and phase margin');
+  P('The crossover frequency $f_C$ is where the loop gain equals 0 dB. It sets how fast the converter reacts to a load step. The phase margin PM sets how well damped that reaction is. Both are choices, and the ones below are the starting points used by the tool.');
+  UL([
+    RT`**Upper limit.** Keep $f_C\le f_{SW}/5$ so the averaged model remains valid. Between $f_{SW}/10$ and $f_{SW}/6$ is a common target for fast loops.`,
+    vm?RT`**Relative to the resonance.** A Type III loop usually crosses above $f_0$ so the compensator can cancel the double pole. A Type I loop must cross well below $f_0$.`
+       :RT`**Current mode.** The inner loop removes the LC resonance from the control path, so $f_C$ is limited mainly by the sampling pole at $f_{SW}/2$. Stay at or below $f_{SW}/10$.`,
+    RT`**Phase margin.** Aim for $45^{\circ}$ to $70^{\circ}$. At $60^{\circ}$ a load step settles with little overshoot. Lower margin settles faster but rings.`,
+    RT`**Speed against noise.** A higher $f_C$ gives smaller droop on a load step but passes more switching noise and leaves less margin for amplifier delay.`
+  ]);
+  TB([{h:'Check',a:'l'},{h:'This design',a:'r'},{h:'Limit',a:'r'},{h:'Result',a:'l'}],[
+    ['$f_C/f_{SW}$','$'+nl(p.fc/p.fsw,3)+'$','$\\le 0.2$',p.fc/p.fsw<=0.2?'Pass':'Check'],
+    ['$f_C/f_{SW}$ for fast loops','$'+nl(p.fc/p.fsw,3)+'$','$\\le 0.1$ typical',p.fc/p.fsw<=0.1?'Pass':'Above typical'],
+    vm?['$f_C/f_0$','$'+nl(p.fc/info.f0,3)+'$',ty===1?'$\\le 0.2$':'$\\ge 1$ typical',ty===1?(p.fc/info.f0<=0.2?'Pass':'Check'):(p.fc/info.f0>=1?'Pass':'Check')]
+       :['$f_C/f_n$','$'+nl(p.fc/info.fn,3)+'$','$\\le 0.2$',p.fc/info.fn<=0.2?'Pass':'Check'],
+    ['Target phase margin',ty>1&&p.method==='k'?'$'+DEG(p.pm)+'$':'-','$45^{\\circ}$ to $70^{\\circ}$',ty>1&&p.method==='k'?(p.pm>=45&&p.pm<=70?'Pass':'Check'):'-']
+  ],'Crossover sanity checks');
+
+  /* ===== 7 Type selection ===== */
+  H('Choosing the compensator type');
+  P('The power stage and the integrator in the compensator together have some phase at $f_C$. The poles and zeros of the compensator must add whatever is missing to reach the target phase margin. The more phase is missing, the more poles and zeros are needed.');
+  TB([{h:'Type',a:'l'},{h:'Structure',a:'w'},{h:'Largest phase boost',a:'r'},{h:'Typical use',a:'w'}],[
+    ['I','Integrator only','none','Slow loops, or when the power stage already has plenty of phase at $f_C$.'],
+    ['II','Integrator, one zero, one pole',RT`about $90^{\circ}$`,'Peak current mode, or voltage mode with a high-ESR capacitor whose ESR zero is below $f_C$.'],
+    ['III','Integrator, two zeros, two poles',RT`up to about $180^{\circ}$`,'Voltage mode with ceramic or polymer capacitors, where the LC double pole must be cancelled.']],'Compensator types');
+  if(ty>1){
+    EQ(RT`\varphi_{boost}=\mathrm{PM}-90^{\circ}-\angle G_{PS}(f_C)=${nl(p.method==='k'?p.pm:sw.pm)}^{\circ}-90^{\circ}-(${DEG(d.ph)})=${DEG(d.boost)}`);
+    P(RT`The $-90^{\circ}$ is the phase of the integrator that every type contains. The required boost is $${DEG(d.boost)}$, so ${d.boost>85?'a Type III compensator is needed (a Type II can add at most about 90 degrees in theory and about 70 in practice).':d.boost>0?'a Type II compensator is enough (a boost under about 70 degrees).':'no boost is needed and Type I would be enough.'}${p.method==='k'?'':' The phase margin used here is the one achieved with the manually placed poles and zeros.'}`);
+  } else {
+    EQ(RT`\mathrm{PM}=90^{\circ}+\angle G_{PS}(f_C)=90^{\circ}+(${DEG(d.ph)})=${DEG(90+d.ph)}`);
+    P('A Type I compensator adds no boost, so the margin is 90 degrees (the integrator) plus the phase of the power stage at the crossover. If that is too low, lower the crossover or choose Type II or III.');
+  }
+
+  /* ===== 8 Pole/zero placement ===== */
+  H('Placing the poles and zeros');
+  if(ty===1){
+    P('A Type I compensator has no poles or zeros apart from the integrator, so there is nothing to place.');
+  } else if(p.method==='k'){
+    P(RT`The K-factor method centres the compensator poles and zeros around the crossover so that the boost is largest exactly at $f_C$ and the gain there is known.`);
+    if(ty===2){
+      EQ(RT`\varphi_{boost}=\arctan K-\arctan\frac1K=2\arctan K-90^{\circ}\;\Rightarrow\;K=\tan\!\left(\frac{\varphi_{boost}}{2}+45^{\circ}\right)=${nl(d.K,4)}`);
+      EQ(RT`f_{Z1}=\frac{f_C}{K}=${Q(z.fz1,'Hz')},\qquad f_{P2}=f_C\,K=${Q(z.fp2,'Hz')}`);
+    } else if(!ota){
+      EQ(RT`s_K=\tan\!\left(\frac{\varphi_{boost}}{4}+45^{\circ}\right)=${nl(Math.sqrt(d.K),4)}\qquad(\text{two zero-pole pairs, each giving }\varphi_{boost}/2)`);
+      EQ(RT`f_{Z1}=f_{Z2}=\frac{f_C}{s_K}=${Q(z.fz1,'Hz')},\qquad f_{P1}=f_{P2}=f_C\,s_K=${Q(z.fp1,'Hz')}`);
+    } else {
+      P(RT`With a transconductance amplifier the zero-pole pair created by $C_{FF}$ has a fixed ratio set by the divider, $f_{P1}/f_{Z2}=V_{OUT}/V_{REF}=${nl(1/H0,3)}$. It is centred on $f_C$ and contributes a fixed boost, and the remaining boost comes from the $R_C$, $C_C$, $C_P$ pair.`);
+      EQ(RT`\varphi_{FF}=\arcsin\frac{1-H_0}{1+H_0}=${DEG(d.phiCff)},\qquad H_0=\frac{V_{REF}}{V_{OUT}}=${nl(H0,4)}`);
+      EQ(RT`K=\tan\!\left(\frac{\varphi_{boost}-\varphi_{FF}}{2}+45^{\circ}\right)=${nl(d.K,4)},\qquad f_{Z1}=\frac{f_C}{K}=${Q(z.fz1,'Hz')},\quad f_{P2}=f_C K=${Q(z.fp2,'Hz')}`);
+      EQ(RT`f_{Z2}=f_C\sqrt{H_0}=${Q(z.fz2,'Hz')},\qquad f_{P1}=\frac{f_{Z2}}{H_0}=${Q(z.fp1,'Hz')}`);
+    }
+  } else {
+    P('The pole and zero frequencies were entered manually. A good starting point, the one the tool proposes, is:');
+    UL([
+      vm?RT`zeros at or just below the LC resonance, $f_{Z1}\approx${Q(rec.fz1,'Hz')}$${ty===3?RT` and $f_{Z2}\approx${Q(rec.fz2,'Hz')}$`:''}, so they cancel the double pole;`
+         :RT`the zero near the load pole, $f_{Z1}\approx${Q(rec.fz1,'Hz')}$, to cancel it;`,
+      ty===3?RT`the first pole at the ESR zero, $f_{P1}\approx${Q(rec.fp1,'Hz')}$, to cancel it;`:'',
+      RT`the last pole at ${vm&&ty===3?'$f_{SW}/2$':'the ESR zero or $f_{SW}/2$, whichever is lower'}, $f_{P2}\approx${Q(rec.fp2,'Hz')}$, to roll the gain off before switching noise.`
+    ].filter(Boolean));
+  }
+  TB([{h:'Frequency',a:'l'},{h:'Value',a:'r'},{h:'Role',a:'w'}],[
+    ty>1?['$f_{Z1}$','$'+Q(z.fz1,'Hz')+'$','First compensator zero. Adds phase below the crossover; lower values mean more phase but a lower mid-band gain.']:null,
+    ty===3?['$f_{Z2}$','$'+Q(z.fz2,'Hz')+'$','Second zero. Together with $f_{Z1}$ it cancels the double pole of the LC filter.']:null,
+    ty===3?['$f_{P1}$','$'+Q(z.fp1,'Hz')+'$','First pole. Placed on the ESR zero or above the crossover to stop the zeros lifting the gain at high frequency.']:null,
+    ty>1?['$f_{P2}$','$'+Q(z.fp2,'Hz')+'$','Last pole. Rolls the gain off near $f_{SW}/2$ so that switching noise does not reach the modulator.']:null
+  ].filter(Boolean),'Pole and zero frequencies used');
+  if(ty>1) BOX('To change the placement',RT`Lower the zeros to gain phase margin, or move the poles down to cut noise at the cost of phase. In the tool, set the placement method to manual, edit the frequencies, and the component values in Section 9 update. In K-factor mode, change only $f_C$ and the phase-margin target.`);
+
+  /* ===== 9 Component values ===== */
+  H('Calculating the component values');
+  H2('Step 1: integrator gain');
+  const shp=ty===1?RT`S(s)=\frac{1}{s}`:ty===2?RT`S(s)=\frac{1+s/\omega_{Z1}}{s\,(1+s/\omega_{P2})}`:RT`S(s)=\frac{(1+s/\omega_{Z1})(1+s/\omega_{Z2})}{s\,(1+s/\omega_{P1})(1+s/\omega_{P2})}`;
+  P(RT`Write the compensator as $G_C(s)=\omega_I\,S(s)$, where $S(s)$ holds only the poles and zeros and $\omega_I$ is a gain constant.`);
+  EQ(shp);
+  EQ(RT`\omega_I=\frac{1}{|S(j\omega_C)|\cdot|G_{PS}(j\omega_C)|}=\frac{1}{${nl(d.S,4)}\cdot${nl(d.mag,4)}}=${nl(d.wi,4)}\,\mathrm{rad/s}`);
+  P(RT`Setting $|G_C|\,|G_{PS}|=1$ at $f_C$ is what forces the loop to cross 0 dB at the target frequency.`);
+  H2('Step 2: feedback divider');
+  EQ(RT`R_{BOT}=R_{TOP}\,\frac{V_{REF}}{V_{OUT}-V_{REF}}=${Q(p.rtop,'Ω')}\cdot\frac{${nl(p.vref)}}{${nl(p.vout)}-${nl(p.vref)}}=${Q(CA.Rbot,'Ω',4)}`);
+  H2('Step 3: compensator components');
+  if(!ota){
+    P(RT`For the inverting op-amp stage $G_C(s)=-Z_f(s)/Z_i(s)$ (the sign is absorbed in the loop polarity). The input resistor is the upper divider resistor, $R_1=R_{TOP}=${Q(p.rtop,'Ω')}$. $R_{BOT}$ only sets the DC output voltage, because the inverting input is a virtual ground for AC, so it does not appear in $G_C$. A larger $R_1$ gives smaller capacitors but more noise and bias-current error.`);
+    if(ty===1){
+      EQ(RT`G_C=\frac{1}{sR_1C_1}\;\Rightarrow\;C_1=\frac{1}{R_1\omega_I}=\frac{1}{${Q(p.rtop,'Ω')}\cdot${nl(d.wi,4)}}=${Q(CA.C1,'F',4)}`);
+    } else {
+      EQ(RT`C_1+C_2=\frac{1}{R_1\,\omega_I}=${Q(CA.C1+CA.C2,'F',4)}`);
+      P(RT`The zero is $f_{Z1}=1/(2\pi R_2C_1)$ and the pole is $f_{P2}=1/\big(2\pi R_2\,C_1C_2/(C_1+C_2)\big)$, so $f_{P2}/f_{Z1}=(C_1+C_2)/C_2$.`);
+      EQ(RT`C_2=(C_1+C_2)\frac{f_{Z1}}{f_{P2}}=${Q(CA.C2,'F',4)},\qquad C_1=(C_1+C_2)-C_2=${Q(CA.C1,'F',4)}`);
+      EQ(RT`R_2=\frac{1}{2\pi f_{Z1}C_1}=\frac{1}{2\pi\cdot${Q(z.fz1,'Hz')}\cdot${Q(CA.C1,'F',4)}}=${Q(CA.R2,'Ω',4)}`);
+      if(ty===3){
+        P(RT`The branch $R_3$, $C_3$ in parallel with $R_1$ gives $Z_i=R_1\dfrac{1+sR_3C_3}{1+s(R_1+R_3)C_3}$, which creates the zero $f_{Z2}=1/\big(2\pi(R_1+R_3)C_3\big)$ and the pole $f_{P1}=1/(2\pi R_3C_3)$. Eliminating $R_3$ gives:`);
+        EQ(RT`C_3=\frac{1/f_{Z2}-1/f_{P1}}{2\pi R_1}=${Q(CA.C3,'F',4)},\qquad R_3=\frac{1}{2\pi f_{P1}C_3}=${Q(CA.R3,'Ω',4)}`);
+      }
+    }
+  } else {
+    P(RT`For the transconductance amplifier $G_C(s)=H(s)\,g_m\,Z_{comp}(s)$, where $H(s)$ is the divider gain (equal to $H_0=V_{REF}/V_{OUT}=${nl(H0,4)}$ at low frequency) and $Z_{comp}$ is the network from the COMP pin to ground. Use $g_m=${Q(p.gm,'S')}$ and $R_{TOP}=${Q(p.rtop,'Ω')}$.`);
+    if(ty===1){
+      EQ(RT`G_C=\frac{H_0\,g_m}{sC_C}\;\Rightarrow\;C_C=\frac{H_0\,g_m}{\omega_I}=${Q(CA.Cc,'F',4)}`);
+    } else {
+      EQ(RT`C_C+C_P=\frac{H_0\,g_m}{\omega_I}=${Q(CA.Cc+CA.Cp,'F',4)}`);
+      P(RT`The zero is $f_{Z1}=1/(2\pi R_CC_C)$ and the pole is $f_{P2}=1/\big(2\pi R_C\,C_CC_P/(C_C+C_P)\big)$, so $f_{P2}/f_{Z1}=(C_C+C_P)/C_P$.`);
+      EQ(RT`C_P=(C_C+C_P)\frac{f_{Z1}}{f_{P2}}=${Q(CA.Cp,'F',4)},\qquad C_C=(C_C+C_P)-C_P=${Q(CA.Cc,'F',4)}`);
+      EQ(RT`R_C=\frac{1}{2\pi f_{Z1}C_C}=${Q(CA.Rc,'Ω',4)}`);
+      if(ty===3) EQ(RT`C_{FF}=\frac{1}{2\pi R_{TOP}\,f_{Z2}}=${Q(CA.Cff,'F',4)}`);
+    }
+  }
+  H2('Step 4: standard values');
+  const rl=real(CS), tg={fz1:z.fz1,fz2:z.fz2,fp1:z.fp1,fp2:z.fp2};
+  TB([{h:'Part',a:'l'},{h:'Calculated',a:'r'},{h:'Standard',a:'r'},{h:'Error',a:'r'}],
+    order.filter(k=>CA[k]!==undefined).map(k=>{const u=k[0]==='R'?'Ω':'F';
+      return ['$'+LN[k]+'$','$'+Q(CA[k],u,4)+'$','$'+Q(CS[k],u,3)+'$','$'+PCT(100*(CS[k]-CA[k])/CA[k],2)+'$'];}),
+    'Resistors rounded to E96, capacitors to E12');
+  if(ty>1){
+    const names={fz1:'f_{Z1}',fz2:'f_{Z2}',fp1:'f_{P1}',fp2:'f_{P2}'};
+    TB([{h:'Frequency',a:'l'},{h:'Target',a:'r'},{h:'With standard parts',a:'r'},{h:'Shift',a:'r'}],
+      Object.keys(rl).sort().map(k=>['$'+names[k]+'$','$'+Q(tg[k],'Hz')+'$','$'+Q(rl[k],'Hz')+'$','$'+PCT(100*(rl[k]-tg[k])/tg[k],2)+'$']),
+      'Poles and zeros realised by the standard values. A few percent of shift is normally harmless; large shifts mean a different capacitor value or a series/parallel pair is needed.');
+  }
+  H2('Step 5: connections');
+  FIG('sch',RT`${Tn} ${ota?'g_m':'op-amp'} compensation network with the final values (standard set).`);
+  const nl_=[];
+  const v=(k,u)=>'$'+Q(CS[k],u,3)+'$';
+  if(!ota){
+    nl_.push(['$R_1$','VOUT','FB',v('R1','Ω')],['$R_{BOT}$','FB','GND',v('Rbot','Ω')]);
+    if(ty===1) nl_.push(['$C_1$','FB','COMP',v('C1','F')]);
+    else nl_.push(['$R_2$','FB','N1',v('R2','Ω')],['$C_1$','N1','COMP',v('C1','F')],['$C_2$','FB','COMP',v('C2','F')]);
+    if(ty===3) nl_.push(['$R_3$','VOUT','N2',v('R3','Ω')],['$C_3$','N2','FB',v('C3','F')]);
+    nl_.push(['Op-amp +','VREF','',''],['Op-amp output','COMP','','']);
+  } else {
+    nl_.push(['$R_{TOP}$','VOUT','FB',v('Rtop','Ω')],['$R_{BOT}$','FB','GND',v('Rbot','Ω')]);
+    if(ty===3) nl_.push(['$C_{FF}$','VOUT','FB',v('Cff','F')]);
+    if(ty===1) nl_.push(['$C_C$','COMP','GND',v('Cc','F')]);
+    else nl_.push(['$R_C$','COMP','N1',v('Rc','Ω')],['$C_C$','N1','GND',v('Cc','F')],['$C_P$','COMP','GND',v('Cp','F')]);
+    nl_.push(['Amplifier +','VREF','',''],['Amplifier output','COMP','','']);
+  }
+  TB([{h:'Part',a:'l'},{h:'Node A',a:'l'},{h:'Node B',a:'l'},{h:'Value',a:'r'}],nl_,'Connections for schematic entry. FB is the amplifier input that senses the divider; COMP is its output.');
+
+  /* ===== 10 Verification ===== */
+  H('Verifying the loop');
+  P(RT`The loop gain $T(s)=G_{PS}(s)\,G_C(s)$ was evaluated with the full complex expressions (not the asymptotes) using the ${p.snap?'standard':'calculated'} component values. The crossover is where $|T|=0\,\mathrm{dB}$; the phase margin is $180^{\circ}+\angle T$ there; the gain margin is $-|T|$ where the phase reaches $-180^{\circ}$.`);
+  FIG('bode','Bode plot of the power stage $G_{PS}$, the compensator $G_C$ and the loop gain $T$. The shaded band is above $f_{SW}/2$.');
+  TB([{h:'Check',a:'l'},{h:'Result',a:'r'},{h:'Criterion',a:'r'},{h:'Verdict',a:'l'}],[
+    ['Crossover','$'+Q(sw.fc,'Hz')+'$','$'+Q(p.fc,'Hz')+'$ target',Math.abs(sw.fc/p.fc-1)<0.1?'Pass':'Check'],
+    ['Phase margin','$'+DEG(sw.pm)+'$','$\\ge 45^{\\circ}$',sw.pm>=45?'Pass':sw.pm>=30?'Marginal':'Fail'],
+    ['Gain margin',isFinite(sw.gm)?'$'+DBL(sw.gm)+'$':'above range','$\\ge 6\\,\\mathrm{dB}$',!isFinite(sw.gm)||sw.gm>=6?'Pass':'Fail'],
+    ['Slope at crossover',isFinite(slope)?'$'+nl(slope,3)+'\\,\\mathrm{dB/dec}$':'-','about $-20\\,\\mathrm{dB/dec}$',isFinite(slope)?(slope>-30?'Pass':'Steep, check'):'-']],
+    'Loop checks');
+
+  /* ===== 11 Sensitivity and tweaking ===== */
+  H('Tolerances and how to adjust the design');
+  H2('Sensitivity of the finished design');
+  P('The component values above are held fixed while the power stage is varied. This shows how much margin survives real-world changes. The cold ESR scenario multiplies the ESR of every capacitor group by 3.');
+  const sc=[['Nominal',x=>x],
+    ['Capacitance $-30\\,\\%$ (bias, ageing)',x=>{x.bank.forEach(b=>b.kb*=0.7);}],
+    ['Capacitance $+20\\,\\%$',x=>{x.bank.forEach(b=>b.kb*=1.2);}],
+    ['Inductance $-20\\,\\%$',x=>{x.L*=0.8;}],
+    ['Inductance $+20\\,\\%$',x=>{x.L*=1.2;}],
+    ['ESR $\\times 3$ (cold)',x=>{x.bank.forEach(b=>b.kt*=3);}]];
+  if(p.src==='calc'){
+    sc.push(['$V_{IN}$ $-20\\,\\%$',x=>{x.vin*=0.8;}],['$V_{IN}$ $+20\\,\\%$',x=>{x.vin*=1.2;}],['Light load ($I_{OUT}\\times0.2$)',x=>{x.iout*=0.2;}]);
+  }
+  const rows=sc.map(([nm,fn])=>{
+    try{ const p2=JSON.parse(JSON.stringify(p)); fn(p2);
+      const cap2=capModel(p2), st2=stage(p2,cap2);
+      const s2=sweep(p2,st2.G,f=>GcOf(p2,comp,f),10,p2.fsw);
+      const vd=!isFinite(s2.pm)?'No crossover':(s2.pm>=45&&(!isFinite(s2.gm)||s2.gm>=6))?'Pass':(s2.pm>=30?'Marginal':'Fail');
+      return [nm,'$'+Q(s2.fc,'Hz')+'$',isFinite(s2.pm)?'$'+DEG(s2.pm)+'$':'-',isFinite(s2.gm)?'$'+DBL(s2.gm)+'$':'above range',vd];
+    }catch(e){ return [nm,'-','-','-','-']; }});
+  TB([{h:'Scenario',a:'l'},{h:'$f_C$',a:'r'},{h:'PM',a:'r'},{h:'GM',a:'r'},{h:'Verdict',a:'l'}],rows,'Loop margins with the component values held fixed'+(p.src==='known'?'. Supply and load scenarios are omitted because a fixed DC gain was entered.':''));
+  H2('Tuning guide');
+  TB([{h:'Symptom',a:'w'},{h:'Likely cause',a:'w'},{h:'What to change',a:'w'}],[
+    ['Phase margin too low','Not enough boost, or the zeros sit too high.','Lower $f_C$, or raise the phase-margin target in K-factor mode; in manual mode move $f_{Z1}$ and $f_{Z2}$ down.'],
+    ['Slow recovery, large droop on a load step','Crossover too low.','Raise $f_C$ towards $f_{SW}/10$ and re-check margin, or add output capacitance.'],
+    ['Noise or ripple on the COMP pin','Last pole too high or too much mid-band gain.','Move $f_{P2}$ down towards $f_{SW}/4$, or raise $R_1$ ($R_{TOP}$) to lower the mid-band gain.'],
+    [vm?'Gain peak or ringing near the LC resonance':'Ringing near $f_{SW}/2$',vm?'Zeros do not cancel the double pole.':'Too little slope compensation.',vm?'Place the zeros between $0.5f_0$ and $f_0$.':'Increase $S_e$ until $Q_p\\approx 1$.'],
+    ['Capacitance changes (different part, derating)','The model shifts $f_0$ and $f_{ESR}$.','Edit the capacitor bank in the tool; every value in this report is recomputed. Re-check Section 11.'],
+    ['Inductor changed','$f_0$ and the ripple change.','Edit $L$ and $DCR$; the compensator is re-derived.'],
+    ['Capacitor values too small or too large','The divider resistance sets the scale.','Scale $R_1$ ($R_{TOP}$): capacitors scale as $1/R_1$ and resistors as $R_1$, the loop shape is unchanged.'],
+    ['Standard parts shift a pole or zero too far','Rounding to E12 capacitors.','Use a series or parallel pair, or choose a nearby resistor from a finer series; see Step 4.']],
+    'Symptom, cause and fix');
+  BOX('Updating the design',RT`Change any input in the tool (inductor, capacitor bank, $f_C$, phase margin or pole and zero positions), then open this report again. All text, equations, tables and plots are regenerated from the new inputs.`);
+
+  /* ===== Appendix ===== */
+  H('Symbols');
+  TB([{h:'Symbol',a:'l'},{h:'Meaning',a:'w'}],[
+    ['$V_{IN},V_{OUT},I_{OUT}$','Input voltage, output voltage and load current'],['$D$','Duty cycle'],['$f_{SW}, T_{SW}$','Switching frequency and period'],
+    ['$L, DCR$','Inductance and winding resistance'],['$C_{eff}$','Total effective output capacitance after derating'],
+    ['$\\mathrm{ESR}_{eff}(f)$','Real part of the capacitor-bank impedance'],['$f_0, Q$','LC resonant frequency and its quality factor'],
+    ['$f_{ESR}$','Frequency of the equivalent ESR zero of the bank'],['$G_{PS}(s)$','Power-stage transfer function from control to output'],
+    ['$G_C(s)$','Compensator transfer function'],['$T(s)$','Loop gain $G_{PS}G_C$'],['$f_C$, PM, GM','Crossover frequency, phase margin, gain margin'],
+    ['$\\omega_I$','Integrator gain of the compensator'],['$f_{Z1},f_{Z2},f_{P1},f_{P2}$','Compensator zeros and poles'],
+    ['$H_0$','Feedback divider ratio $V_{REF}/V_{OUT}$'],['$S_n,S_f,S_e$','On, off and compensation ramp slopes (current mode)']],'Symbols used');
+  return B;
+}
+
+/* ---------- renderers ---------- */
+const escH=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function mathH(m,disp){ try{ return katex.renderToString(m,{displayMode:!!disp,throwOnError:false,strict:'ignore',output:'htmlAndMathml'}); }catch(e){ return '<span class="katex-error">'+escH(m)+'</span>'; } }
+function inlH(s){ return String(s).split('$').map((seg,i)=>i%2?mathH(seg,false):escH(seg).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')).join(''); }
+const UNI={'–':'--','—':'---','’':"'",'≥':'$\\ge$','≤':'$\\le$','×':'$\\times$','°':'$^{\\circ}$','Ω':'$\\Omega$','µ':'$\\mu$','·':'$\\cdot$','→':'$\\rightarrow$','≈':'$\\approx$','±':'$\\pm$','π':'$\\pi$'};
+function escL(s){
+  let o=String(s).replace(/\\/g,'\u0001').replace(/([&%#_{}])/g,'\\$1').replace(/~/g,'\\textasciitilde{}').replace(/\^/g,'\\textasciicircum{}').replace(/\u0001/g,'\\textbackslash{}');
+  return o.replace(/[–—’≥≤×°Ωµ·→≈±π]/g,c=>UNI[c]);
+}
+function inlL(s){ return String(s).split('$').map((seg,i)=>i%2?'$'+seg+'$':escL(seg).replace(/\*\*(.+?)\*\*/g,'\\textbf{$1}')).join(''); }
+
+function reportHTML(blocks){
+  let hn=0,sn=0,en=0,tn=0,fn=0, o='';
+  const checkCls=t=>/^(Pass)$/.test(t)?' ok':/^(Fail|No crossover)$/.test(t)?' bad':/^(Marginal|Check|Steep, check|Above typical)$/.test(t)?' warn':'';
+  blocks.forEach(b=>{
+    switch(b.t){
+      case 'h': hn++; sn=0; o+=`<h2><span class="hn">${hn}</span>${inlH(b.s)}</h2>`; break;
+      case 'h2': sn++; o+=`<h3><span class="hn">${hn}.${sn}</span>${inlH(b.s)}</h3>`; break;
+      case 'p': o+=`<p>${inlH(b.s)}</p>`; break;
+      case 'ul': o+='<ul>'+b.a.map(x=>`<li>${inlH(x)}</li>`).join('')+'</ul>'; break;
+      case 'eq': en++; o+=`<div class="eqrow">${mathH(b.s+`\\tag{${en}}`,true)}</div>`; break;
+      case 'box': o+=`<div class="rbox"><b>${inlH(b.title)}</b><p>${inlH(b.s)}</p></div>`; break;
+      case 'tb': { tn++;
+        o+=`<div class="tw"><table class="rt"><caption><b>Table ${tn}.</b> ${inlH(b.c||'')}</caption><thead><tr>${b.cols.map(c=>`<th class="${c.a}">${inlH(c.h)}</th>`).join('')}</tr></thead><tbody>`+
+          b.rows.map(r=>'<tr>'+r.map((cell,i)=>`<td class="${b.cols[i].a}${i===r.length-1?checkCls(String(cell)):''}">${inlH(cell)}</td>`).join('')+'</tr>').join('')+'</tbody></table></div>'; break; }
+      case 'fig': { fn++;
+        let svg='';
+        if(b.id==='bode') svg=`<svg viewBox="0 0 780 500" role="img" aria-label="Bode plot">${bodeMarkup(false).html}</svg>`;
+        else if(b.id==='cap') svg=`<svg viewBox="0 0 780 290" role="img" aria-label="Capacitor impedance">${capMarkup()}</svg>`;
+        else svg=`<div class="sch">${(last.p.amp==='ota'?schOta:schOpamp)(last.p.type,Object.fromEntries(Object.entries(last.comp).map(([k,v])=>[k,fe(v,k[0]==='R'?'Ω':'F')])))}</div>`;
+        o+=`<figure class="rfig">${svg}<figcaption><b>Figure ${fn}.</b> ${inlH(b.c)}</figcaption></figure>`; break; }
+    }
+  });
+  return o;
+}
+
+/* ---------- LaTeX source ---------- */
+function decim(a,k){return a.filter((_,i)=>i%k===0||i===a.length-1);}
+function coords(f,v,lo,hi){ return f.map((x,i)=>[x,v[i]]).filter(([x,y])=>isFinite(y)).map(([x,y])=>`(${+x.toPrecision(5)},${(Math.max(lo,Math.min(hi,y))).toFixed(2)})`).join(' '); }
+function bodeTeX(){
+  const {p,cap,info,sw}=last;
+  const [m0,m1]=niceRange([sw.ps,sw.gc,sw.t],20,-100,160), [p0,p1]=niceRange([sw.pps,sw.pgc,sw.pt],45,-360,180);
+  const idx=sw.f.map((_,i)=>i).filter(i=>i%4===0||i===sw.f.length-1);
+  const f=idx.map(i=>sw.f[i]), g=a=>idx.map(i=>a[i]);
+  const vl=(x,lo,hi,col,lab)=>`\\draw[${col},dashed] (axis cs:${+x.toPrecision(4)},${lo}) -- (axis cs:${+x.toPrecision(4)},${hi});`+(lab?`\\node[font=\\tiny,anchor=south west,${col}] at (axis cs:${+x.toPrecision(4)},${lo}) {${lab}};`:'');
+  const ax=(ymin,ymax,ylab,xlab,series,extra,leg)=>`\\begin{tikzpicture}\\begin{semilogxaxis}[width=\\linewidth,height=${leg?'6.4cm':'5.2cm'},xmin=${sw.f[0]},xmax=${+sw.f[sw.f.length-1].toPrecision(5)},ymin=${ymin},ymax=${ymax},grid=both,minor grid style={gray!15},major grid style={gray!35},ylabel={${ylab}},xlabel={${xlab}},tick label style={font=\\scriptsize},label style={font=\\small},${leg?'legend style={font=\\scriptsize,at={(0.99,0.97)},anchor=north east,fill=white,fill opacity=0.85,draw=gray!50},':''}clip=true]\n${series}\n${extra}\n\\end{semilogxaxis}\\end{tikzpicture}`;
+  const S=(arr,lo,hi)=>[['psc,thick','Power stage',g(sw.ps)],['gcc,thick','Compensator',g(sw.gc)],['ltc,very thick','Loop gain $T$',g(sw.t)]];
+  const mag=S().map(([st,nm,v])=>`\\addplot[${st}] coordinates {${coords(f,v,m0-50,m1+50)}};\\addlegendentry{${nm}}`).join('\n');
+  const ph=[['psc,thick',g(sw.pps)],['gcc,thick',g(sw.pgc)],['ltc,very thick',g(sw.pt)]].map(([st,v])=>`\\addplot[${st}] coordinates {${coords(f,v,p0-50,p1+50)}};`).join('\n');
+  const mk=(lo,hi,lab)=>[[p.mode==='vm'?info.f0:info.fp,p.mode==='vm'?'$f_0$':'$f_P$'],[cap.fesr,'$f_{ESR}$'],[p.fsw/2,'$f_{SW}/2$']].filter(([x])=>x>sw.f[0]&&x<sw.f[sw.f.length-1]).map(([x,l])=>vl(x,lo,hi,'gray',lab?l:'')).join('')+
+     (isFinite(sw.fc)?vl(sw.fc,lo,hi,'ltc',lab?'$f_C$':''):'');
+  const zero=(y)=>`\\draw[gray] (axis cs:${sw.f[0]},${y}) -- (axis cs:${+sw.f[sw.f.length-1].toPrecision(5)},${y});`;
+  return ax(m0,m1,'Gain (dB)','',mag,zero(0)+mk(m0,m1,true),true)+'\n\\\\[2mm]\n'+ax(p0,p1,'Phase (deg)','Frequency (Hz)',ph,zero(-180)+mk(p0,p1,false),false);
+}
+function capTeX(){
+  const {p,cap,info,sw}=last;
+  const fmin=100,fmax=1e8,f=[];for(let i=0;i<400;i+=1)f.push(fmin*Math.pow(fmax/fmin,i/399));
+  const z=f.map(x=>cabs(cap.Z(x))), e=f.map(x=>cap.esr(x)), xc=f.map(x=>1/(TAU*x*cap.Ceff)), bz=cap.br.map(b=>f.map(x=>cabs(b.Z(x))));
+  const all=[...z,...e,...bz.flat()].filter(v=>v>0&&isFinite(v));
+  const ymin=Math.pow(10,Math.floor(Math.log10(Math.min(...all)))), ymax=Math.pow(10,Math.min(Math.ceil(Math.log10(Math.max(...z))),Math.ceil(Math.log10(Math.max(...all)))));
+  const idx=f.map((_,i)=>i).filter(i=>i%4===0||i===f.length-1), ff=idx.map(i=>f[i]), g=a=>idx.map(i=>a[i]);
+  const cc=(a)=>ff.map((x,i)=>`(${+x.toPrecision(4)},${(Math.max(ymin/10,Math.min(ymax*10,g(a)[i]))).toPrecision(4)})`).join(' ');
+  const cols=['psc','gcc','violet','magenta!70!black','green!50!black','olive'];
+  let s=`\\begin{tikzpicture}\\begin{loglogaxis}[width=\\linewidth,height=6.4cm,xmin=${fmin},xmax=${fmax},ymin=${ymin},ymax=${ymax},grid=both,minor grid style={gray!15},major grid style={gray!35},xlabel={Frequency (Hz)},ylabel={Impedance ($\\Omega$)},tick label style={font=\\scriptsize},label style={font=\\small},legend style={font=\\scriptsize,at={(0.99,0.03)},anchor=south east,fill=white,fill opacity=0.85,draw=gray!50},clip=true]\n`;
+  s+=`\\addplot[psc,dashed] coordinates {${cc(xc)}};\\addlegendentry{$1/(2\\pi fC_{eff})$}\n`;
+  cap.br.forEach((b,i)=>{ s+=`\\addplot[${cols[(i+2)%cols.length]},densely dotted,thick] coordinates {${cc(bz[i])}};\\addlegendentry{C${i+1}}\n`; });
+  s+=`\\addplot[gcc,thick] coordinates {${cc(e)}};\\addlegendentry{ESR of bank}\n\\addplot[black,very thick] coordinates {${cc(z)}};\\addlegendentry{$|Z_{bank}|$}\n`;
+  [[info.f0,'$f_0$'],[isFinite(sw.fc)?sw.fc:p.fc,'$f_C$'],[p.fsw,'$f_{SW}$']].forEach(([x,l])=>{ s+=`\\draw[gray,dashed] (axis cs:${+x.toPrecision(4)},${ymin}) -- (axis cs:${+x.toPrecision(4)},${ymax});\\node[font=\\tiny,anchor=north west,gray] at (axis cs:${+x.toPrecision(4)},${ymax}) {${l}};\n`; });
+  return s+'\\end{loglogaxis}\\end{tikzpicture}';
+}
+
+function reportLaTeX(blocks){
+  let en=0;
+  const colSpec=cols=>cols.map(c=>c.a==='w'?'>{\\raggedright\\arraybackslash}X':c.a==='r'?'r':c.a==='c'?'c':'l').join('');
+  let o=String.raw`\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper,margin=22mm]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs,tabularx,array}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\usepackage{float}
+\usepackage{tcolorbox}
+\usepackage[font=small,labelfont=bf,labelsep=period]{caption}
+\usepackage[hidelinks]{hyperref}
+\definecolor{psc}{HTML}{3A62A9}
+\definecolor{gcc}{HTML}{B06C0C}
+\definecolor{ltc}{HTML}{0C6A60}
+\renewcommand{\arraystretch}{1.25}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\captionsetup[table]{position=above}
+\title{Buck Converter Loop Compensation\\[2mm]\large Design Report}
+\author{Generated by the MX Design Buck Compensation Designer}
+\date{${new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}}
+\begin{document}
+\maketitle
+`;
+  blocks.forEach(b=>{
+    switch(b.t){
+      case 'h': o+=`\n\\section{${inlL(b.s)}}\n`; break;
+      case 'h2': o+=`\n\\subsection{${inlL(b.s)}}\n`; break;
+      case 'p': o+=inlL(b.s)+'\n\n'; break;
+      case 'ul': o+='\\begin{itemize}\n'+b.a.map(x=>'\\item '+inlL(x)).join('\n')+'\n\\end{itemize}\n'; break;
+      case 'eq': en++; o+=`\\begin{equation*}\n${b.s}\\tag{${en}}\n\\end{equation*}\n`; break;
+      case 'box': o+=`\\begin{tcolorbox}[colback=ltc!6,colframe=ltc,title={${inlL(b.title)}},fonttitle=\\bfseries]\n${inlL(b.s)}\n\\end{tcolorbox}\n`; break;
+      case 'tb': {
+        const hasX=b.cols.some(c=>c.a==='w');
+        o+=`\\begin{table}[H]\n\\centering\n\\caption{${inlL(b.c||'')}}\n\\small\n`+
+           (hasX?`\\begin{tabularx}{\\linewidth}{${colSpec(b.cols)}}`:`\\begin{tabular}{${colSpec(b.cols)}}`)+'\n\\toprule\n'+
+           b.cols.map(c=>'\\textbf{'+inlL(c.h)+'}').join(' & ')+' \\\\\n\\midrule\n'+
+           b.rows.map(r=>r.map(c=>inlL(c)).join(' & ')+' \\\\').join('\n')+'\n\\bottomrule\n'+
+           (hasX?'\\end{tabularx}':'\\end{tabular}')+'\n\\end{table}\n'; break; }
+      case 'fig':
+        if(b.id==='sch') o+='\n'; // the schematic is in the web report; the connection table below carries the same information
+        else o+=`\\begin{figure}[H]\n\\centering\n${b.id==='bode'?bodeTeX():capTeX()}\n\\caption{${inlL(b.c)}}\n\\end{figure}\n`;
+        break;
+    }
+  });
+  return o+'\n\\end{document}\n';
+}
+
+/* ---------- report view ---------- */
+let reportTeX='';
+function openReport(){
+  compute();
+  if(!last) return;
+  const blocks=reportBlocks();
+  const {p}=last;
+  const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  $('reportBody').innerHTML=
+    `<header class="rtitle"><div class="rkick">MX Tools · Buck Compensation Designer</div><h1>Buck Converter Loop Compensation</h1>
+     <div class="rsub">${p.vin} V to ${p.vout} V, ${p.iout} A, ${fe(p.fsw,'Hz')} · ${p.mode==='vm'?'voltage mode':'peak current mode'} · Type ${'I'.repeat(p.type)} · ${date}</div></header>`+reportHTML(blocks);
+  reportTeX=reportLaTeX(blocks);
+  document.body.classList.add('reporting');
+  window.scrollTo(0,0);
+}
+function closeReport(){ document.body.classList.remove('reporting'); window.scrollTo(0,0); }
+function printReport(){
+  const t=document.title; document.title='Buck-compensation-design-report';
+  const back=()=>{document.title=t;window.removeEventListener('afterprint',back);};
+  window.addEventListener('afterprint',back); window.print();
+}
+function saveText(name,text,mime){
+  const url=URL.createObjectURL(new Blob([text],{type:mime||'text/plain'}));
+  const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+$('btnReport').addEventListener('click',openReport);
+$('rClose').addEventListener('click',closeReport);
+$('rPdf').addEventListener('click',printReport);
+$('rTex').addEventListener('click',()=>saveText('buck-compensation-report.tex',reportTeX,'application/x-tex'));
+$('rCopy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(reportTeX);$('rMsg').textContent='LaTeX copied';}catch(e){$('rMsg').textContent='Copy blocked, use Download .tex';}});
+$('mcDl').addEventListener('click',()=>saveText('buck-compensation-mathcad.txt',$('mcText').value,'text/plain'));
+/* ===== REPORT END ===== */
+
+/* ---------- Mathcad text export ---------- */
+function mcv(v,u,d=6){
+  if(!isFinite(v)) return '0';
+  if(!u) return String(+v.toPrecision(d));
+  return fe(v,u,d).trim().replace(' ','*');
+}
+function buildMathcad(){
+  const {p,cap,info,d,sw}=last, o=[], L=s=>o.push(s), z=d.z, N=mcv;
+  const ty=p.type, ota=p.amp==='ota', vm=p.mode==='vm';
+  const hd=t=>o.push('','# ---- '+t+' ----');
+  L('# Buck converter loop compensation: Mathcad worksheet text');
+  L('# Type '+'I'.repeat(ty)+' compensator, '+(vm?'voltage mode':'peak current mode')+', '+(ota?'transconductance (gm) amplifier':'voltage op-amp')+'.');
+  L('# One Mathcad definition per line (name := expression). Lines starting with # are notes.');
+  L('# j is written 1i. Angles use the degree unit. f is the frequency argument of every function.');
+  L('pi := 3.141592653589793');
+
+  hd('Converter');
+  L('Vin := '+N(p.vin,'V')); L('Vout := '+N(p.vout,'V')); L('Iout := '+N(p.iout,'A')); L('fsw := '+N(p.fsw,'Hz'));
+  L('L := '+N(p.L,'H')); L('DCR := '+N(p.dcr,'Ω'));
+  L('D := Vout/Vin'); L('R := Vout/Iout'); L('Tsw := 1/fsw');
+  L('dIL := (Vin-Vout)*D/(L*fsw)');
+
+  hd('Output capacitor bank ('+cap.br.length+' group'+(cap.br.length>1?'s':'')+')');
+  cap.br.forEach(b=>{const k=b.i+1;
+    L('# group '+k+': '+b.n+' x '+fe(b.c,'F')+' '+CAPNAME[b.type]);
+    L('Cb_'+k+' := '+N(b.c,'F')); L('Nb_'+k+' := '+b.n); L('kCb_'+k+' := '+N(b.kb,''));
+    L('ESRsb_'+k+' := '+N(b.esr,'Ω')); L('fsb_'+k+' := '+N(b.fs,'Hz')); L('tandb_'+k+' := '+N(b.df,'')); L('ESLb_'+k+' := '+N(b.esl,'H')); L('kTb_'+k+' := '+N(b.kt,''));
+    L('Rsb_'+k+' := max(ESRsb_'+k+' - tandb_'+k+'/(2*pi*fsb_'+k+'*Cb_'+k+'), 0*Ω)');
+    L('ESRb_'+k+'(f) := (Rsb_'+k+' + tandb_'+k+'/(2*pi*f*Cb_'+k+'))*kTb_'+k);
+    L('Zb_'+k+'(f) := (ESRb_'+k+'(f) + 1i*(2*pi*f*ESLb_'+k+' - 1/(2*pi*f*kCb_'+k+'*Cb_'+k+')))/Nb_'+k);
+  });
+  L('Zbank(f) := 1/('+cap.br.map(b=>'1/Zb_'+(b.i+1)+'(f)').join(' + ')+')');
+  L('Ceff := '+cap.br.map(b=>'Nb_'+(b.i+1)+'*kCb_'+(b.i+1)+'*Cb_'+(b.i+1)).join(' + '));
+  L('ESRbank(f) := Re(Zbank(f))');
+  L('f0 := 1/(2*pi*sqrt(L*Ceff))');
+
+  hd('Power stage Gps(f), control to output');
+  if(vm){
+    if(p.src==='calc'){ L('Vramp := '+N(p.vramp,'V')); L('FM := 1/Vramp'); }
+    else { L('# Known DC gain entered: '+p.gk+' dB. FM is scaled so Gps(0) matches it.'); L('FM := '+N(info.k,'')+'/V'); }
+    L('Zo(f) := R*Zbank(f)/(R+Zbank(f))');
+    L('Gvd(f) := Vin*Zo(f)/(Zo(f)+DCR+1i*2*pi*f*L)');
+    L('Gps(f) := FM*Gvd(f)');
+  } else {
+    L('Ri := '+N(p.ri,'V/A')); L('Se := '+N(p.se,'V/s'));
+    if(p.src==='known'){ L('# Known DC gain entered: '+p.gk+' dB. kG scales the model to match it.'); L('kG := '+N(info.k,'')); } else L('kG := 1');
+    L('Sn := (Vin-Vout)/L*Ri'); L('Sf := Vout/L*Ri'); L('mc := 1+Se/Sn');
+    L('tc := mc*(1-D)-0.5'); L('Qp := 1/(pi*tc)'); L('wn := pi*fsw');
+    L('Rp := 1/(1/R + Tsw*tc/L)');
+    L('He(f) := 1/(1 - (2*pi*f/wn)^2 + 1i*(2*pi*f/wn)/Qp)');
+    L('Gps(f) := kG/Ri*(Rp*Zbank(f)/(Rp+Zbank(f)))*He(f)');
+  }
+
+  hd('Loop targets and pole/zero placement');
+  L('fc := '+N(p.fc,'Hz'));
+  L('Vref := '+N(p.vref,'V')); L('Rtop := '+N(p.rtop,'Ω'));
+  if(ota){ L('gm := '+N(p.gm,'S')); L('H0 := Vref/Vout'); }
+  if(ty>1){
+    L('PM := '+N(p.pm,'')+'*°');
+    L('boost := PM - 90*° - arg(Gps(fc))');
+    if(p.method==='k'){
+      if(ty===2){ L('K := tan(boost/2 + 45*°)'); L('fZ1 := fc/K'); L('fP2 := fc*K'); }
+      else if(!ota){ L('K := tan(boost/4 + 45*°)^2'); L('fZ1 := fc/sqrt(K)'); L('fZ2 := fZ1'); L('fP1 := fc*sqrt(K)'); L('fP2 := fP1'); }
+      else { L('phiFF := asin((1/H0-1)/(1/H0+1))'); L('K := tan((boost-phiFF)/2 + 45*°)'); L('fZ1 := fc/K'); L('fP2 := fc*K'); L('fZ2 := fc*sqrt(H0)'); L('fP1 := fZ2/H0'); }
+    } else {
+      L('# Manual placement');
+      L('fZ1 := '+N(z.fz1,'Hz')); L('fP2 := '+N(z.fp2,'Hz'));
+      if(ty===3){ L('fZ2 := '+N(z.fz2,'Hz')); L('fP1 := '+N(z.fp1,'Hz')); }
+    }
+    L('# Resulting frequencies: fZ1 = '+fHz(z.fz1)+(z.fz2?', fZ2 = '+fHz(z.fz2):'')+(z.fp1?', fP1 = '+fHz(z.fp1):'')+', fP2 = '+fHz(z.fp2));
+  }
+  const sh=ty===1?'1/(1i*2*pi*f)':ty===2?'(1+1i*f/fZ1)/(1i*2*pi*f*(1+1i*f/fP2))':'(1+1i*f/fZ1)*(1+1i*f/fZ2)/(1i*2*pi*f*(1+1i*f/fP1)*(1+1i*f/fP2))';
+  L('Sshape(f) := '+sh);
+  L('wI := 1/(abs(Sshape(fc))*abs(Gps(fc)))');
+
+  hd('Compensator components ('+(ota?'gm amplifier':'op-amp')+')');
+  if(!ota){
+    L('R1 := Rtop'); L('Rbot := R1*Vref/(Vout-Vref)');
+    if(ty===1) L('C1 := 1/(R1*wI)');
+    else { L('Ct := 1/(R1*wI)'); L('C2 := Ct*fZ1/fP2'); L('C1 := Ct-C2'); L('R2 := 1/(2*pi*fZ1*C1)');
+      if(ty===3){ L('C3 := (1/fZ2-1/fP1)/(2*pi*R1)'); L('R3 := 1/(2*pi*fP1*C3)'); } }
+  } else {
+    L('Rbot := Rtop*H0/(1-H0)');
+    if(ty===1) L('Cc := H0*gm/wI');
+    else { L('Ct := H0*gm/wI'); L('Cp := Ct*fZ1/fP2'); L('Cc := Ct-Cp'); L('Rc := 1/(2*pi*fZ1*Cc)');
+      if(ty===3) L('Cff := 1/(2*pi*Rtop*fZ2)'); }
+  }
+  const order=ota?['Rtop','Rbot','Rc','Cc','Cp','Cff']:['R1','Rbot','R2','C1','C2','R3','C3'];
+  L('# Calculated values: '+order.filter(k=>d.c[k]!==undefined).map(k=>(k==='Rtop'&&!ota?'R1':k)+' = '+fe(d.c[k],k[0]==='R'?'Ω':'F',4)).join(', '));
+  L('# Nearest standard values (E96 / E12): '+order.filter(k=>d.cs[k]!==undefined).map(k=>(k==='Rtop'&&!ota?'R1':k)+' = '+fe(d.cs[k],k[0]==='R'?'Ω':'F',3)).join(', '));
+
+  hd('Compensator Gc(f)');
+  if(!ota){
+    L('Zf(f) := '+(ty===1?'1/(1i*2*pi*f*C1)':'(R2+1/(1i*2*pi*f*C1))/(1+1i*2*pi*f*C2*(R2+1/(1i*2*pi*f*C1)))'));
+    L('Zi(f) := '+(ty===3?'R1*(R3+1/(1i*2*pi*f*C3))/(R1+R3+1/(1i*2*pi*f*C3))':'R1'));
+    L('Gc(f) := Zf(f)/Zi(f)');
+  } else {
+    L('Zt(f) := '+(ty===3?'Rtop/(1+1i*2*pi*f*Rtop*Cff)':'Rtop'));
+    L('H(f) := Rbot/(Zt(f)+Rbot)');
+    L('Zcomp(f) := '+(ty===1?'1/(1i*2*pi*f*Cc)':'(Rc+1/(1i*2*pi*f*Cc))/(1+1i*2*pi*f*Cp*(Rc+1/(1i*2*pi*f*Cc)))'));
+    L('Gc(f) := H(f)*gm*Zcomp(f)');
+  }
+  L('T(f) := Gps(f)*Gc(f)');
+  L('PMcheck := 180*° + arg(T(fc))');
+
+  hd('Results from this tool (for checking your worksheet)');
+  L('# Power stage DC gain: '+fd(dB(info.gdc),2)+' dB;  LC resonance f0 = '+fHz(info.f0)+';  effective ESR zero = '+fHz(cap.fesr));
+  L('# ESR of the bank: '+fe(cap.esr(info.f0),'Ω')+' at f0, '+fe(cap.esr(p.fc),'Ω')+' at fc, '+fe(cap.esr(p.fsw),'Ω')+' at fsw');
+  L('# Ceff = '+fe(cap.Ceff,'F')+';  inductor ripple dIL = '+fe(last.rip.dI,'A')+' pk-pk;  output ripple = '+fe(last.rip.vEsr+last.rip.vC,'V'));
+  if(vm) L('# Q = '+fd(info.Q,2)); else L('# Se/Sn: mc = '+fd(info.mc,3)+', Qp = '+fd(info.Qp,2)+', load pole = '+fHz(info.fp));
+  L('# Stage at fc: '+fd(dB(d.mag),2)+' dB, '+fd(d.ph,1)+' deg;  required boost: '+(ty>1?fd(d.boost,1)+' deg':'none'));
+  L('# Simulated loop (with '+(p.snap?'standard':'calculated')+' values): crossover = '+fHz(sw.fc)+', phase margin = '+fd(sw.pm,1)+' deg, gain margin = '+(isFinite(sw.gm)?fd(sw.gm,1)+' dB':'above range'));
+  L('# Note: Mathcad uses the calculated (unrounded) values above, so its margins can differ slightly from the standard-value result.');
+  return o.join('\n')+'\n';
+}
+$('mcCopy').addEventListener('click',async()=>{const t=$('mcText'); try{await navigator.clipboard.writeText(t.value);$('mcMsg').textContent='Copied';}catch(e){t.focus();t.select();$('mcMsg').textContent='Selected. Press Ctrl+C / Cmd+C to copy.';}});
+$('mcSel').addEventListener('click',()=>{const t=$('mcText');t.focus();t.select();$('mcMsg').textContent='Selected';});
+
+function bodeMarkup(hover){
+  const {p,cap,info,sw}=last;
+  const hide=hover?{ps:!$('lgPs').checked,gc:!$('lgGc').checked,lt:!$('lgLt').checked}:{ps:false,gc:false,lt:false};
+  const magS=[!hide.ps&&sw.ps,!hide.gc&&sw.gc,!hide.lt&&sw.t].filter(Boolean);
+  const phS=[!hide.ps&&sw.pps,!hide.gc&&sw.pgc,!hide.lt&&sw.pt].filter(Boolean);
+  const [m0,m1]=niceRange(magS.length?magS:[[0]],20,-100,160);
+  const [p0,p1]=niceRange(phS.length?phS:[[-180,0]],45,-360,180);
+  const marks=[];
+  if(p.mode==='vm') marks.push({f:info.f0,label:'f₀',row:0}); else marks.push({f:info.fp,label:'f_P',row:0});
+  marks.push({f:cap.fesr,label:'f_ESR',row:1});
+  marks.push({f:p.fsw/2,label:'f_SW/2',row:0});
+  if(isFinite(sw.fc)) marks.push({f:sw.fc,label:'f_C '+fHz(sw.fc),cls:'mk-fc',tcls:'mkt-fc',row:2});
+  const A=panel({x:58,y:14,w:700,h:250,fmin:sw.f[0],fmax:sw.f[sw.f.length-1],ymin:m0,ymax:m1,ystep:20,zeroAt:0,ylab:'GAIN dB',shadeFrom:p.fsw/2,marks,
+    series:[{f:sw.f,v:sw.ps,cls:'s-ps',hide:hide.ps},{f:sw.f,v:sw.gc,cls:'s-gc',hide:hide.gc},{f:sw.f,v:sw.t,cls:'s-lt',hide:hide.lt}]});
+  let extra='';
+  const B0={x:58,y:286,w:700,h:180};
+  const B=panel({...B0,fmin:sw.f[0],fmax:sw.f[sw.f.length-1],ymin:p0,ymax:p1,ystep:p1-p0>270?90:45,zeroAt:-180,ylab:'PHASE °',showX:true,shadeFrom:p.fsw/2,
+    marks:marks.map(m=>({...m,label:''})),
+    series:[{f:sw.f,v:sw.pps,cls:'s-ps',hide:hide.ps},{f:sw.f,v:sw.pgc,cls:'s-gc',hide:hide.gc},{f:sw.f,v:sw.pt,cls:'s-lt',hide:hide.lt}]});
+  if(isFinite(sw.pm)&&!hide.lt){ const x=B.lx(sw.fc), y1=B.ly(-180), y2=B.ly(sw.pm-180);
+    extra+=`<line class="pmline" x1="${x}" x2="${x}" y1="${y1}" y2="${y2}"/><text class="mkt-fc" x="${x>640?x-6:x+6}" text-anchor="${x>640?'end':'start'}" y="${(y1+y2)/2+4}">PM ${fd(sw.pm,0)}°</text>`; }
+  if(isFinite(sw.gm)&&!hide.lt){ const x=A.lx(sw.f180); extra+=`<line class="pmline" x1="${x}" x2="${x}" y1="${A.ly(0)}" y2="${A.ly(-sw.gm)}"/><text class="mkt-fc" x="${x>640?x-6:x+6}" text-anchor="${x>640?'end':'start'}" y="${A.ly(-sw.gm/2)+4}">GM ${fd(sw.gm,1)} dB</text>`; }
+  const html=A.s+B.s+extra+`<text class="axt" x="${758}" y="${496}" text-anchor="end">FREQUENCY Hz</text>`+
+    (hover?`<line id="hv" class="hoverl" x1="0" x2="0" y1="14" y2="466" visibility="hidden"/><rect id="hz" x="58" y="14" width="700" height="452" fill="transparent"/>`:'');
+  return {html,A,sw};
+}
+function drawBode(){
+  const {html,A,sw}=bodeMarkup(true);
+  $('bode').innerHTML=html;
+  const svg=$('bode'), hv=$('hv');
+  const move=e=>{const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY; const q=pt.matrixTransform(svg.getScreenCTM().inverse());
+    const L0=Math.log10(sw.f[0]),L1=Math.log10(sw.f[sw.f.length-1]); const t=(q.x-58)/700; if(t<0||t>1)return;
+    const i=Math.round(t*(sw.f.length-1)); const x=A.lx(sw.f[i]); hv.setAttribute('x1',x); hv.setAttribute('x2',x); hv.setAttribute('visibility','visible');
+    $('readout').innerHTML=`f <b>${fHz(sw.f[i])}</b> · G<sub>PS</sub> <b>${fd(sw.ps[i],1)} dB ∠${fd(sw.pps[i],0)}°</b> · G<sub>C</sub> <b>${fd(sw.gc[i],1)} dB ∠${fd(sw.pgc[i],0)}°</b> · T <b>${fd(sw.t[i],1)} dB ∠${fd(sw.pt[i],0)}°</b>`;};
+  $('hz').addEventListener('pointermove',move); $('hz').addEventListener('pointerdown',move);
+  $('hz').addEventListener('pointerleave',()=>hv.setAttribute('visibility','hidden'));
+}
+
+function drawNet(){
+  const {p,d,comp}=last;
+  const v={}; for(const k in comp) v[k]=fe(comp[k],k.startsWith('R')?'Ω':'F');
+  $('sch').innerHTML=p.amp==='ota'?schOta(p.type,v):schOpamp(p.type,v);
+  const T='I'.repeat(p.type);
+  $('netTag').textContent=`Type ${T} · ${p.amp==='ota'?'gm amplifier':'op-amp'}`;
+  $('netSub').innerHTML=p.amp==='opamp'
+    ? `Inverting integrator around a voltage op-amp. R<sub>BOT</sub> only sets the DC output (the inverting node is a virtual ground), so it does not appear in G<sub>C</sub>. Pick an amplifier with gain-bandwidth well above ${fHz(Math.max(...(d.ps.length?d.ps:[p.fc])))}.`
+    : `Transconductance amplifier: the divider scales the error by V<sub>REF</sub>/V<sub>OUT</sub>, and the network from COMP to ground sets G<sub>C</sub> = H(s)·g<sub>m</sub>·Z<sub>COMP</sub>.${p.type===3?' C<sub>FF</sub> across R<sub>TOP</sub> gives the second zero; its pole is fixed at f<sub>Z2</sub>·V<sub>OUT</sub>/V<sub>REF</sub>.':''} Amplifier output resistance is neglected.`;
+  const roles={R1:'Upper divider / input',Rtop:'Upper divider',Rbot:`Lower divider, V<sub>OUT</sub> = V<sub>REF</sub>(1+R<sub>TOP</sub>/R<sub>BOT</sub>)`,
+    C1:p.type===1?'Integrator':'Sets f<sub>Z1</sub> with R2',C2:'Sets f<sub>P2</sub> (HF pole)',R2:'Mid-band gain, f<sub>Z1</sub>',R3:'Sets f<sub>P1</sub>',C3:'Sets f<sub>Z2</sub>',
+    Rc:'Mid-band gain, f<sub>Z1</sub>',Cc:p.type===1?'Integrator':'Sets f<sub>Z1</sub> with R<sub>C</sub>',Cp:'Sets f<sub>P2</sub> (HF pole)',Cff:'Feed-forward zero f<sub>Z2</sub>'};
+  const order=p.amp==='opamp'?['R1','Rbot','R2','C1','C2','R3','C3']:['Rtop','Rbot','Rc','Cc','Cp','Cff'];
+  const nice=k=>k==='Rtop'?'R<sub>TOP</sub>':k==='Rbot'?'R<sub>BOT</sub>':k==='Cff'?'C<sub>FF</sub>':k.length===2&&/[a-z]/.test(k[1])?k[0]+'<sub>'+k[1].toUpperCase()+'</sub>':k;
+  $('comps').innerHTML=order.filter(k=>d.c[k]!==undefined).map(k=>{const u=k.startsWith('R')?'Ω':'F';
+    return `<tr><td>${nice(k)}<span class="role">${roles[k]}</span></td><td class="n">${fe(d.c[k],u,4)}</td><td class="n std">${fe(d.cs[k],u,3)}</td></tr>`;}).join('');
+  const z=d.z, ch=[];
+  if(z.fz1) ch.push(['f<sub>Z1</sub>',z.fz1]); if(z.fz2) ch.push(['f<sub>Z2</sub>',z.fz2]); if(z.fp1) ch.push(['f<sub>P1</sub>',z.fp1]); if(z.fp2) ch.push(['f<sub>P2</sub>',z.fp2]);
+  ch.push(['ω<sub>I</sub>/2π',d.wi/TAU]);
+  $('pz').innerHTML=ch.map(c=>`<span class="chip">${c[0]} <b>${fHz(c[1])}</b></span>`).join('');
+}
+
+function capMarkup(){
+  const {p,cap,info,sw}=last;
+  const fmin=100,fmax=1e8,f=[];for(let i=0;i<400;i++)f.push(fmin*Math.pow(fmax/fmin,i/399));
+  const z=f.map(x=>cabs(cap.Z(x))), e=f.map(x=>cap.esr(x)), xc=f.map(x=>1/(TAU*x*cap.Ceff));
+  const multi=cap.br.length>1;
+  const bz=multi?cap.br.map(b=>f.map(x=>cabs(b.Z(x)))):[];
+  const all=[...z,...e,...bz.flat()].filter(v=>v>0&&isFinite(v));
+  const ymin=Math.pow(10,Math.floor(Math.log10(Math.min(...all)))), ymax=Math.pow(10,Math.min(Math.ceil(Math.log10(Math.max(...z))),Math.ceil(Math.log10(Math.max(...all)))));
+  const brSeries=bz.map((v,i)=>({f,v,cls:'s-br s-br'+i}));
+  const P=panel({x:58,y:12,w:700,h:226,fmin,fmax,ymin,ymax,ylog:true,ylab:'Ω',showX:true,
+    marks:[{f:info.f0,label:'f₀',row:0},{f:isFinite(sw.fc)?sw.fc:p.fc,label:'f_C',row:1,cls:'mk-fc',tcls:'mkt-fc'},{f:p.fsw,label:'f_SW',row:0},{f:cap.srf,label:'SRF',row:1}],
+    series:[{f,v:xc,cls:'s-xc'},...brSeries,{f,v:e,cls:'s-esr'},{f,v:z,cls:'s-z'}]});
+  const brStyle=cap.br.map((b,i)=>`.s-br${i}{stroke:${BCOL[i%BCOL.length]};fill:none;stroke-width:1.2;stroke-dasharray:2 3;opacity:.9}`).join('');
+  const leg=`<tspan fill="var(--ink)">━</tspan> |Z| bank  <tspan fill="var(--gc)">━</tspan> ESR bank  <tspan fill="var(--ps)">╍</tspan> 1/(2πfC)`+
+    (multi?cap.br.map((b,i)=>`  <tspan fill="${BCOL[i%BCOL.length]}">┄</tspan> C${i+1}`).join(''):'');
+  return `<style>${brStyle}</style>`+P.s+`<text class="ax" x="70" y="264">${leg}</text><text class="axt" x="758" y="284" text-anchor="end">FREQUENCY Hz</text>`;
+}
+function drawCap(){
+  const {p,cap,info,sw}=last;
+  $('capPlot').innerHTML=capMarkup();
+  const fcv=isFinite(sw.fc)?sw.fc:p.fc;
+  const dI=(p.vin-p.vout)*info.D/(p.L*p.fsw);
+  const vEsr=dI*cap.esr(p.fsw), vC=dI/(8*p.fsw*cap.Ceff), vL=cap.esl*p.vin/p.L;
+  last.rip={dI,vEsr,vC,vL};
+  const Irms=dI/Math.sqrt(12), Ytot=cap.Y(p.fsw);
+  $('branchTbl').innerHTML=cap.br.map((b,i)=>{const sh=cabs(inv(b.Z(p.fsw)))/cabs(Ytot);
+    return `<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${BCOL[i%BCOL.length]};margin-right:6px"></span>${b.label}</td><td class="n">${fe(b.Ctot,'F')}</td><td class="n">${fe(b.esrPart(fcv)/b.n,'Ω')}</td><td class="n">${fe(cabs(b.Z(p.fsw)),'Ω')}</td><td class="n">${fe(Irms*sh,'A')}<span class="role">${fe(Irms*sh/b.n,'A')} per part</span></td><td class="n">${fd(sh*100,0)}%</td></tr>`;}).join('');
+  const C=[['C effective',fe(cap.Ceff,'F'),cap.br.map(b=>fe(b.Ctot,'F')).join(' + ')],
+    ['ESR at f₀',fe(cap.esr(info.f0),'Ω'),fHz(info.f0)],['ESR at f<sub>C</sub>',fe(cap.esr(fcv),'Ω'),fHz(fcv)],['ESR at f<sub>SW</sub>',fe(cap.esr(p.fsw),'Ω'),fHz(p.fsw)],
+    ['Self-resonance',fHz(cap.srf),`ESL ${fe(cap.esl,'H')} total`],['Ripple current',fe(dI,'A')+' pk-pk',`${fe(dI/Math.sqrt(12),'A')} rms in the bank`],
+    ['Output ripple',fe(vEsr+vC,'V'),`ESR ${fe(vEsr,'V')} + C ${fe(vC,'V')}`],['ESL step',fe(vL,'V'),'V<sub>IN</sub>·ESL/L, edge spike']];
+  $('capMetrics').innerHTML=C.map(m=>`<div class="metric"><div class="k">${m[0]}</div><div class="v">${m[1]}</div><div class="d">${m[2]}</div></div>`).join('');
+}
+
+function drawEqs(){
+  const {p,cap,info,d,sw,comp}=last;
+  const E=(f,v,c)=>`<div class="eq"><div class="f">${f}</div>${v?`<div class="v">${v}</div>`:''}${c?`<div class="c">${c}</div>`:''}</div>`;
+  const fcv=p.fc;
+  let g1=E('D = V<sub>OUT</sub> / V<sub>IN</sub>',`= ${p.vout} / ${p.vin} = ${fd(info.D,3)}`)
+    +E('R = V<sub>OUT</sub> / I<sub>OUT</sub>',`= ${fe(info.R,'Ω')}`)
+    +E('ΔI<sub>L</sub> = (V<sub>IN</sub> − V<sub>OUT</sub>)·D / (L·f<sub>SW</sub>)',`= ${fe(last.rip.dI,'A')} pk-pk`)
+    +E('f<sub>0</sub> = 1 / (2π·√(L·C<sub>eff</sub>))',`= 1 / (2π·√(${fe(p.L,'H')} · ${fe(cap.Ceff,'F')})) = ${fHz(info.f0)}`);
+  if(p.mode==='vm'){
+    g1+=E('Q ≈ 1 / (ω<sub>0</sub>·(L/R + C·(ESR + DCR)))',`= ${fd(info.Q,2)}`,'Low Q here means a well-damped resonance; high Q gives a sharp gain peak and a fast 180° phase drop.')
+      +E('G<sub>vd</sub>(s) = V<sub>IN</sub> · Z<sub>o</sub> / (Z<sub>o</sub> + DCR + sL),  Z<sub>o</sub> = R ∥ (ESR + sESL + 1/sC)',`G<sub>vd</sub>(0) = V<sub>IN</sub>·R/(R+DCR) = ${fd(info.gvdDC,3)} V/V`,
+        'Asymptotically: G<sub>vd</sub>(s) ≈ V<sub>IN</sub>·(1 + s/ω<sub>ESR</sub>) / (1 + s/(Qω<sub>0</sub>) + s²/ω<sub>0</sub>²)')
+      +E(p.src==='calc'?'F<sub>M</sub> = 1 / V<sub>RAMP</sub>':'F<sub>M</sub> scaled so G<sub>PS</sub>(0) = G<sub>0</sub>',p.src==='calc'?`= 1 / ${p.vramp} V = ${fd(1/p.vramp,3)} /V`:`= ${fd(info.k,4)} /V`)
+      +E('G<sub>PS</sub>(s) = F<sub>M</sub> · G<sub>vd</sub>(s)',`G<sub>PS</sub>(0) = ${fd(dB(info.gdc),1)} dB`);
+  } else {
+    g1+=E('S<sub>n</sub> = (V<sub>IN</sub> − V<sub>OUT</sub>)·R<sub>i</sub>/L,  S<sub>f</sub> = V<sub>OUT</sub>·R<sub>i</sub>/L',`S<sub>n</sub> = ${fe(info.Sn/1e6,'')} V/µs,  S<sub>f</sub> = ${fe(info.Sf/1e6,'')} V/µs`)
+      +E('m<sub>c</sub> = 1 + S<sub>e</sub>/S<sub>n</sub>',`= ${fd(info.mc,3)}`)
+      +E('Q<sub>p</sub> = 1 / (π·(m<sub>c</sub>(1−D) − 0.5)),  ω<sub>n</sub> = π·f<sub>SW</sub>',`Q<sub>p</sub> = ${fd(info.Qp,2)},  f<sub>n</sub> = ${fHz(info.fn)}`,'Sampling double pole at half the switching frequency (Ridley model).')
+      +E('1/R′ = 1/R + (T<sub>SW</sub>/L)·(m<sub>c</sub>(1−D) − 0.5)',`R′ = ${fe(info.Rp,'Ω')};  f<sub>p</sub> = 1/(2π·R′·C<sub>eff</sub>) = ${fHz(info.fp)}`)
+      +E('G<sub>vc</sub>(0) = R′ / R<sub>i</sub>',`= ${fd(info.A0,3)} V/V = ${fd(dB(info.A0),1)} dB${p.src==='known'?` (scaled to ${p.gk} dB)`:''}`)
+      +E('G<sub>vc</sub>(s) = (R′ ∥ Z<sub>bank</sub>(s)) / R<sub>i</sub> · 1/(1 + s/(ω<sub>n</sub>Q<sub>p</sub>) + s²/ω<sub>n</sub>²)','','For one capacitor this is Ridley\'s G<sub>vc</sub>(0)·(1 + sC·ESR)/(1 + s/ω<sub>p</sub>)·H<sub>e</sub>(s). The inductor acts as a current source, leaving only the load pole and ESR zero at low frequency, which is why Type II suits current mode.');
+  }
+  let g2=E('R<sub>S,i</sub> = ESR<sub>spec,i</sub> − tanδ<sub>i</sub> / (2π·f<sub>spec,i</sub>·C<sub>i</sub>)',cap.br.map(b=>`C${b.i+1}: ${fe(b.esr,'Ω')} − ${b.df}/(2π·${fHz(b.fs)}·${fe(b.c,'F')}) = ${fe(b.Rs,'Ω')}`).join('<br>'),'Frequency-independent part of each part\'s ESR: terminations, electrodes, electrolyte.')
+    +E('Z<sub>i</sub>(f) = [ (R<sub>S,i</sub> + tanδ<sub>i</sub>/(2πfC<sub>i</sub>))·k<sub>T,i</sub> + j(2πf·ESL<sub>i</sub> − 1/(2πf·k<sub>C,i</sub>C<sub>i</sub>)) ] / N<sub>i</sub>',cap.br.map(b=>`C${b.i+1}: |Z| at f<sub>SW</sub> = ${fe(cabs(b.Z(p.fsw)),'Ω')}, own SRF ${fHz(b.srf)}`).join('<br>'),'One group of N identical parts. Dielectric loss falls with frequency, so ESR is highest at low frequency.')
+    +E('Z<sub>bank</sub>(f) = 1 / Σ (1/Z<sub>i</sub>(f))',`|Z| at f<sub>C</sub> = ${fe(cabs(cap.Z(fcv)),'Ω')},  at f<sub>SW</sub> = ${fe(cabs(cap.Z(p.fsw)),'Ω')}`,'Complex sum, so phase matters: this is what produces anti-resonance between groups. The power stage uses Z<sub>bank</sub> directly.')
+    +E('C<sub>eff</sub> = Σ N<sub>i</sub>·k<sub>C,i</sub>·C<sub>i</sub>',`= ${cap.br.map(b=>fe(b.Ctot,'F')).join(' + ')} = ${fe(cap.Ceff,'F')}`)
+    +E('ESR<sub>eff</sub>(f) = Re{ Z<sub>bank</sub>(f) }','ESR(f<sub>0</sub>) = '+fe(cap.esr(info.f0),'Ω')+',  ESR(f<sub>C</sub>) = '+fe(cap.esr(fcv),'Ω')+',  ESR(f<sub>SW</sub>) = '+fe(cap.esr(p.fsw),'Ω'),'At low frequency the big, lossy part sets ESR; at high frequency the ceramics take over.')
+    +E('f<sub>ESR</sub>: Re{Z<sub>bank</sub>(f)} · 2πf · C<sub>eff</sub> = 1',`= ${fHz(cap.fesr)}`,'Effective ESR zero of the whole bank, found by sweep. With mixed parts there is no single exact zero; the plot uses the full impedance.')
+    +E('SRF: Im{Z<sub>bank</sub>} = 0 (first crossing)',`= ${fHz(cap.srf)}${cap.antires?`;  anti-resonance peak near ${fHz(cap.antires)}`:''}`)
+    +E('I<sub>i</sub> ≈ I<sub>C,rms</sub> · |Y<sub>i</sub>(f<sub>SW</sub>) / Y<sub>bank</sub>(f<sub>SW</sub>)|',cap.br.map(b=>`C${b.i+1}: ${fe(last.rip.dI/Math.sqrt(12)*cabs(inv(b.Z(p.fsw)))/cabs(cap.Y(p.fsw)),'A')}`).join(',  '),'Fundamental approximation. Shares can sum past 100% because the branch currents are out of phase.')
+    +E('ΔV<sub>OUT</sub> ≈ ΔI<sub>L</sub>·ESR(f<sub>SW</sub>) + ΔI<sub>L</sub>/(8·f<sub>SW</sub>·C<sub>eff</sub>)',`= ${fe(last.rip.vEsr,'V')} + ${fe(last.rip.vC,'V')} = ${fe(last.rip.vEsr+last.rip.vC,'V')}`)
+    +E('I<sub>C,rms</sub> = ΔI<sub>L</sub> / √12',`= ${fe(last.rip.dI/Math.sqrt(12),'A')}`);
+  const T='I'.repeat(p.type);
+  let g3=E('T(s) = G<sub>PS</sub>(s) · G<sub>C</sub>(s);  |T(f<sub>C</sub>)| = 1,  PM = 180° + ∠T(f<sub>C</sub>)',`f<sub>C</sub> = ${fHz(sw.fc)},  PM = ${fd(sw.pm,1)}°,  GM = ${isFinite(sw.gm)?fd(sw.gm,1)+' dB':'> range'}`)
+    +E('Stage at target: |G<sub>PS</sub>(f<sub>C</sub>)|, ∠G<sub>PS</sub>(f<sub>C</sub>)',`= ${fd(dB(d.mag),2)} dB, ${fd(d.ph,1)}° at ${fHz(fcv)}`);
+  if(p.type>1) g3+=E('φ<sub>boost</sub> = PM − 90° − ∠G<sub>PS</sub>(f<sub>C</sub>)',`= ${p.pm} − 90 − (${fd(d.ph,1)}) = ${fd(d.boost,1)}°`,'The integrator costs 90°; the zeros must give back the rest.');
+  if(p.type>1&&p.method==='k'){
+    if(p.type===2) g3+=E('K = tan(φ<sub>boost</sub>/2 + 45°);  f<sub>Z</sub> = f<sub>C</sub>/K,  f<sub>P</sub> = f<sub>C</sub>·K',`K = ${fd(d.K,3)} → f<sub>Z</sub> = ${fHz(d.z.fz1)}, f<sub>P</sub> = ${fHz(d.z.fp2)}`);
+    else if(p.amp==='opamp') g3+=E('K = tan²(φ<sub>boost</sub>/4 + 45°);  f<sub>Z1,2</sub> = f<sub>C</sub>/√K,  f<sub>P1,2</sub> = f<sub>C</sub>·√K',`K = ${fd(d.K,2)}, √K = ${fd(Math.sqrt(d.K),3)} → zeros ${fHz(d.z.fz1)}, poles ${fHz(d.z.fp1)}`);
+    else g3+=E('φ<sub>FF</sub> = asin((r−1)/(r+1)), r = V<sub>OUT</sub>/V<sub>REF</sub>;  K = tan((φ<sub>boost</sub> − φ<sub>FF</sub>)/2 + 45°)',`φ<sub>FF</sub> = ${fd(d.phiCff,1)}°, K = ${fd(d.K,3)}`,'C<sub>FF</sub> zero/pole pair is centred on f<sub>C</sub>; R<sub>C</sub>, C<sub>C</sub>, C<sub>P</sub> supply the remaining boost.');
+  }
+  const S=p.type===1?'1/s':p.type===2?'(1 + s/ω<sub>Z1</sub>) / (s·(1 + s/ω<sub>P2</sub>))':'(1 + s/ω<sub>Z1</sub>)(1 + s/ω<sub>Z2</sub>) / (s·(1 + s/ω<sub>P1</sub>)(1 + s/ω<sub>P2</sub>))';
+  g3+=E(`G<sub>C</sub>(s) = ω<sub>I</sub> · ${S}`,'',`Type ${T} normalised shape S(s).`)
+    +E('ω<sub>I</sub> = 1 / (|S(f<sub>C</sub>)| · |G<sub>PS</sub>(f<sub>C</sub>)|)',`= 1 / (${fe(d.S,'',4)} · ${fe(d.mag,'',4)}) = ${fe(d.wi,'rad/s',4)}`,'Integrator gain that puts the loop through 0 dB at the target.');
+  let g4='';
+  const c=d.c;
+  if(p.amp==='opamp'){
+    g4+=E('R<sub>BOT</sub> = R1 · V<sub>REF</sub> / (V<sub>OUT</sub> − V<sub>REF</sub>)',`= ${fe(c.Rbot,'Ω',4)}`,'DC only; not part of G<sub>C</sub>.');
+    if(p.type===1) g4+=E('G<sub>C</sub>(s) = 1 / (s·R1·C1);  C1 = 1 / (R1·ω<sub>I</sub>)',`= ${fe(c.C1,'F',4)}`);
+    else {
+      if(p.type===3) g4+=E('C3 = (1/f<sub>Z2</sub> − 1/f<sub>P1</sub>) / (2π·R1)',`= ${fe(c.C3,'F',4)}`,'From f<sub>Z2</sub> = 1/(2π(R1+R3)C3) and f<sub>P1</sub> = 1/(2π·R3·C3).')
+        +E('R3 = 1 / (2π·f<sub>P1</sub>·C3)',`= ${fe(c.R3,'Ω',4)}`);
+      g4+=E('C1 + C2 = 1 / (R1·ω<sub>I</sub>)',`= ${fe(c.C1+c.C2,'F',4)}`)
+        +E('C2 = (C1 + C2) · f<sub>Z1</sub>/f<sub>P2</sub>,  C1 = (C1 + C2) − C2',`C2 = ${fe(c.C2,'F',4)},  C1 = ${fe(c.C1,'F',4)}`,'From f<sub>P2</sub> = 1/(2π·R2·C1C2/(C1+C2)).')
+        +E('R2 = 1 / (2π·f<sub>Z1</sub>·C1)',`= ${fe(c.R2,'Ω',4)}`,`Mid-band gain ≈ R2/R1 = ${fd(dB(c.R2/c.R1),1)} dB.`);
+    }
+  } else {
+    const H0=p.vref/p.vout;
+    g4+=E('H<sub>0</sub> = V<sub>REF</sub>/V<sub>OUT</sub>;  R<sub>BOT</sub> = R<sub>TOP</sub>·H<sub>0</sub>/(1 − H<sub>0</sub>)',`H<sub>0</sub> = ${fd(H0,4)},  R<sub>BOT</sub> = ${fe(c.Rbot,'Ω',4)}`);
+    if(p.type===1) g4+=E('G<sub>C</sub> = H<sub>0</sub>·g<sub>m</sub> / (s·C<sub>C</sub>);  C<sub>C</sub> = H<sub>0</sub>·g<sub>m</sub>/ω<sub>I</sub>',`= ${fe(c.Cc,'F',4)}`);
+    else {
+      g4+=E('C<sub>C</sub> + C<sub>P</sub> = H<sub>0</sub>·g<sub>m</sub> / ω<sub>I</sub>',`= ${fe(c.Cc+c.Cp,'F',4)}`)
+        +E('C<sub>P</sub> = (C<sub>C</sub>+C<sub>P</sub>)·f<sub>Z1</sub>/f<sub>P2</sub>',`C<sub>P</sub> = ${fe(c.Cp,'F',4)},  C<sub>C</sub> = ${fe(c.Cc,'F',4)}`)
+        +E('R<sub>C</sub> = 1 / (2π·f<sub>Z1</sub>·C<sub>C</sub>)',`= ${fe(c.Rc,'Ω',4)}`,`Mid-band gain ≈ H<sub>0</sub>·g<sub>m</sub>·R<sub>C</sub> = ${fd(dB(H0*p.gm*c.Rc),1)} dB.`);
+      if(p.type===3) g4+=E('C<sub>FF</sub> = 1 / (2π·R<sub>TOP</sub>·f<sub>Z2</sub>);  f<sub>P1</sub> = f<sub>Z2</sub>/H<sub>0</sub>',`C<sub>FF</sub> = ${fe(c.Cff,'F',4)},  f<sub>P1</sub> = ${fHz(d.z.fp1)}`);
+    }
+  }
+  if(p.snap) g4+=E('Standard values','Resistors rounded to E96, capacitors to E12. The plot and the margins above use the rounded set.');
+  $('eqs').innerHTML=`<div class="eqg"><h3>Power stage</h3>${g1}</div><div class="eqg"><h3>Output capacitor</h3>${g2}</div><div class="eqg"><h3>Loop target</h3>${g3}</div><div class="eqg"><h3>Component values</h3>${g4}</div>`;
+}
+
+/* ---------- persistence & events ---------- */
+const FIELDS=['vin','vout','iout','fsw','L','dcr','mode','src','vramp','ri','se','gknown','amp','gm','vref','rtop','method','fc','pm','fz1','fz2','fp1','fp2','snap'];
+const DEFAULTS={}; FIELDS.forEach(k=>{const el=$(k); DEFAULTS[k]=el.type==='checkbox'?el.checked:el.value;});
+function save(){try{const o={t:typeSel(),bank};FIELDS.forEach(k=>{const el=$(k);o[k]=el.type==='checkbox'?el.checked:el.value;o['u_'+k]=el.dataset.user||'';});localStorage.setItem('buckcomp.v1',JSON.stringify(o));}catch(e){}}
+function restore(){try{const o=JSON.parse(localStorage.getItem('buckcomp.v1')||'null');if(!o)return;FIELDS.forEach(k=>{if(o[k]===undefined)return;const el=$(k);if(el.type==='checkbox')el.checked=o[k];else el.value=o[k];if(o['u_'+k])el.dataset.user=o['u_'+k];});
+  if(Array.isArray(o.bank)&&o.bank.length) bank=o.bank;
+  const r=document.querySelector(`input[name=ctypeSel][value="${o.t}"]`); if(r) r.checked=true;}catch(e){}}
+
+['fz1','fz2','fp1','fp2'].forEach(k=>$(k).addEventListener('input',()=>{$(k).dataset.user='1';}));
+$('resetPz').addEventListener('click',()=>{['fz1','fz2','fp1','fp2'].forEach(k=>$(k).dataset.user='0');compute();});
+$('seHalf').addEventListener('click',()=>{const p=read();const Sf=p.vout/p.L*p.ri;$('se').value=+(Sf/2/1e6).toPrecision(3);compute();});
+$('loadEx').addEventListener('click',()=>{FIELDS.forEach(k=>{const el=$(k);if(el.type==='checkbox')el.checked=DEFAULTS[k];else el.value=DEFAULTS[k];el.dataset.user='0';});bank=JSON.parse(JSON.stringify(DEFAULT_BANK));renderBank();document.querySelector('input[name=ctypeSel][value="3"]').checked=true;compute();});
+document.querySelectorAll('input[name=ctypeSel]').forEach(r=>r.addEventListener('change',()=>{['fz1','fz2','fp1','fp2'].forEach(k=>$(k).dataset.user='0');compute();}));
+$('method').addEventListener('change',()=>{['fz1','fz2','fp1','fp2'].forEach(k=>$(k).dataset.user='0');compute();});
+let tmr; $('f').addEventListener('input',e=>{if(e.target.id==='ctype')return; clearTimeout(tmr); tmr=setTimeout(compute,120);});
+$('f').addEventListener('change',e=>{if(['mode','src','amp','snap'].includes(e.target.id))compute();});
+['lgPs','lgGc','lgLt'].forEach(id=>$(id).addEventListener('change',drawBode));
+$('copyBtn').addEventListener('click',async()=>{
+  if(!last) return; const {p,d}=last;
+  const lines=[`Buck Type ${'I'.repeat(p.type)} (${p.amp==='ota'?'gm amp':'op-amp'}), ${p.mode==='vm'?'voltage':'current'} mode, fc ${fHz(last.sw.fc)}, PM ${fd(last.sw.pm,1)} deg`];
+  for(const k in d.c) lines.push(`${k}\t${fe(d.c[k],k.startsWith('R')?'Ohm':'F',4)}\t${fe(d.cs[k],k.startsWith('R')?'Ohm':'F',3)}`);
+  const txt=lines.join('\n');
+  try{await navigator.clipboard.writeText(txt);$('copyMsg').textContent='Copied';}catch(e){$('copyMsg').textContent='Copy blocked here; values are in the table.';}
+});
+restore();
+renderBank();
+compute();
+</script>
+</body>
+</html>
