@@ -235,9 +235,23 @@ figure.rfig figcaption{font-size:.8rem;color:#4b5957;margin-top:4px}
   .report h2{margin-top:18px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* MX site bar */
+.mxbar{background:#0d1210;color:#e4ebe6;border-bottom:1px solid #2a3631;font:500 14px/1.2 "IBM Plex Sans",Archivo,system-ui,sans-serif}
+.mxbar-in{max-width:1200px;margin:0 auto;padding:10px max(16px,env(safe-area-inset-left));display:flex;align-items:center;gap:6px 18px;flex-wrap:wrap}
+.mxbar a{color:#e4ebe6;text-decoration:none}
+.mxbar a:hover,.mxbar a:focus-visible{color:#e39a5f;text-decoration:underline}
+.mxbar .mxlogo{font-weight:700;letter-spacing:.06em;margin-right:auto;display:inline-flex;align-items:center;gap:8px}
+.mxbar .mxlogo b{color:#4fbf87}
+.mxfoot{border-top:1px solid #2a3631;margin-top:40px;padding:18px 0 0;font-size:13px;color:#93a39a;text-align:center}
+.mxfoot a{color:#4fbf87;text-decoration:none}.mxfoot a:hover{text-decoration:underline}
+@media print{.mxbar,.mxfoot{display:none!important}}
+body.reporting .mxfoot{display:none}
 </style>
 </head>
 <body>
+<nav class="mxbar" aria-label="MX Design"><div class="mxbar-in"><a class="mxlogo" href="https://blog.mxdesign.uk" title="Back to blog.mxdesign.uk">&larr; <span>MX <b>DESIGN</b>.uk</span></a><a href="https://blog.mxdesign.uk">Blog</a><a href="https://mxdesign.uk/RC_standard_finder/">RC Standard Finder</a><a href="https://www.linkedin.com/in/manu-r-engineer" target="_blank" rel="noopener">LinkedIn</a></div></nav>
+
 
 <div class="wrap">
 <header class="top">
@@ -390,6 +404,7 @@ figure.rfig figcaption{font-size:.8rem;color:#4b5957;margin-top:4px}
 </section>
 </div>
 
+<footer class="mxfoot" style="max-width:1200px;margin:40px auto 0;padding:18px 16px 24px">Made by Manu R &middot; <a href="https://blog.mxdesign.uk">blog.mxdesign.uk</a> &middot; <a href="https://www.linkedin.com/in/manu-r-engineer" target="_blank" rel="noopener">LinkedIn</a> &middot; <a href="https://mxdesign.uk/RC_standard_finder/">RC Standard Finder</a></footer>
 <script src="vendor/katex/katex.min.js"></script>
 <script>
 "use strict";
