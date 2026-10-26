@@ -94,6 +94,14 @@ main{display:grid;gap:18px;min-width:0}
 .card{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:16px;min-width:0}
 .card h2{font:700 1.3rem/1.1 var(--f-disp);letter-spacing:.02em;margin:0 0 4px;text-wrap:balance}
 .card h2 .tag{font:500 .72rem var(--f-mono);letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-left:8px;vertical-align:middle}
+.card h3.sh{font:700 .95rem var(--f-disp);letter-spacing:.07em;text-transform:uppercase;margin:16px 0 6px}
+.mpd h3{font:700 1.05rem var(--f-disp);letter-spacing:.05em;text-transform:uppercase;margin:20px 0 4px}
+.mpd p,.mpd li{max-width:76ch;font-size:.92rem;margin:.4em 0}
+.mpd .eqn{font-family:var(--f-mono);font-size:.84rem;background:var(--grid2);border-left:3px solid var(--accent);padding:6px 10px;margin:6px 0;overflow-x:auto;white-space:pre-wrap}
+.mpd table,#mpArch{width:100%;border-collapse:collapse;font-size:.84rem;margin:8px 0}
+.mpd th,.mpd td,#mpArch th,#mpArch td{border:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+.mpd td.n,#mpArch td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap}
+.mpd th,#mpArch th{background:var(--grid2);font-weight:600}
 .card .sub{color:var(--muted);margin:0 0 12px;max-width:72ch;font-size:.88rem}
 
 .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0;background:var(--sheet);border:1px solid var(--rule);border-right:0;border-bottom:0;border-radius:6px;overflow:hidden}
@@ -269,13 +277,24 @@ body.reporting .mxfoot{display:none}
   <legend>Converter</legend>
   <div class="row"><label for="vin"><span class="sym">V<sub>IN</sub></span>Input voltage</label><input id="vin" type="number" step="any" value="12"><span class="u">V</span></div>
   <div class="row"><label for="vout"><span class="sym">V<sub>OUT</sub></span>Output voltage</label><input id="vout" type="number" step="any" value="3.3"><span class="u">V</span></div>
-  <div class="row"><label for="iout"><span class="sym">I<sub>OUT</sub></span>Load current</label><input id="iout" type="number" step="any" value="3"><span class="u">A</span></div>
-  <div class="row"><label for="fsw"><span class="sym">f<sub>SW</sub></span>Switching frequency</label><input id="fsw" type="number" step="any" value="500"><span class="u">kHz</span></div>
+  <div class="row"><label for="iout"><span class="sym">I<sub>OUT</sub></span>Total load current</label><input id="iout" type="number" step="any" value="3"><span class="u">A</span></div>
+  <div class="row"><label for="fsw"><span class="sym">f<sub>SW</sub></span>Switching frequency, per phase</label><input id="fsw" type="number" step="any" value="500"><span class="u">kHz</span></div>
+  <div class="row wide"><label for="nph">Number of phases</label>
+    <select id="nph"><option value="1">1 (single phase)</option><option value="2">2 phases, 180° apart</option><option value="4">4 phases, 90° apart</option></select></div>
+  <div class="row wide" data-show="mp"><label for="arch">Phase compensation</label>
+    <select id="arch"><option value="common">One shared compensator (combined node)</option><option value="indep">One compensator per phase (independent)</option></select></div>
+  <p class="hint" data-show="mp">Interleaved phases share one output capacitor bank. The load current above is the total; each phase carries 1/N of it. Inductance, DCR and switching frequency below are per phase.</p>
 </fieldset>
 <fieldset>
-  <legend>Inductor</legend>
+  <legend>Inductor (each phase)</legend>
   <div class="row"><label for="L"><span class="sym">L</span>Inductance</label><input id="L" type="number" step="any" value="4.7"><span class="u">µH</span></div>
   <div class="row"><label for="dcr"><span class="sym">DCR</span>Winding resistance</label><input id="dcr" type="number" step="any" value="15"><span class="u">mΩ</span></div>
+</fieldset>
+<fieldset data-show="mp">
+  <legend>Phase matching</legend>
+  <div class="row"><label for="tolr"><span class="sym">δ</span><span id="tolrLab">Modulator mismatch</span></label><input id="tolr" type="number" step="any" value="2"><span class="u">%</span></div>
+  <div class="row"><label for="vos"><span class="sym">V<sub>OS</sub></span>Error-amplifier offset</label><input id="vos" type="number" step="any" value="2"><span class="u">mV</span></div>
+  <p class="hint">Used only for the current-sharing estimate. Mismatch is the phase-to-phase tolerance of the PWM ramp (voltage mode) or of the current-sense gain (current mode).</p>
 </fieldset>
 <fieldset>
   <legend>Output capacitor bank</legend>
@@ -333,6 +352,17 @@ body.reporting .mxfoot{display:none}
     <div class="notes" id="notes"></div>
   </section>
 
+  <section class="card" data-show="mp" aria-labelledby="h-mp">
+    <h2 id="h-mp">Multiphase <span class="tag" id="mpTag"></span></h2>
+    <p class="sub" id="mpSub"></p>
+    <div class="metrics" id="mpMetrics"></div>
+    <h3 class="sh">Shared compensator or one per phase</h3>
+    <div class="tblwrap"><table id="mpArch"></table></div>
+    <h3 class="sh">Output ripple against duty cycle</h3>
+    <div class="plotbox"><svg id="mpChart" viewBox="0 0 780 270" role="img" aria-label="Output ripple current compared with one phase, against duty cycle, for 1, 2 and 4 phases"></svg></div>
+    <p class="hint" id="mpChartNote"></p>
+  </section>
+
   <section class="card" aria-labelledby="h-bode">
     <h2 id="h-bode">Bode plot</h2>
     <p class="sub">Power stage G<sub>PS</sub> (control-to-output, including the modulator), compensator G<sub>C</sub>, and loop gain T = G<sub>PS</sub>·G<sub>C</sub>. The shaded band above f<sub>SW</sub>/2 is outside the range where the averaged model holds.</p>
@@ -372,6 +402,12 @@ body.reporting .mxfoot{display:none}
     <h2 id="h-types">Type I, II and III compared</h2>
     <p class="sub">Each type adds one more pole–zero pair to the integrator. The extra zeros are what buy phase at crossover; the extra poles roll the gain off again before switching noise gets through.</p>
     <div class="types" id="types"></div>
+  </section>
+
+  <section class="card" id="mpDetail" aria-labelledby="h-mpd">
+    <h2 id="h-mpd">Multiphase in detail</h2>
+    <p class="sub">What interleaving changes in a buck converter, with the numbers of your design. Illustrated for <span id="mpdN">4</span> phases; the table compares 1, 2 and 4.</p>
+    <div id="mpd"></div>
   </section>
 
   <section class="card" aria-labelledby="h-eq">
@@ -477,7 +513,7 @@ function typeSel(){return +document.querySelector('input[name=ctypeSel]:checked'
 function flags(){
   const t=typeSel(), m=$('method').value;
   return {vm:$('mode').value==='vm',cm:$('mode').value==='cm',calc:$('src').value==='calc',known:$('src').value==='known',
-    opamp:$('amp').value==='opamp',ota:$('amp').value==='ota',t1:t===1,t2:t===2,t3:t===3,t23:t>1,kf:m==='k',manual:m==='manual'};
+    opamp:$('amp').value==='opamp',ota:$('amp').value==='ota',mp:+$('nph').value>1,indep:$('arch').value==='indep',t1:t===1,t2:t===2,t3:t===3,t23:t>1,kf:m==='k',manual:m==='manual'};
 }
 function applyVis(){
   const fl=flags();
@@ -490,11 +526,13 @@ function applyVis(){
 /* ---------- models ---------- */
 function read(){
   const g=id=>parseFloat($(id).value);
-  return {vin:g('vin'),vout:g('vout'),iout:g('iout'),fsw:g('fsw')*1e3,L:g('L')*1e-6,dcr:g('dcr')*1e-3,
+  const o={vin:g('vin'),vout:g('vout'),iout:g('iout'),fsw:g('fsw')*1e3,L:g('L')*1e-6,dcr:g('dcr')*1e-3,
     bank:bank.map(b=>({type:b.type,c:b.c*1e-6,n:Math.max(1,Math.round(b.n||1)),kb:b.kb/100,esr:b.esr*1e-3,fs:b.fs*1e3,df:b.df||0,esl:(b.esl||0)*1e-9,kt:b.kt||1})),
     mode:$('mode').value,src:$('src').value,vramp:g('vramp'),ri:g('ri'),se:g('se')*1e6,gk:g('gknown'),
     amp:$('amp').value,gm:g('gm')*1e-6,vref:g('vref'),rtop:g('rtop')*1e3,
-    type:typeSel(),method:typeSel()===1?'k':$('method').value,fc:g('fc')*1e3,pm:g('pm'),snap:$('snap').checked};
+    type:typeSel(),method:typeSel()===1?'k':$('method').value,fc:g('fc')*1e3,pm:g('pm'),snap:$('snap').checked,
+    N:+$('nph').value||1,arch:$('arch').value,tolr:g('tolr')||0,vos:g('vos')||0};
+  o.fe=o.fsw*o.N; return o;
 }
 function capModel(p){
   const clamped=[];
@@ -521,32 +559,48 @@ function capModel(p){
   return {Ceff,br,clamped,esr,esl,Z,Y,srf,fesr};
 }
 function stage(p,cap){
-  const D=p.vout/p.vin, R=p.vout/p.iout, Tsw=1/p.fsw;
-  const f0=1/(TAU*Math.sqrt(p.L*cap.Ceff)), fload=1/(TAU*R*cap.Ceff);
-  const info={D,R,f0,fload,Tsw};
-  let G;
+  const N=p.N||1, D=p.vout/p.vin, R=p.vout/p.iout, Tsw=1/p.fsw;
+  /* N identical interleaved phases in parallel, all driven by the same duty cycle:
+     L/N, DCR/N, Ri/N for the combined small-signal model (see the Multiphase section of the report) */
+  const Le=p.L/N, dcre=p.dcr/N, rie=p.ri/N;
+  const f0=1/(TAU*Math.sqrt(Le*cap.Ceff)), fload=1/(TAU*R*cap.Ceff);
+  const info={D,R,f0,fload,Tsw,N,Le,dcre,fe:p.fsw*N};
+  const sc=(z,n)=>[z[0]*n,z[1]*n];
+  let G,Gs;
   if(p.mode==='vm'){
-    const raw=f=>{const w=TAU*f, Zo=cpar(re(R),cap.Z(f)), Zl=[p.dcr,w*p.L]; return cmul(re(p.vin),cdiv(Zo,cadd(Zo,Zl)));};
-    const gvdDC=p.vin*R/(R+p.dcr);
+    const raw=f=>{const w=TAU*f, Zo=cpar(re(R),cap.Z(f)), Zl=[dcre,w*Le]; return cmul(re(p.vin),cdiv(Zo,cadd(Zo,Zl)));};
+    const gvdDC=p.vin*R/(R+dcre);
     const k=p.src==='calc'?1/p.vramp:Math.pow(10,p.gk/20)/gvdDC;
     G=f=>cmul(raw(f),re(k));
+    /* slice view: one phase with its share of the output (R*N, bank impedance*N) */
+    Gs=f=>{const w=TAU*f, Zo=cpar(re(R*N),sc(cap.Z(f),N)), Zl=[p.dcr,w*p.L]; return cmul(re(k),cmul(re(p.vin),cdiv(Zo,cadd(Zo,Zl))));};
     info.gdc=gvdDC*k; info.gvdDC=gvdDC; info.k=k;
-    info.Q=1/(TAU*f0*(p.L/R+cap.Ceff*(cap.esr(f0)+p.dcr)));
+    info.Q=1/(TAU*f0*(Le/R+cap.Ceff*(cap.esr(f0)+dcre)));
   } else {
-    const Sn=(p.vin-p.vout)/p.L*p.ri, Sf=p.vout/p.L*p.ri;
+    const Sn=(p.vin-p.vout)/p.L*p.ri, Sf=p.vout/p.L*p.ri;   // per phase
     const mc=1+p.se/Sn, t=mc*(1-D)-0.5;
-    const Rp=1/(1/R+Tsw*t/p.L);           // R′: load in parallel with the current-loop damping term
-    const A0=Rp/p.ri;
+    const Rp=1/(1/R+Tsw*t/Le);           // R′: load in parallel with the current-loop damping term (N phases in parallel)
+    const A0=Rp/rie;
     const wp=1/(cap.Ceff*Rp);
-    const wn=Math.PI/Tsw, Qp=1/(Math.PI*t);
+    const wn=Math.PI*N/Tsw, Qp=1/(Math.PI*t);   // interleaving moves the sampling double pole to N*fsw/2
     const k=p.src==='calc'?1:Math.pow(10,p.gk/20)/A0;
+    const He=w=>inv([1-(w*w)/(wn*wn), w*Math.PI*t/wn]);
     G=f=>{const w=TAU*f;
       const Zo=cpar(re(Rp),cap.Z(f));
-      const He=inv([1-(w*w)/(wn*wn), w*Math.PI*t/wn]);
-      return cmul(re(k/p.ri),cmul(Zo,He));};
+      return cmul(re(k/rie),cmul(Zo,He(w)));};
+    Gs=f=>{const w=TAU*f, Rps=1/(1/(R*N)+Tsw*t/p.L);
+      const Zo=cpar(re(Rps),sc(cap.Z(f),N));
+      return cmul(re(k/p.ri),cmul(Zo,He(w)));};
     Object.assign(info,{Sn,Sf,mc,t,Qp,fn:wn/TAU,fp:wp/TAU,A0,Rp,gdc:A0*k,k});
   }
+  info.Gs=Gs;
   return {G,info};
+}
+function mpRipple(p,D,N){
+  const x=N*D, m=Math.floor(x+1e-9), num=Math.max(0,(x-m)*(m+1-x));
+  const dI=(p.vin-p.vout)*D/(p.L*p.fsw);                 // one phase, pk-pk
+  const ratio=num/(N*D*(1-D));                             // output ripple / one-phase ripple
+  return {x,m,num,ratio,dI,dIout:dI*ratio,irms:p.iout/N*Math.sqrt(num),irms1:p.iout*Math.sqrt(D*(1-D)),iph:p.iout/N};
 }
 function phaseTo(fn,f){
   let prev=null,off=0; const N=400, f1=1;
@@ -560,7 +614,7 @@ function shape(f,zs,ps){
   return v;
 }
 function recommend(p,cap,info){
-  const half=p.fsw/2, fesr=cap.fesr;
+  const half=p.fe/2, fesr=cap.fesr;
   const pHF=Math.min(fesr,half);
   if(p.type===2){
     if(p.mode==='cm') return {fz1:Math.max(info.fload,p.fc/20),fp2:pHF};
@@ -794,7 +848,7 @@ function compute(){
   if(p.method==='manual'&&p.type===3&&p.amp==='ota') $('fp1').value=+(d.z.fp1/1e3).toPrecision(3);
   const comp=p.snap?d.cs:d.c;
   const Gc=f=>GcOf(p,comp,f);
-  const fmin=10, fmax=p.fsw;
+  const fmin=10, fmax=p.fe;
   const sw=sweep(p,G,Gc,fmin,fmax);
   last={p,cap,info,d,sw,comp,G,Gc};
 
@@ -802,7 +856,8 @@ function compute(){
   d.err.forEach(e=>notes.push(['bad',e]));
   notes.push(...d.warn);
   const fl=flags();
-  if(p.fc>p.fsw/5) notes.push(['warn',`Target crossover is above f<sub>SW</sub>/5. The averaged model loses accuracy there; f<sub>SW</sub>/10 or lower is safer.`]);
+  if(p.fc>p.fe/5) notes.push(['warn',`Target crossover is above ${p.N>1?'N·':''}f<sub>SW</sub>/5${p.N>1?` (${fHz(p.fe/5)})`:''}. The averaged model loses accuracy there; ${p.N>1?'N·':''}f<sub>SW</sub>/10 or lower is safer.`]);
+  if(p.N>1&&p.fc>p.fsw/2) notes.push(['warn',`Target crossover ${fHz(p.fc)} is above the single-phase limit f<sub>SW</sub>/2 = ${fHz(p.fsw/2)}. This relies on good phase interleaving and matched phases; a mismatch leaves ripple at f<sub>SW</sub> that the loop sees.`]);
   if(p.mode==='vm'&&p.type<3&&cap.fesr>p.fc) notes.push(['warn',`Voltage mode with the ESR zero at ${fHz(cap.fesr)} (above f<sub>C</sub>): the LC double pole at ${fHz(info.f0)} takes the stage toward −180°. Type III is the normal choice here.`]);
   if(p.type===1&&p.mode==='vm'&&p.fc>info.f0/3) notes.push(['warn',`Type I in voltage mode needs f<sub>C</sub> well below f<sub>0</sub> = ${fHz(info.f0)} (roughly f<sub>0</sub>/5 or less).`]);
   if(p.mode==='cm'){
@@ -815,7 +870,7 @@ function compute(){
     const fa=[],ma=[]; for(let i=0;i<=600;i++){const f=1e3*Math.pow(1e5,i/600); fa.push(f); ma.push(cabs(cap.Z(f)));}
     let peak=null; for(let i=1;i<600;i++){ if(ma[i]>ma[i-1]&&ma[i]>=ma[i+1]){peak=fa[i];break;} }
     cap.antires=peak;
-    if(peak&&peak<p.fsw*20) notes.push(['warn',`The bank has an anti-resonance peak near ${fHz(peak)} where one group's ESL meets another group's capacitance. Damp it with ESR (a polymer or electrolytic in parallel) or move it well away from f<sub>C</sub> and f<sub>SW</sub>.`]);
+    if(peak&&peak<p.fe*20) notes.push(['warn',`The bank has an anti-resonance peak near ${fHz(peak)} where one group's ESL meets another group's capacitance. Damp it with ESR (a polymer or electrolytic in parallel) or move it well away from f<sub>C</sub> and f<sub>SW</sub>.`]);
   }
   const minC=Math.min(...Object.entries(comp).filter(([k])=>k.startsWith('C')).map(([,v])=>v));
   if(minC<10e-12) notes.push(['warn',`Smallest capacitor is ${fe(minC,'F')}, close to PCB and amplifier parasitics. Lower R<sub>TOP</sub> to scale the capacitors up.`]);
@@ -824,6 +879,7 @@ function compute(){
   if(isFinite(sw.pm)&&okPM&&notes.filter(n=>n[0]==='bad').length===0) notes.push(['ok',`Loop crosses at ${fHz(sw.fc)} with ${fd(sw.pm,0)}° phase margin${isFinite(sw.gm)?` and ${fd(sw.gm,1)} dB gain margin`:''}.`]);
   if(isFinite(sw.pm)&&sw.pm<45) notes.push([sw.pm<30?'bad':'warn',`Phase margin ${fd(sw.pm,0)}° is low; 45–70° gives a well-damped load-step response.`]);
   if(!isFinite(sw.fc)) notes.push(['bad','The loop gain never crosses 0 dB between 10 Hz and f<sub>SW</sub>.']);
+  if(p.N>1){ const mr=mpRipple(p,info.D,p.N), tp=mpTips(p,info,mr); tp.forEach(t=>notes.push(t)); }
   $('notes').innerHTML=notes.map(n=>`<div class="note ${n[0]==='ok'?'ok':n[0]==='bad'?'bad':''}">${n[1]}</div>`).join('');
 
   /* recommended type */
@@ -849,6 +905,8 @@ function compute(){
   drawCap();
   renderTypes(p.type,p.amp);
   drawEqs();
+  drawMp();
+  drawMpDetail();
   $('mcText').value=buildMathcad();
   save();
 }
@@ -908,8 +966,9 @@ function reportBlocks(){
   P(RT`This report documents the loop compensation of a ${mcN} buck converter using a **${Tn}** compensator built around a ${ampN} error amplifier. It shows the assumptions, how the power-stage model was formed from your inductor and output capacitors, how the crossover frequency and the compensator poles and zeros were chosen, and how each component value follows from them, so that any input can be changed and the design re-derived.`);
   TB([{h:'Quantity',a:'l'},{h:'Symbol',a:'c'},{h:'Value',a:'r'}],[
     ['Input voltage','$V_{IN}$','$'+Q(p.vin,'V')+'$'],['Output voltage','$V_{OUT}$','$'+Q(p.vout,'V')+'$'],
-    ['Load current','$I_{OUT}$','$'+Q(p.iout,'A')+'$'],['Switching frequency','$f_{SW}$','$'+Q(p.fsw,'Hz')+'$'],
-    ['Inductance','$L$','$'+Q(p.L,'H')+'$'],['Inductor DC resistance','$DCR$','$'+Q(p.dcr,'Ω')+'$'],
+    [p.N>1?'Total load current':'Load current','$I_{OUT}$','$'+Q(p.iout,'A')+'$'],[p.N>1?'Switching frequency, per phase':'Switching frequency','$f_{SW}$','$'+Q(p.fsw,'Hz')+'$'],
+    [p.N>1?'Inductance, per phase':'Inductance','$L$','$'+Q(p.L,'H')+'$'],[p.N>1?'Inductor DC resistance, per phase':'Inductor DC resistance','$DCR$','$'+Q(p.dcr,'Ω')+'$'],
+    ...(p.N>1?[['Number of phases','$N$','$'+p.N+'$'],['Phase compensation','',p.arch==='indep'?'One compensator per phase':'One shared compensator']]:[]),
     ['Effective output capacitance ('+fl+' group'+(fl>1?'s':'')+')','$C_{eff}$','$'+Q(cap.Ceff,'F')+'$'],
     ['Control method','',vm?'Voltage mode':'Peak current mode'],['Error amplifier','',ota?'Transconductance':'Voltage op-amp'],
     ['Compensator','',Tn],['Reference voltage','$V_{REF}$','$'+Q(p.vref,'V')+'$']],'Design inputs');
@@ -929,6 +988,7 @@ function reportBlocks(){
   P('Every number in this report rests on the following assumptions. If any of them is not true for your hardware, the margins should be confirmed on the bench with a network analyser.');
   UL([
     RT`**Continuous conduction.** The inductor current never reaches zero at full load (checked in Section 3). Light-load operation in pulse-skipping or discontinuous mode changes the power-stage gain and is not covered.`,
+    ...(p.N>1?[RT`**Multiphase.** The $N=${p.N}$ phases are identical and interleaved by $360^{\circ}/N$. The small-signal model treats them as one converter with inductance $L/N$, resistance $DCR/N$${vm?'':RT` and sense gain $R_i/N$`}, driven by one duty cycle. Phase currents are assumed equal; mismatch only enters the current-sharing estimate. ${vm?'':'The sampling double pole is taken at $N f_{SW}/2$, which assumes accurate interleaving. '}Ripple frequency is $N f_{SW}$.`]:[]),
     RT`**Small-signal averaged model.** The converter is treated as a linear system valid up to roughly $f_{SW}/2$. The crossover is kept at or below $f_{SW}/5$ so that this stays reasonable.`,
     RT`**Resistive load.** The load is the constant resistance $R=V_{OUT}/I_{OUT}=${Q(Rl,'Ω')}$. A constant-current or constant-power load removes some damping, so the resonance in the power stage gets sharper. Check the loop with the real load.`,
     vm?RT`**Losses.** Only the inductor DC resistance is modelled. The extra series resistance of the switches adds damping, which makes this model slightly pessimistic about peaking at $f_0$.`
@@ -946,8 +1006,35 @@ function reportBlocks(){
   EQ(RT`D=\frac{V_{OUT}}{V_{IN}}=\frac{${nl(p.vout)}}{${nl(p.vin)}}=${nl(D,4)}`);
   EQ(RT`R=\frac{V_{OUT}}{I_{OUT}}=\frac{${nl(p.vout)}\,\mathrm{V}}{${nl(p.iout)}\,\mathrm{A}}=${Q(Rl,'Ω')}`);
   EQ(RT`\Delta I_L=\frac{(V_{IN}-V_{OUT})\,D}{L\,f_{SW}}=\frac{(${nl(p.vin)}-${nl(p.vout)})\cdot${nl(D,4)}}{${Q(p.L,'H')}\cdot${Q(p.fsw,'Hz')}}=${Q(dI,'A')}`);
-  EQ(RT`I_{pk}=I_{OUT}+\frac{\Delta I_L}{2}=${Q(p.iout+dI/2,'A')},\qquad I_{valley}=I_{OUT}-\frac{\Delta I_L}{2}=${Q(p.iout-dI/2,'A')}`);
-  P(RT`The ripple is $${nl(100*dI/p.iout,3)}\,\%$ of the load current${dI/p.iout>=0.2&&dI/p.iout<=0.5?', inside the usual 20 to 40 percent guideline':''}. The inductor current stays above zero while $I_{OUT}>\Delta I_L/2=${Q(dI/2,'A')}$, so the converter is in continuous conduction at full load: **${p.iout>dI/2?'condition met':'condition NOT met, the model does not apply'}**.`);
+  if(p.N>1){ EQ(RT`I_{phase}=\frac{I_{OUT}}{N}=\frac{${nl(p.iout)}\,\mathrm{A}}{${p.N}}=${Q(p.iout/p.N,'A')}`); EQ(RT`I_{pk}=I_{phase}+\frac{\Delta I_L}{2}=${Q(p.iout/p.N+dI/2,'A')},\qquad I_{valley}=I_{phase}-\frac{\Delta I_L}{2}=${Q(p.iout/p.N-dI/2,'A')}`); }
+  else EQ(RT`I_{pk}=I_{OUT}+\frac{\Delta I_L}{2}=${Q(p.iout+dI/2,'A')},\qquad I_{valley}=I_{OUT}-\frac{\Delta I_L}{2}=${Q(p.iout-dI/2,'A')}`);
+  P(RT`The ripple is $${nl(100*dI/(p.iout/p.N),3)}\,\%$ of the load current${dI/(p.iout/p.N)>=0.2&&dI/(p.iout/p.N)<=0.5?', inside the usual 20 to 40 percent guideline':''}. The inductor current stays above zero while $I_{OUT}>\Delta I_L/2=${Q(dI/2,'A')}$, so the converter is in continuous conduction at full load: **${p.iout>dI/2?'condition met':'condition NOT met, the model does not apply'}**.`);
+
+  if(p.N>1){
+    const MR=mpRipple(p,D,p.N), N=p.N;
+    H2('Multiphase operation');
+    P(RT`The $${N}$ phases switch $${360/N}^{\circ}$ apart and share one output capacitor bank. For the loop they behave as one converter with a smaller inductance, and at the output their ripple currents partly cancel.`);
+    EQ(RT`L_{eff}=\frac{L}{N}=\frac{${Q(p.L,'H')}}{${N}}=${Q(info.Le,'H')},\qquad DCR_{eff}=\frac{DCR}{N}=${Q(info.dcre,'Ω')},\qquad f_{ripple}=N f_{SW}=${Q(p.fe,'Hz')}`);
+    EQ(RT`\frac{\Delta I_{out}}{\Delta I_L}=\frac{(ND-m)(m+1-ND)}{N\,D\,(1-D)},\quad m=\lfloor ND\rfloor\;\Rightarrow\;\frac{(${nl(MR.x,4)}-${MR.m})(${MR.m+1}-${nl(MR.x,4)})}{${N}\cdot${nl(D,4)}\cdot${nl(1-D,4)}}=${nl(MR.ratio,4)}`);
+    EQ(RT`\Delta I_{out}=${nl(MR.ratio,4)}\cdot${Q(MR.dI,'A')}=${Q(MR.dIout,'A')},\qquad I_{Cin,rms}=\frac{I_{OUT}}{N}\sqrt{(ND-m)(m+1-ND)}=${Q(MR.irms,'A')}`);
+    P(RT`A single phase would give $${Q(MR.irms1,'A')}$ of input ripple current. Cancellation is complete at $D=k/N$; at $D=${nl(D,4)}$ the residual output ripple is $${nl(MR.ratio*100,3)}\,\%$ of one phase.`);
+    const nparts=Object.keys(comp).length;
+    let fci=NaN,pmi=NaN; const lg=20*Math.log10(N);
+    for(let i=1;i<sw.f.length;i++){ if(sw.t[i-1]-lg>0&&sw.t[i]-lg<=0){ const a=(sw.t[i-1]-lg)/((sw.t[i-1]-lg)-(sw.t[i]-lg)); fci=Math.exp(Math.log(sw.f[i-1])+a*(Math.log(sw.f[i])-Math.log(sw.f[i-1]))); pmi=180+sw.pt[i-1]+a*(sw.pt[i]-sw.pt[i-1]); break; } }
+    const dev=mpArchSlice(p,info,last.G), dd=D*p.tolr/100;
+    H2('One compensator or one per phase');
+    P(RT`With matched phases both arrangements give the same total loop gain $T=\sum_i G_{c,i}G_{ps,i}=N\,G_c\,G_{ps,i}=G_c\,G_{ps}$, so the compensator values are identical: a design done on one phase with its share of the output ($R\cdot N$, $Z_{bank}\cdot N$) matches the combined design to within $${dev<1e-9?'0':nl(dev,2)}$. The arrangements differ in parts count and in how the phase currents are shared.`);
+    TB([{h:'',a:'l'},{h:'Shared compensator',a:'w'},{h:'One per phase',a:'w'}],[
+      ['Error amplifiers','1','$'+N+'$'],
+      ['Compensation parts (incl. divider)','$'+nparts+'$','$'+nparts*N+'$'],
+      ['Total loop','$f_C='+nl(sw.fc,4)+'\\,\\mathrm{Hz}$, $PM='+nl(sw.pm,3)+'^{\\circ}$','same'],
+      ['Loop of one phase amplifier $(T/N)$','-',isFinite(fci)?'$f_C='+nl(fci,4)+'\\,\\mathrm{Hz}$, $PM='+nl(pmi,3)+'^{\\circ}$':'-'],
+      ['Setpoint spread','none',`$${nl(p.vos*p.vout/p.vref,3)}\\,\\mathrm{mV}$ at $V_{OUT}$ for $V_{OS}=${nl(p.vos,3)}\\,\\mathrm{mV}$`]],
+      'Shared compensator or one compensator per phase');
+    if(vm) P(RT`**Current sharing in voltage mode.** Nothing forces equal phase currents. A duty difference $\Delta D$ between two phases gives a current difference of about $V_{IN}\,\Delta D/DCR$. With a ${nl(p.tolr,2)} % ramp mismatch, $\Delta D=${nl(dd*100,3)}\,\%$, so the spread is about $\pm${Q(p.vin*dd/p.dcr,'A')}$ against $${Q(MR.iph,'A')}$ per phase. Add current sensing and a balance loop, or accept the spread.`);
+    else P(RT`**Current sharing in peak current mode.** A common control voltage makes every phase target the same peak current, so sharing is inherent. The spread is set by sense accuracy and offset: about $\pm${Q(MR.iph*p.tolr/100+p.vos*1e-3/p.ri,'A')}$ for ${nl(p.tolr,2)} % sense mismatch and $${nl(p.vos,2)}\,\mathrm{mV}$ offset.`);
+    if(p.arch==='indep') P(RT`**Independent amplifiers.** Each amplifier integrates its own error. Two amplifiers whose offsets differ by $${nl(p.vos,2)}\,\mathrm{mV}$ cannot both reach zero error on the same output, so one drifts toward its rail unless a current-sharing loop ties them together. Use independent compensators only with such a loop.`);
+  }
 
   /* ===== 4 Capacitor bank ===== */
   H('Output capacitor bank');
@@ -963,28 +1050,29 @@ function reportBlocks(){
     cap.br.map(b=>['C'+(b.i+1)+' '+CAPNAME[b.type],String(b.n),'$'+Q(b.c,'F')+'$','$'+nl(b.kb,3)+'$','$'+Q(b.esr,'Ω')+'$','$'+Q(b.fs,'Hz')+'$','$'+nl(b.df,3)+'$','$'+Q(b.esl,'H')+'$','$'+Q(b.Rs,'Ω')+'$']),
     'Capacitor groups as entered, with the derived $R_S$');
   H2('Bank behaviour at the frequencies that matter');
-  const fcs=[['$f_0$',info.f0],['$f_C$',fcA],['$f_{SW}$',p.fsw]];
+  const fcs=[['$f_0$',info.f0],['$f_C$',fcA],[p.N>1?'$Nf_{SW}$':'$f_{SW}$',p.fe]];
   TB([{h:'Frequency',a:'l'},{h:'Value',a:'r'},{h:'$|Z_{bank}|$',a:'r'},{h:'$\\mathrm{ESR}_{eff}$',a:'r'}],
     fcs.map(([n,f])=>[n,'$'+Q(f,'Hz')+'$','$'+Q(cabs(cap.Z(f)),'Ω')+'$','$'+Q(cap.esr(f),'Ω')+'$']),'Bank impedance and ESR');
   EQ(RT`f_{ESR}:\quad \mathrm{ESR}_{eff}(f)\cdot 2\pi f\,C_{eff}=1\;\Rightarrow\; f_{ESR}=${Q(cap.fesr,'Hz')}`);
   P(RT`This is the frequency where the bank stops looking like a capacitor. Below it the ESR zero has little effect, above it the capacitor acts like its ESR. The first series resonance of the whole bank is at $${Q(cap.srf,'Hz')}$.`);
   FIG('cap','Impedance of the bank and of each group, with the ESR. The curve that matters for the loop is the bank |Z| between $f_0$ and $f_C$.');
   H2('Ripple and capacitor current');
-  EQ(RT`\Delta V_{OUT}\approx \Delta I_L\,\mathrm{ESR}_{eff}(f_{SW})+\frac{\Delta I_L}{8f_{SW}C_{eff}}=${Q(last.rip.vEsr,'V')}+${Q(last.rip.vC,'V')}=${Q(last.rip.vEsr+last.rip.vC,'V')}`);
-  const Irms=dI/Math.sqrt(12), Ytot=cap.Y(p.fsw);
-  TB([{h:'Group',a:'l'},{h:'$|Z|$ at $f_{SW}$',a:'r'},{h:'Share',a:'r'},{h:'Group $I_{rms}$',a:'r'},{h:'Per part',a:'r'}],
-    cap.br.map(b=>{const sh=cabs(inv(b.Z(p.fsw)))/cabs(Ytot);
-      return ['C'+(b.i+1)+' '+CAPNAME[b.type],'$'+Q(cabs(b.Z(p.fsw)),'Ω')+'$','$'+nl(sh*100,3)+'\\,\\%$','$'+Q(Irms*sh,'A')+'$','$'+Q(Irms*sh/b.n,'A')+'$'];}),
+  if(p.N>1) EQ(RT`\Delta V_{OUT}\approx \Delta I_{out}\,\mathrm{ESR}_{eff}(Nf_{SW})+\frac{\Delta I_{out}}{8Nf_{SW}C_{eff}}=${Q(last.rip.vEsr,'V')}+${Q(last.rip.vC,'V')}=${Q(last.rip.vEsr+last.rip.vC,'V')}`);
+  else EQ(RT`\Delta V_{OUT}\approx \Delta I_L\,\mathrm{ESR}_{eff}(f_{SW})+\frac{\Delta I_L}{8f_{SW}C_{eff}}=${Q(last.rip.vEsr,'V')}+${Q(last.rip.vC,'V')}=${Q(last.rip.vEsr+last.rip.vC,'V')}`);
+  const Irms=last.rip.dIo/Math.sqrt(12), Ytot=cap.Y(p.fe);
+  TB([{h:'Group',a:'l'},{h:p.N>1?'$|Z|$ at $Nf_{SW}$':'$|Z|$ at $f_{SW}$',a:'r'},{h:'Share',a:'r'},{h:'Group $I_{rms}$',a:'r'},{h:'Per part',a:'r'}],
+    cap.br.map(b=>{const sh=cabs(inv(b.Z(p.fe)))/cabs(Ytot);
+      return ['C'+(b.i+1)+' '+CAPNAME[b.type],'$'+Q(cabs(b.Z(p.fe)),'Ω')+'$','$'+nl(sh*100,3)+'\\,\\%$','$'+Q(Irms*sh,'A')+'$','$'+Q(Irms*sh/b.n,'A')+'$'];}),
     'Ripple current share at $f_{SW}$. Check each per-part value against its rated ripple current. Shares can add up to more than 100 percent because the branch currents are out of phase.');
 
   /* ===== 5 Power stage ===== */
   H('Power-stage model');
   if(vm){
     P(RT`In voltage mode the modulator turns the control voltage into duty cycle with gain $F_M=1/V_{RAMP}$, and the duty cycle drives the LC filter. With $Z_o=R\parallel Z_{bank}$ the duty-to-output transfer function is:`);
-    EQ(RT`G_{vd}(s)=V_{IN}\,\frac{Z_o(s)}{Z_o(s)+DCR+sL},\qquad Z_o(s)=R\parallel Z_{bank}(s)`);
+    EQ(RT`G_{vd}(s)=V_{IN}\,\frac{Z_o(s)}{Z_o(s)+${p.N>1?'\\dfrac{DCR+sL}{N}':'DCR+sL'}},\qquad Z_o(s)=R\parallel Z_{bank}(s)`);
     P('For reading the shape, the same function is close to a double pole with one ESR zero:');
     EQ(RT`G_{vd}(s)\approx V_{IN}\,\frac{1+s/\omega_{ESR}}{1+\dfrac{s}{Q\,\omega_0}+\dfrac{s^2}{\omega_0^2}},\qquad \omega_0=\frac{1}{\sqrt{L\,C_{eff}}}`);
-    EQ(RT`f_0=\frac{1}{2\pi\sqrt{${Q(p.L,'H')}\cdot${Q(cap.Ceff,'F')}}}=${Q(info.f0,'Hz')}`);
+    EQ(RT`f_0=\frac{1}{2\pi\sqrt{${Q(info.Le,'H')}\cdot${Q(cap.Ceff,'F')}}}=${Q(info.f0,'Hz')}`);
     EQ(RT`Q=\frac{1}{\omega_0\left(\dfrac{L}{R}+C_{eff}\,(\mathrm{ESR}_{eff}(f_0)+DCR)\right)}=${nl(info.Q,3)}`);
     P(RT`The resonance is at $f_0=${Q(info.f0,'Hz')}$ and the ESR zero at $f_{ESR}=${Q(cap.fesr,'Hz')}$. ${info.Q>1.5?'A quality factor above about 1.5 means a visible gain peak and a steep phase drop of almost 180 degrees around $f_0$. ':'The quality factor is low, so the resonance is well damped. '}${cap.fesr<p.fc?'The ESR zero is below the crossover, so it gives back some phase before $f_C$.':'The ESR zero is above the crossover, so the compensator has to supply the phase lost at the resonance.'}`);
     if(p.src==='calc'){
@@ -997,7 +1085,7 @@ function reportBlocks(){
   } else {
     P(RT`In peak current mode an inner loop controls the inductor current, which turns the inductor into a controlled current source. At low frequency only the load pole and the ESR zero remain; at high frequency the sampling of the current loop adds a double pole at $f_{SW}/2$. The Ridley model needs the following slopes and ratios.`);
     EQ(RT`S_n=\frac{V_{IN}-V_{OUT}}{L}R_i=${Q(info.Sn,'V/s')},\qquad S_f=\frac{V_{OUT}}{L}R_i=${Q(info.Sf,'V/s')},\qquad m_c=1+\frac{S_e}{S_n}=${nl(info.mc,4)}`);
-    EQ(RT`Q_p=\frac{1}{\pi\left(m_c(1-D)-\tfrac12\right)}=${nl(info.Qp,3)},\qquad \omega_n=\pi f_{SW}\;\Rightarrow\; f_n=${Q(info.fn,'Hz')}`);
+    EQ(RT`Q_p=\frac{1}{\pi\left(m_c(1-D)-\tfrac12\right)}=${nl(info.Qp,3)},\qquad \omega_n=\pi ${p.N>1?'N\\,':''}f_{SW}\;\Rightarrow\; f_n=${Q(info.fn,'Hz')}`);
     EQ(RT`R'=\left(\frac1R+\frac{T_{SW}}{L}\Big(m_c(1-D)-\tfrac12\Big)\right)^{-1}=${Q(info.Rp,'Ω')},\qquad f_p=\frac{1}{2\pi R'C_{eff}}=${Q(info.fp,'Hz')}`);
     EQ(RT`G_{PS}(s)=\frac{k_G}{R_i}\,\Big(R'\parallel Z_{bank}(s)\Big)\,\frac{1}{1+\dfrac{s}{\omega_nQ_p}+\dfrac{s^2}{\omega_n^2}},\qquad G_{PS}(0)=\frac{R'}{R_i}=${DBL(dB(info.gdc))}`);
     P(RT`The factor $k_G$ is 1 unless a known DC gain was entered${p.src==='known'?RT`; here it is $${nl(info.k,4)}$ so that $G_{PS}(0)$ matches the entered $${nl(p.gk,3)}\,\mathrm{dB}$`:''}. The slope compensation must satisfy $m_c(1-D)>\tfrac12$ to avoid sub-harmonic oscillation: here $m_c(1-D)-\tfrac12=${nl(info.t,3)}$, which is **${info.t>0?'satisfied':'NOT satisfied'}**. Setting $S_e\approx\tfrac12S_f=${Q(info.Sf/2,'V/s')}$ gives $Q_p\approx 1$.`);
@@ -1008,15 +1096,15 @@ function reportBlocks(){
   H('Choosing the crossover frequency and phase margin');
   P('The crossover frequency $f_C$ is where the loop gain equals 0 dB. It sets how fast the converter reacts to a load step. The phase margin PM sets how well damped that reaction is. Both are choices, and the ones below are the starting points used by the tool.');
   UL([
-    RT`**Upper limit.** Keep $f_C\le f_{SW}/5$ so the averaged model remains valid. Between $f_{SW}/10$ and $f_{SW}/6$ is a common target for fast loops.`,
+    RT`**Upper limit.** Keep $f_C\le ${p.N>1?'N\\,':''}f_{SW}/5$ so the averaged model remains valid. Between $f_{SW}/10$ and $f_{SW}/6$ is a common target for fast loops.`,
     vm?RT`**Relative to the resonance.** A Type III loop usually crosses above $f_0$ so the compensator can cancel the double pole. A Type I loop must cross well below $f_0$.`
        :RT`**Current mode.** The inner loop removes the LC resonance from the control path, so $f_C$ is limited mainly by the sampling pole at $f_{SW}/2$. Stay at or below $f_{SW}/10$.`,
     RT`**Phase margin.** Aim for $45^{\circ}$ to $70^{\circ}$. At $60^{\circ}$ a load step settles with little overshoot. Lower margin settles faster but rings.`,
     RT`**Speed against noise.** A higher $f_C$ gives smaller droop on a load step but passes more switching noise and leaves less margin for amplifier delay.`
   ]);
   TB([{h:'Check',a:'l'},{h:'This design',a:'r'},{h:'Limit',a:'r'},{h:'Result',a:'l'}],[
-    ['$f_C/f_{SW}$','$'+nl(p.fc/p.fsw,3)+'$','$\\le 0.2$',p.fc/p.fsw<=0.2?'Pass':'Check'],
-    ['$f_C/f_{SW}$ for fast loops','$'+nl(p.fc/p.fsw,3)+'$','$\\le 0.1$ typical',p.fc/p.fsw<=0.1?'Pass':'Above typical'],
+    [p.N>1?'$f_C/(Nf_{SW})$':'$f_C/f_{SW}$','$'+nl(p.fc/p.fe,3)+'$','$\\le 0.2$',p.fc/p.fe<=0.2?'Pass':'Check'],
+    [p.N>1?'$f_C/(Nf_{SW})$ for fast loops':'$f_C/f_{SW}$ for fast loops','$'+nl(p.fc/p.fe,3)+'$','$\\le 0.1$ typical',p.fc/p.fe<=0.1?'Pass':'Above typical'],
     vm?['$f_C/f_0$','$'+nl(p.fc/info.f0,3)+'$',ty===1?'$\\le 0.2$':'$\\ge 1$ typical',ty===1?(p.fc/info.f0<=0.2?'Pass':'Check'):(p.fc/info.f0>=1?'Pass':'Check')]
        :['$f_C/f_n$','$'+nl(p.fc/info.fn,3)+'$','$\\le 0.2$',p.fc/info.fn<=0.2?'Pass':'Check'],
     ['Target phase margin',ty>1&&p.method==='k'?'$'+DEG(p.pm)+'$':'-','$45^{\\circ}$ to $70^{\\circ}$',ty>1&&p.method==='k'?(p.pm>=45&&p.pm<=70?'Pass':'Check'):'-']
@@ -1167,7 +1255,7 @@ function reportBlocks(){
   const rows=sc.map(([nm,fn])=>{
     try{ const p2=JSON.parse(JSON.stringify(p)); fn(p2);
       const cap2=capModel(p2), st2=stage(p2,cap2);
-      const s2=sweep(p2,st2.G,f=>GcOf(p2,comp,f),10,p2.fsw);
+      const s2=sweep(p2,st2.G,f=>GcOf(p2,comp,f),10,p2.fe);
       const vd=!isFinite(s2.pm)?'No crossover':(s2.pm>=45&&(!isFinite(s2.gm)||s2.gm>=6))?'Pass':(s2.pm>=30?'Marginal':'Fail');
       return [nm,'$'+Q(s2.fc,'Hz')+'$',isFinite(s2.pm)?'$'+DEG(s2.pm)+'$':'-',isFinite(s2.gm)?'$'+DBL(s2.gm)+'$':'above range',vd];
     }catch(e){ return [nm,'-','-','-','-']; }});
@@ -1247,7 +1335,7 @@ function bodeTeX(){
   const S=(arr,lo,hi)=>[['psc,thick','Power stage',g(sw.ps)],['gcc,thick','Compensator',g(sw.gc)],['ltc,very thick','Loop gain $T$',g(sw.t)]];
   const mag=S().map(([st,nm,v])=>`\\addplot[${st}] coordinates {${coords(f,v,m0-50,m1+50)}};\\addlegendentry{${nm}}`).join('\n');
   const ph=[['psc,thick',g(sw.pps)],['gcc,thick',g(sw.pgc)],['ltc,very thick',g(sw.pt)]].map(([st,v])=>`\\addplot[${st}] coordinates {${coords(f,v,p0-50,p1+50)}};`).join('\n');
-  const mk=(lo,hi,lab)=>[[p.mode==='vm'?info.f0:info.fp,p.mode==='vm'?'$f_0$':'$f_P$'],[cap.fesr,'$f_{ESR}$'],[p.fsw/2,'$f_{SW}/2$']].filter(([x])=>x>sw.f[0]&&x<sw.f[sw.f.length-1]).map(([x,l])=>vl(x,lo,hi,'gray',lab?l:'')).join('')+
+  const mk=(lo,hi,lab)=>[[p.mode==='vm'?info.f0:info.fp,p.mode==='vm'?'$f_0$':'$f_P$'],[cap.fesr,'$f_{ESR}$'],[p.fe/2,p.N>1?'$Nf_{SW}/2$':'$f_{SW}/2$']].filter(([x])=>x>sw.f[0]&&x<sw.f[sw.f.length-1]).map(([x,l])=>vl(x,lo,hi,'gray',lab?l:'')).join('')+
      (isFinite(sw.fc)?vl(sw.fc,lo,hi,'ltc',lab?'$f_C$':''):'');
   const zero=(y)=>`\\draw[gray] (axis cs:${sw.f[0]},${y}) -- (axis cs:${+sw.f[sw.f.length-1].toPrecision(5)},${y});`;
   return ax(m0,m1,'Gain (dB)','',mag,zero(0)+mk(m0,m1,true),true)+'\n\\\\[2mm]\n'+ax(p0,p1,'Phase (deg)','Frequency (Hz)',ph,zero(-180)+mk(p0,p1,false),false);
@@ -1265,7 +1353,7 @@ function capTeX(){
   s+=`\\addplot[psc,dashed] coordinates {${cc(xc)}};\\addlegendentry{$1/(2\\pi fC_{eff})$}\n`;
   cap.br.forEach((b,i)=>{ s+=`\\addplot[${cols[(i+2)%cols.length]},densely dotted,thick] coordinates {${cc(bz[i])}};\\addlegendentry{C${i+1}}\n`; });
   s+=`\\addplot[gcc,thick] coordinates {${cc(e)}};\\addlegendentry{ESR of bank}\n\\addplot[black,very thick] coordinates {${cc(z)}};\\addlegendentry{$|Z_{bank}|$}\n`;
-  [[info.f0,'$f_0$'],[isFinite(sw.fc)?sw.fc:p.fc,'$f_C$'],[p.fsw,'$f_{SW}$']].forEach(([x,l])=>{ s+=`\\draw[gray,dashed] (axis cs:${+x.toPrecision(4)},${ymin}) -- (axis cs:${+x.toPrecision(4)},${ymax});\\node[font=\\tiny,anchor=north west,gray] at (axis cs:${+x.toPrecision(4)},${ymax}) {${l}};\n`; });
+  [[info.f0,'$f_0$'],[isFinite(sw.fc)?sw.fc:p.fc,'$f_C$'],[p.fe,p.N>1?'$Nf_{SW}$':'$f_{SW}$']].forEach(([x,l])=>{ s+=`\\draw[gray,dashed] (axis cs:${+x.toPrecision(4)},${ymin}) -- (axis cs:${+x.toPrecision(4)},${ymax});\\node[font=\\tiny,anchor=north west,gray] at (axis cs:${+x.toPrecision(4)},${ymax}) {${l}};\n`; });
   return s+'\\end{loglogaxis}\\end{tikzpicture}';
 }
 
@@ -1338,7 +1426,7 @@ function openReport(){
   const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   $('reportBody').innerHTML=
     `<header class="rtitle"><div class="rkick">MX Tools · Buck Compensation Designer</div><h1>Buck Converter Loop Compensation</h1>
-     <div class="rsub">${p.vin} V to ${p.vout} V, ${p.iout} A, ${fe(p.fsw,'Hz')} · ${p.mode==='vm'?'voltage mode':'peak current mode'} · Type ${'I'.repeat(p.type)} · ${date}</div>
+     <div class="rsub">${p.vin} V to ${p.vout} V, ${p.iout} A${p.N>1?`, ${p.N} phases`:''}, ${fe(p.fsw,'Hz')}${p.N>1?' per phase':''} · ${p.mode==='vm'?'voltage mode':'peak current mode'} · Type ${'I'.repeat(p.type)} · ${date}</div>
      <div class="rlinks">Made with the <a href="${LINK_TOOL}">Buck Compensation Designer</a> by Manu R · <a href="${LINK_BLOG}">blog.mxdesign.uk</a> · <a href="${LINK_IN}">LinkedIn</a></div></header>`+reportHTML(blocks)+
     `<footer class="rfoot">This report was generated by the <a href="${LINK_TOOL}">Buck Compensation Designer</a>, a free tool by Manu R. More electronics design articles and tools: <a href="${LINK_BLOG}">blog.mxdesign.uk</a>. Connect on <a href="${LINK_IN}">LinkedIn</a>.</footer>`;
   reportTeX=reportLaTeX(blocks);
@@ -1381,10 +1469,13 @@ function buildMathcad(){
   L('pi := 3.141592653589793');
 
   hd('Converter');
-  L('Vin := '+N(p.vin,'V')); L('Vout := '+N(p.vout,'V')); L('Iout := '+N(p.iout,'A')); L('fsw := '+N(p.fsw,'Hz'));
-  L('L := '+N(p.L,'H')); L('DCR := '+N(p.dcr,'Ω'));
+  const mp=p.N>1;
+  L('Vin := '+N(p.vin,'V')); L('Vout := '+N(p.vout,'V')); L('Iout := '+N(p.iout,'A')+(mp?'  # total load current':'')); L('fsw := '+N(p.fsw,'Hz')+(mp?'  # per phase':''));
+  if(mp){ L('Nph := '+p.N); L('Lph := '+N(p.L,'H')+'  # per phase'); L('DCRph := '+N(p.dcr,'Ω')+'  # per phase'); L('L := Lph/Nph  # effective, N phases in parallel'); L('DCR := DCRph/Nph'); L('fe := Nph*fsw  # ripple frequency'); }
+  else { L('L := '+N(p.L,'H')); L('DCR := '+N(p.dcr,'Ω')); }
   L('D := Vout/Vin'); L('R := Vout/Iout'); L('Tsw := 1/fsw');
-  L('dIL := (Vin-Vout)*D/(L*fsw)');
+  L('dIL := (Vin-Vout)*D/('+(mp?'Lph':'L')+'*fsw)'+(mp?'  # per phase':''));
+  if(mp){ L('m := floor(Nph*D)'); L('rippleRatio := (Nph*D-m)*(m+1-Nph*D)/(Nph*D*(1-D))  # output ripple / one phase'); L('dIout := rippleRatio*dIL'); L('Icin_rms := Iout/Nph*sqrt((Nph*D-m)*(m+1-Nph*D))'); }
 
   hd('Output capacitor bank ('+cap.br.length+' group'+(cap.br.length>1?'s':'')+')');
   cap.br.forEach(b=>{const k=b.i+1;
@@ -1408,10 +1499,10 @@ function buildMathcad(){
     L('Gvd(f) := Vin*Zo(f)/(Zo(f)+DCR+1i*2*pi*f*L)');
     L('Gps(f) := FM*Gvd(f)');
   } else {
-    L('Ri := '+N(p.ri,'V/A')); L('Se := '+N(p.se,'V/s'));
+    if(mp){ L('Rip := '+N(p.ri,'V/A')+'  # per phase'); L('Ri := Rip/Nph  # effective'); } else L('Ri := '+N(p.ri,'V/A')); L('Se := '+N(p.se,'V/s'));
     if(p.src==='known'){ L('# Known DC gain entered: '+p.gk+' dB. kG scales the model to match it.'); L('kG := '+N(info.k,'')); } else L('kG := 1');
-    L('Sn := (Vin-Vout)/L*Ri'); L('Sf := Vout/L*Ri'); L('mc := 1+Se/Sn');
-    L('tc := mc*(1-D)-0.5'); L('Qp := 1/(pi*tc)'); L('wn := pi*fsw');
+    L('Sn := (Vin-Vout)/'+(mp?'Lph*Rip':'L*Ri')+(mp?'  # per phase':'')); L('Sf := Vout/'+(mp?'Lph*Rip':'L*Ri')+(mp?'  # per phase':'')); L('mc := 1+Se/Sn');
+    L('tc := mc*(1-D)-0.5'); L('Qp := 1/(pi*tc)'); L('wn := pi*'+(mp?'fe':'fsw'));
     L('Rp := 1/(1/R + Tsw*tc/L)');
     L('He(f) := 1/(1 - (2*pi*f/wn)^2 + 1i*(2*pi*f/wn)/Qp)');
     L('Gps(f) := kG/Ri*(Rp*Zbank(f)/(Rp+Zbank(f)))*He(f)');
@@ -1492,13 +1583,13 @@ function bodeMarkup(hover){
   const marks=[];
   if(p.mode==='vm') marks.push({f:info.f0,label:'f₀',row:0}); else marks.push({f:info.fp,label:'f_P',row:0});
   marks.push({f:cap.fesr,label:'f_ESR',row:1});
-  marks.push({f:p.fsw/2,label:'f_SW/2',row:0});
+  marks.push({f:p.fe/2,label:p.N>1?'N·f_SW/2':'f_SW/2',row:0});
   if(isFinite(sw.fc)) marks.push({f:sw.fc,label:'f_C '+fHz(sw.fc),cls:'mk-fc',tcls:'mkt-fc',row:2});
-  const A=panel({x:58,y:14,w:700,h:250,fmin:sw.f[0],fmax:sw.f[sw.f.length-1],ymin:m0,ymax:m1,ystep:20,zeroAt:0,ylab:'GAIN dB',shadeFrom:p.fsw/2,marks,
+  const A=panel({x:58,y:14,w:700,h:250,fmin:sw.f[0],fmax:sw.f[sw.f.length-1],ymin:m0,ymax:m1,ystep:20,zeroAt:0,ylab:'GAIN dB',shadeFrom:p.fe/2,marks,
     series:[{f:sw.f,v:sw.ps,cls:'s-ps',hide:hide.ps},{f:sw.f,v:sw.gc,cls:'s-gc',hide:hide.gc},{f:sw.f,v:sw.t,cls:'s-lt',hide:hide.lt}]});
   let extra='';
   const B0={x:58,y:286,w:700,h:180};
-  const B=panel({...B0,fmin:sw.f[0],fmax:sw.f[sw.f.length-1],ymin:p0,ymax:p1,ystep:p1-p0>270?90:45,zeroAt:-180,ylab:'PHASE °',showX:true,shadeFrom:p.fsw/2,
+  const B=panel({...B0,fmin:sw.f[0],fmax:sw.f[sw.f.length-1],ymin:p0,ymax:p1,ystep:p1-p0>270?90:45,zeroAt:-180,ylab:'PHASE °',showX:true,shadeFrom:p.fe/2,
     marks:marks.map(m=>({...m,label:''})),
     series:[{f:sw.f,v:sw.pps,cls:'s-ps',hide:hide.ps},{f:sw.f,v:sw.pgc,cls:'s-gc',hide:hide.gc},{f:sw.f,v:sw.pt,cls:'s-lt',hide:hide.lt}]});
   if(isFinite(sw.pm)&&!hide.lt){ const x=B.lx(sw.fc), y1=B.ly(-180), y2=B.ly(sw.pm-180);
@@ -1552,7 +1643,7 @@ function capMarkup(){
   const ymin=Math.pow(10,Math.floor(Math.log10(Math.min(...all)))), ymax=Math.pow(10,Math.min(Math.ceil(Math.log10(Math.max(...z))),Math.ceil(Math.log10(Math.max(...all)))));
   const brSeries=bz.map((v,i)=>({f,v,cls:'s-br s-br'+i}));
   const P=panel({x:58,y:12,w:700,h:226,fmin,fmax,ymin,ymax,ylog:true,ylab:'Ω',showX:true,
-    marks:[{f:info.f0,label:'f₀',row:0},{f:isFinite(sw.fc)?sw.fc:p.fc,label:'f_C',row:1,cls:'mk-fc',tcls:'mkt-fc'},{f:p.fsw,label:'f_SW',row:0},{f:cap.srf,label:'SRF',row:1}],
+    marks:[{f:info.f0,label:'f₀',row:0},{f:isFinite(sw.fc)?sw.fc:p.fc,label:'f_C',row:1,cls:'mk-fc',tcls:'mkt-fc'},{f:p.fe,label:p.N>1?'N·f_SW':'f_SW',row:0},{f:cap.srf,label:'SRF',row:1}],
     series:[{f,v:xc,cls:'s-xc'},...brSeries,{f,v:e,cls:'s-esr'},{f,v:z,cls:'s-z'}]});
   const brStyle=cap.br.map((b,i)=>`.s-br${i}{stroke:${BCOL[i%BCOL.length]};fill:none;stroke-width:1.2;stroke-dasharray:2 3;opacity:.9}`).join('');
   const leg=`<tspan fill="var(--ink)">━</tspan> |Z| bank  <tspan fill="var(--gc)">━</tspan> ESR bank  <tspan fill="var(--ps)">╍</tspan> 1/(2πfC)`+
@@ -1563,15 +1654,15 @@ function drawCap(){
   const {p,cap,info,sw}=last;
   $('capPlot').innerHTML=capMarkup();
   const fcv=isFinite(sw.fc)?sw.fc:p.fc;
-  const dI=(p.vin-p.vout)*info.D/(p.L*p.fsw);
-  const vEsr=dI*cap.esr(p.fsw), vC=dI/(8*p.fsw*cap.Ceff), vL=cap.esl*p.vin/p.L;
-  last.rip={dI,vEsr,vC,vL};
-  const Irms=dI/Math.sqrt(12), Ytot=cap.Y(p.fsw);
-  $('branchTbl').innerHTML=cap.br.map((b,i)=>{const sh=cabs(inv(b.Z(p.fsw)))/cabs(Ytot);
+  const mr=mpRipple(p,info.D,p.N), dI=mr.dI, dIo=mr.dIout, fr=p.fe;
+  const vEsr=dIo*cap.esr(fr), vC=dIo/(8*fr*cap.Ceff), vL=cap.esl*p.vin/p.L;
+  last.rip={dI,dIo,fr,vEsr,vC,vL,mr};
+  const Irms=dIo/Math.sqrt(12), Ytot=cap.Y(fr);
+  $('branchTbl').innerHTML=cap.br.map((b,i)=>{const sh=cabs(inv(b.Z(fr)))/cabs(Ytot);
     return `<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${BCOL[i%BCOL.length]};margin-right:6px"></span>${b.label}</td><td class="n">${fe(b.Ctot,'F')}</td><td class="n">${fe(b.esrPart(fcv)/b.n,'Ω')}</td><td class="n">${fe(cabs(b.Z(p.fsw)),'Ω')}</td><td class="n">${fe(Irms*sh,'A')}<span class="role">${fe(Irms*sh/b.n,'A')} per part</span></td><td class="n">${fd(sh*100,0)}%</td></tr>`;}).join('');
   const C=[['C effective',fe(cap.Ceff,'F'),cap.br.map(b=>fe(b.Ctot,'F')).join(' + ')],
-    ['ESR at f₀',fe(cap.esr(info.f0),'Ω'),fHz(info.f0)],['ESR at f<sub>C</sub>',fe(cap.esr(fcv),'Ω'),fHz(fcv)],['ESR at f<sub>SW</sub>',fe(cap.esr(p.fsw),'Ω'),fHz(p.fsw)],
-    ['Self-resonance',fHz(cap.srf),`ESL ${fe(cap.esl,'H')} total`],['Ripple current',fe(dI,'A')+' pk-pk',`${fe(dI/Math.sqrt(12),'A')} rms in the bank`],
+    ['ESR at f₀',fe(cap.esr(info.f0),'Ω'),fHz(info.f0)],['ESR at f<sub>C</sub>',fe(cap.esr(fcv),'Ω'),fHz(fcv)],[p.N>1?'ESR at N·f<sub>SW</sub>':'ESR at f<sub>SW</sub>',fe(cap.esr(fr),'Ω'),fHz(fr)],
+    ['Self-resonance',fHz(cap.srf),`ESL ${fe(cap.esl,'H')} total`],['Ripple current',fe(dIo,'A')+' pk-pk',p.N>1?`${fe(dIo/Math.sqrt(12),'A')} rms · ${fd(mr.ratio*100,0)}% of one phase`:`${fe(dIo/Math.sqrt(12),'A')} rms in the bank`],
     ['Output ripple',fe(vEsr+vC,'V'),`ESR ${fe(vEsr,'V')} + C ${fe(vC,'V')}`],['ESL step',fe(vL,'V'),'V<sub>IN</sub>·ESL/L, edge spike']];
   $('capMetrics').innerHTML=C.map(m=>`<div class="metric"><div class="k">${m[0]}</div><div class="v">${m[1]}</div><div class="d">${m[2]}</div></div>`).join('');
 }
@@ -1582,11 +1673,11 @@ function drawEqs(){
   const fcv=p.fc;
   let g1=E('D = V<sub>OUT</sub> / V<sub>IN</sub>',`= ${p.vout} / ${p.vin} = ${fd(info.D,3)}`)
     +E('R = V<sub>OUT</sub> / I<sub>OUT</sub>',`= ${fe(info.R,'Ω')}`)
-    +E('ΔI<sub>L</sub> = (V<sub>IN</sub> − V<sub>OUT</sub>)·D / (L·f<sub>SW</sub>)',`= ${fe(last.rip.dI,'A')} pk-pk`)
-    +E('f<sub>0</sub> = 1 / (2π·√(L·C<sub>eff</sub>))',`= 1 / (2π·√(${fe(p.L,'H')} · ${fe(cap.Ceff,'F')})) = ${fHz(info.f0)}`);
+    +E('ΔI<sub>L</sub> = (V<sub>IN</sub> − V<sub>OUT</sub>)·D / (L·f<sub>SW</sub>)'+(p.N>1?'  (per phase)':''),`= ${fe(last.rip.dI,'A')} pk-pk`)
+    +(p.N>1?E('f<sub>0</sub> = 1 / (2π·√((L/N)·C<sub>eff</sub>))',`= 1 / (2π·√(${fe(info.Le,'H')} · ${fe(cap.Ceff,'F')})) = ${fHz(info.f0)}`,'N phases in parallel act as one inductor L/N.'):E('f<sub>0</sub> = 1 / (2π·√(L·C<sub>eff</sub>))',`= 1 / (2π·√(${fe(p.L,'H')} · ${fe(cap.Ceff,'F')})) = ${fHz(info.f0)}`));
   if(p.mode==='vm'){
     g1+=E('Q ≈ 1 / (ω<sub>0</sub>·(L/R + C·(ESR + DCR)))',`= ${fd(info.Q,2)}`,'Low Q here means a well-damped resonance; high Q gives a sharp gain peak and a fast 180° phase drop.')
-      +E('G<sub>vd</sub>(s) = V<sub>IN</sub> · Z<sub>o</sub> / (Z<sub>o</sub> + DCR + sL),  Z<sub>o</sub> = R ∥ (ESR + sESL + 1/sC)',`G<sub>vd</sub>(0) = V<sub>IN</sub>·R/(R+DCR) = ${fd(info.gvdDC,3)} V/V`,
+      +E('G<sub>vd</sub>(s) = V<sub>IN</sub> · Z<sub>o</sub> / (Z<sub>o</sub> + '+(p.N>1?'(DCR + sL)/N':'DCR + sL')+'),  Z<sub>o</sub> = R ∥ (ESR + sESL + 1/sC)',`G<sub>vd</sub>(0) = V<sub>IN</sub>·R/(R+DCR) = ${fd(info.gvdDC,3)} V/V`,
         'Asymptotically: G<sub>vd</sub>(s) ≈ V<sub>IN</sub>·(1 + s/ω<sub>ESR</sub>) / (1 + s/(Qω<sub>0</sub>) + s²/ω<sub>0</sub>²)')
       +E(p.src==='calc'?'F<sub>M</sub> = 1 / V<sub>RAMP</sub>':'F<sub>M</sub> scaled so G<sub>PS</sub>(0) = G<sub>0</sub>',p.src==='calc'?`= 1 / ${p.vramp} V = ${fd(1/p.vramp,3)} /V`:`= ${fd(info.k,4)} /V`)
       +E('G<sub>PS</sub>(s) = F<sub>M</sub> · G<sub>vd</sub>(s)',`G<sub>PS</sub>(0) = ${fd(dB(info.gdc),1)} dB`);
@@ -1644,11 +1735,132 @@ function drawEqs(){
     }
   }
   if(p.snap) g4+=E('Standard values','Resistors rounded to E96, capacitors to E12. The plot and the margins above use the rounded set.');
-  $('eqs').innerHTML=`<div class="eqg"><h3>Power stage</h3>${g1}</div><div class="eqg"><h3>Output capacitor</h3>${g2}</div><div class="eqg"><h3>Loop target</h3>${g3}</div><div class="eqg"><h3>Component values</h3>${g4}</div>`;
+  let g5='';
+  if(p.N>1){ const mr=last.rip.mr;
+    g5=E('N phases, interleaved 360°/N',`N = ${p.N};  I<sub>phase</sub> = I<sub>OUT</sub>/N = ${fe(mr.iph,'A')}`)
+      +E('L<sub>eff</sub> = L/N,  DCR<sub>eff</sub> = DCR/N',`= ${fe(info.Le,'H')},  ${fe(info.dcre,'Ω')}`,'N identical inductors in parallel, all driven by the same duty cycle.')
+      +(p.mode==='cm'?E('R<sub>i,eff</sub> = R<sub>i</sub>/N,   ω<sub>n</sub> = π·N·f<sub>SW</sub>',`= ${fd(p.ri/p.N,4)} V/A,   f<sub>n</sub> = ${fHz(info.fn)}`,'Total current is N times the per-phase peak current.'):'')
+      +E('f<sub>ripple</sub> = N·f<sub>SW</sub>',`= ${fHz(p.fe)}`)
+      +E('ΔI<sub>out</sub>/ΔI<sub>L</sub> = (ND − m)(m+1 − ND) / (N·D·(1−D)),  m = ⌊ND⌋',`= ${fd(mr.ratio,4)}  →  ΔI<sub>out</sub> = ${fe(mr.dIout,'A')}`)
+      +E('I<sub>Cin,rms</sub> = (I<sub>OUT</sub>/N)·√((ND − m)(m+1 − ND))',`= ${fd(mr.irms,3)} A  (one phase: ${fd(mr.irms1,3)} A)`);
+  }
+  $('eqs').innerHTML=`<div class="eqg"><h3>Power stage</h3>${g1}</div>${g5?`<div class="eqg"><h3>Multiphase</h3>${g5}</div>`:''}<div class="eqg"><h3>Output capacitor</h3>${g2}</div><div class="eqg"><h3>Loop target</h3>${g3}</div><div class="eqg"><h3>Component values</h3>${g4}</div>`;
+}
+
+/* ---------- multiphase ---------- */
+function mpTips(p,info,mr){
+  const t=[], N=p.N;
+  const Rph=p.dcr;
+  if(mr.ratio<0.02) t.push(['ok',`D = ${fd(info.D,3)} is almost exactly on a ripple-cancellation notch for ${N} phases: the output ripple current is ${fd(mr.ratio*100,1)}% of one phase.`]);
+  else if(mr.ratio>0.6) t.push(['warn',`At D = ${fd(info.D,3)} ${N} phases only cancel the output ripple to ${fd(mr.ratio*100,0)}% of one phase. Cancellation is complete at D = k/${N} (${Array.from({length:N-1},(_,i)=>fd((i+1)/N,2)).join(', ')}).`]);
+  if(p.mode==='vm'){
+    const dd=info.D*p.tolr/100, dI=p.vin*dd/Rph;
+    t.push([dI>p.iout/N*0.5?'warn':'ok',`Voltage mode has no current sharing of its own. A ${fd(p.tolr,1)}% ramp mismatch moves one phase's duty by ${fd(dd*100,2)}% and shifts its current by about <b>±${fd(dI,1)} A</b> (V<sub>IN</sub>·ΔD/DCR) against ${fd(p.iout/N,1)} A per phase. Add DCR/Rds(on) sensing or a current-balance loop, or accept the spread.`]);
+  }
+  if(p.arch==='indep') t.push(['warn',`One integrating error amplifier per phase: any offset between them (${fd(p.vos,1)} mV here, ${fd(p.vos*p.vout/p.vref,1)} mV at the output) cannot be satisfied by all of them, so one drifts toward its rail. Independent compensators need a current-sharing loop or a reason to tolerate this.`]);
+  return t;
+}
+function mpArchSlice(p,info,G){
+  let mx=0; for(let i=0;i<40;i++){const f=10*Math.pow(p.fe/10,i/39); const a=G(f), b=info.Gs(f); mx=Math.max(mx,cabs([a[0]-b[0],a[1]-b[1]])/cabs(a));}
+  return mx;
+}
+function drawMp(){
+  const {p,cap,info,d,sw,comp,G}=last;
+  if(p.N<2){ $('mpMetrics').innerHTML=''; return; }
+  const N=p.N, mr=mpRipple(p,info.D,N), mr1=mpRipple(p,info.D,1);
+  const tag=N+' phases · '+(p.arch==='indep'?'one compensator per phase':'shared compensator');
+  $('mpTag').textContent=tag;
+  $('tolrLab').textContent=p.mode==='vm'?'PWM ramp mismatch':'Current-sense mismatch';
+  $('mpSub').innerHTML=`${N} identical interleaved phases, ${360/N}° apart, feed one output bank. The small-signal model sees one converter with inductance L/N, DCR/N${p.mode==='cm'?' and sense gain R<sub>i</sub>/N':''} and a ripple frequency of N·f<sub>SW</sub>.`;
+  const M=[['Current per phase',fd(mr.iph,2)+' A',`total ${fd(p.iout,1)} A`],
+    ['Effective inductance',fe(info.Le,'H'),`L/N, ${fe(p.L,'H')} per phase`],
+    [p.mode==='vm'?'LC resonance f₀':'Load pole f<sub>P</sub>',fHz(p.mode==='vm'?info.f0:info.fp),`${fd(Math.sqrt(N),2)}× the single-phase value`],
+    ['Ripple frequency',fHz(p.fe),`N × ${fHz(p.fsw)}`],
+    ['Output ripple current',fd(mr.ratio*100,0)+'%',`of one phase: ${fe(mr.dIout,'A')} vs ${fe(mr.dI,'A')}`],
+    ['Input capacitor rms',fd(mr.irms,2)+' A',`one phase: ${fd(mr.irms1,2)} A`],
+    ['Max crossover (guide)',fHz(p.fe/10),'N·f<sub>SW</sub>/10']];
+  $('mpMetrics').innerHTML=M.map(m=>`<div class="metric"><div class="k">${m[0]}</div><div class="v">${m[1]}</div><div class="d">${m[2]}</div></div>`).join('');
+  /* architecture table */
+  const nparts=Object.keys(comp).length;
+  // per-phase amplifier share: T/N
+  let fci=NaN,pmi=NaN; const lg=20*Math.log10(N);
+  for(let i=1;i<sw.f.length;i++){ if(sw.t[i-1]-lg>0&&sw.t[i]-lg<=0){ const a=(sw.t[i-1]-lg)/((sw.t[i-1]-lg)-(sw.t[i]-lg)); fci=Math.exp(Math.log(sw.f[i-1])+a*(Math.log(sw.f[i])-Math.log(sw.f[i-1]))); pmi=180+sw.pt[i-1]+a*(sw.pt[i]-sw.pt[i-1]); break; } }
+  const dev=mpArchSlice(p,info,G);
+  const vm=p.mode==='vm';
+  const dd=info.D*p.tolr/100, dIvm=p.vin*dd/p.dcr, dIcm=mr.iph*p.tolr/100+p.vos*1e-3/p.ri;
+  const share=vm?`±${fd(dIvm,1)} A from ${fd(p.tolr,1)}% ramp mismatch (V<sub>IN</sub>·ΔD/DCR)`:`±${fd(dIcm,2)} A (${fd(p.tolr,1)}% sense mismatch + V<sub>OS</sub>/R<sub>i</sub>)`;
+  const rows=[
+    ['Error amplifiers and compensators','1','N = '+N],
+    ['Compensation parts (incl. divider)',String(nparts),String(nparts*N)+' (N identical sets)'],
+    ['Total loop T = Σ G<sub>c,i</sub>·G<sub>ps,i</sub>',`crossover ${fHz(sw.fc)}, PM ${fd(sw.pm,1)}°`,'same: matched amplifiers sum to the same T'],
+    ['Loop seen by one phase amplifier (T/N)','—',isFinite(fci)?`crossover ${fHz(fci)}, PM ${fd(pmi,0)}°`:'below 0 dB everywhere'],
+    ['Per-phase (slice) design check',`one converter with L/N`,`slice with R·N, Z<sub>C</sub>·N: max deviation ${dev<1e-9?'0':dev.toExponential(1)} (same G<sub>c</sub>)`],
+    ['Phase current sharing',vm?'common control voltage; imbalance set by '+share:'common V<sub>C</sub>: the peak-current loop of each phase forces equal current, imbalance ≈ '+share,
+      'each amplifier has its own offset ('+fd(p.vos,1)+' mV): integrators fight, so sharing needs its own loop'],
+    ['Setpoint spread between amplifiers','none (one reference)',`${fd(p.vos*p.vout/p.vref,1)} mV at V<sub>OUT</sub> for ${fd(p.vos,1)} mV offset`],
+    ['Use when','almost always: simple, deterministic','phase-shedding or fully modular phases with their own sharing loop']
+  ];
+  $('mpArch').innerHTML=`<thead><tr><th></th><th>Shared compensator (combined node)</th><th>Compensator per phase (independent)</th></tr></thead><tbody>${rows.map(r=>`<tr><th scope="row">${r[0]}</th><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody>`;
+  /* chart */
+  const W=780,H=270,x0=60,x1=760,y0=18,y1=220, X=D=>x0+(x1-x0)*D, Y=v=>y1-(y1-y0)*Math.min(1,v);
+  const col={1:'var(--muted)',2:'var(--gc)',4:'var(--lt)'};
+  const curve=n=>{let pts=[];for(let i=1;i<400;i++){const D=i/400;pts.push(X(D).toFixed(1)+','+Y(mpRipple(p,D,n).ratio).toFixed(1));}return pts.join(' ');};
+  let sv=`<g stroke="var(--grid)" stroke-width="1">${[0,.25,.5,.75,1].map(v=>`<line x1="${x0}" x2="${x1}" y1="${Y(v)}" y2="${Y(v)}"/>`).join('')}${[0,.25,.5,.75,1].map(v=>`<line x1="${X(v)}" x2="${X(v)}" y1="${y0}" y2="${y1}"/>`).join('')}</g>`;
+  sv+=`<g class="axt" fill="var(--muted)" font-size="11" font-family="var(--f-mono)">${[0,.5,1].map(v=>`<text x="${x0-8}" y="${Y(v)+4}" text-anchor="end">${v}</text>`).join('')}${[0,.25,.5,.75,1].map(v=>`<text x="${X(v)}" y="${y1+16}" text-anchor="middle">${v}</text>`).join('')}<text x="${(x0+x1)/2}" y="${y1+34}" text-anchor="middle">duty cycle D</text><text x="14" y="${(y0+y1)/2}" transform="rotate(-90 14 ${(y0+y1)/2})" text-anchor="middle">ripple / one phase</text></g>`;
+  [1,2,4].forEach(n=>{sv+=`<polyline points="${curve(n)}" fill="none" stroke="${col[n]}" stroke-width="${n===N?3.4:1.6}" opacity="${n===N?1:.75}"/>`;});
+  sv+=`<line x1="${X(info.D)}" x2="${X(info.D)}" y1="${y0}" y2="${y1}" stroke="var(--ink)" stroke-dasharray="4 4"/><text x="${X(info.D)+5}" y="${y0+12}" fill="var(--ink)" font-size="11" font-family="var(--f-mono)">D = ${fd(info.D,3)}</text>`;
+  sv+=[1,2,4].map((n,i)=>`<g font-size="11" font-family="var(--f-mono)"><rect x="${x1-190+i*64}" y="${y0+4}" width="10" height="10" fill="${col[n]}"/><text x="${x1-176+i*64}" y="${y0+13}" fill="var(--ink)">${n} ph</text></g>`).join('');
+  $('mpChart').innerHTML=sv;
+  $('mpChartNote').innerHTML=`Output ripple current relative to a single phase, (ND−m)(m+1−ND)/(N·D·(1−D)) with m = ⌊ND⌋. It drops to zero at D = k/N. Your D = ${fd(info.D,3)} gives ${fd(mr1.ratio*100,0)}% (1 phase), ${fd(mpRipple(p,info.D,2).ratio*100,0)}% (2 phases), ${fd(mpRipple(p,info.D,4).ratio*100,0)}% (4 phases).`;
+}
+function drawMpDetail(){
+  const {p,cap,info,sw}=last, Nd=p.N>1?p.N:4, D=info.D;
+  $('mpdN').textContent=Nd;
+  const rowN=n=>{const mr=mpRipple(p,D,n),Le=p.L/n,f0=1/(TAU*Math.sqrt(Le*cap.Ceff));
+    const vc=mr.dIout/(8*p.fsw*n*cap.Ceff), ve=mr.dIout*cap.esr(p.fsw*n);
+    return `<tr><th scope="row">${n}</th><td class="n">${fd(mr.iph,2)} A</td><td class="n">${fe(Le,'H')}</td><td class="n">${fHz(f0)}</td><td class="n">${fHz(p.fsw*n)}</td><td class="n">${fd(mr.ratio*100,0)}%</td><td class="n">${fe(ve+vc,'V')}</td><td class="n">${fd(mr.irms,2)} A</td><td class="n">${fHz(p.fsw*n/10)}</td></tr>`;};
+  const mr=mpRipple(p,D,Nd), mr1=mpRipple(p,D,1), Le=p.L/Nd;
+  const f0n=1/(TAU*Math.sqrt(Le*cap.Ceff));
+  const Cneed=n=>{const m=mpRipple(p,D,n);return m.dIout/(8*p.fsw*n*(mr1.dI/(8*p.fsw*cap.Ceff)));};
+  const rppl=(n)=>mpRipple(p,D,n).dIout/(8*p.fsw*n*cap.Ceff);
+  const notches=Array.from({length:Nd-1},(_,i)=>fd((i+1)/Nd,3)).join(', ');
+  const h=(t)=>`<h3>${t}</h3>`;
+  $('mpd').className='mpd';
+  $('mpd').innerHTML=`
+  ${h('Comparison for your design')}
+  <div class="tblwrap"><table><thead><tr><th>Phases</th><th>Per phase</th><th>Effective L</th><th>f₀ (LC)</th><th>Ripple freq.</th><th>Output ripple I</th><th>Output ripple V</th><th>Input cap rms</th><th>Crossover guide</th></tr></thead><tbody>${rowN(1)}${rowN(2)}${rowN(4)}</tbody></table></div>
+  <p>Same total load (${fd(p.iout,1)} A), same capacitor bank, same L and f<sub>SW</sub> in every phase. Output ripple voltage is the ESR part plus the capacitive part, evaluated at the ripple frequency. Input rms is the input-capacitor ripple current at D = ${fd(D,3)}.</p>
+
+  ${h('1. What interleaving is')}
+  <p>${Nd} identical buck phases share the same input and output. Their switches turn on ${360/Nd}° apart, so the inductor currents are staggered by one ${Nd}th of a period. Each phase carries ${fd(p.iout/Nd,2)} A at ${fHz(p.fsw)}. At the output the staggered ripple currents add, and because one phase is rising while another falls, most of the ripple cancels.</p>
+
+  ${h('2. Ripple cancellation')}
+  <div class="eqn">ΔI_out / ΔI_L = (N·D − m)·(m + 1 − N·D) / (N·D·(1 − D)),   m = ⌊N·D⌋</div>
+  <p>For N = ${Nd} and D = ${fd(D,3)}, N·D = ${fd(Nd*D,3)} and m = ${Math.floor(Nd*D+1e-9)}, so the output ripple current is <b>${fd(mr.ratio*100,0)}%</b> of one phase (${fe(mr.dIout,'A')} instead of ${fe(mr1.dI,'A')}), and it moves up to ${Nd}× the switching frequency, ${fHz(p.fsw*Nd)}. Cancellation is complete at D = ${notches}${Nd===2?'':', …'} and weakest halfway between notches. Fewer ripple amps at a higher frequency mean the capacitive ripple voltage falls by roughly ${fd(rppl(1)/rppl(Nd),0)}× (${fe(rppl(1),'V')} → ${fe(rppl(Nd),'V')}) for the same bank, or you need only about ${fd(Cneed(Nd)*100,0)}% of the capacitance for the same ripple.</p>
+
+  ${h('3. Input capacitor and EMI')}
+  <div class="eqn">I_Cin,rms = (I_out / N) · √((N·D − m)(m + 1 − N·D))</div>
+  <p>The same staggering applies at the input. The input capacitor rms current is ${fd(mr.irms,2)} A with ${Nd} phases against ${fd(mr1.irms1,2)} A for one, and the input ripple is at ${fHz(p.fsw*Nd)}. That relaxes input capacitor sizing and moves the first conducted-emission harmonic up, which changes where the input filter has to bite. The hot loops are still switching at ${fHz(p.fsw)} per phase, so edge noise and layout matter as much as before.</p>
+
+  ${h('4. What it does to the loop')}
+  <p>All phases are driven from one control voltage, so from the loop's point of view they are N inductors in parallel: <b>L/N = ${fe(Le,'H')}</b> and DCR/N. The LC resonance moves from ${fHz(1/(TAU*Math.sqrt(p.L*cap.Ceff)))} to <b>${fHz(f0n)}</b> (√${Nd}× higher) and the control gain is unchanged. In voltage mode that gives more room: with a higher f₀ the 180° phase drop starts later, a higher crossover is possible, and the ripple the loop must ignore sits at ${fHz(p.fsw*Nd)}, so the usual limit moves from f<sub>SW</sub>/10 to N·f<sub>SW</sub>/10 = ${fHz(p.fsw*Nd/10)}. In peak current mode the current-sense gain per phase adds up, so the effective gain is R<sub>i</sub>/N and the sampling double pole moves to N·f<sub>SW</sub>/2 (this tool assumes the interleaving is accurate enough for that). The Type I, II or III choice follows the same rules as before, applied to the new f₀.</p>
+
+  ${h('5. Load transients')}
+  <p>A smaller effective inductance lets the total inductor current slew N times faster for the same volt-seconds, and the higher possible crossover gives a smaller droop for the same bank. The loop result and the scenario tables in the report show how much of that you actually keep at your target crossover and phase margin. Slew limits are not in a small-signal model, so confirm large load steps on the bench.</p>
+
+  ${h('6. Current sharing')}
+  <p>The ripple cancels only if the phases are equal. Mismatch in inductance, DCR, switch resistance and timing makes the phase currents drift apart. In voltage mode nothing forces equality: a duty difference ΔD between two phases becomes a current difference of about V<sub>IN</sub>·ΔD/DCR, large when DCR is small. In peak current mode a common control voltage makes each phase's current loop target the same peak, so sharing is inherent and set by sense accuracy. With one compensator per phase, each integrating amplifier has its own offset and the amplifiers fight, so independent compensation needs a dedicated balance loop. The Phase matching inputs give the estimate shown in the Multiphase panel.</p>
+
+  ${h('7. Efficiency, thermals and phase shedding')}
+  <p>Splitting the current gives I²R conduction loss per phase of (I/N)²·R, so the total conduction loss falls by about N for the same R, and the heat spreads over N inductors and N sets of switches. Switching loss does not fall: it is paid per phase and rises with N. Turning phases off at light load (phase shedding) recovers the efficiency, but the loop changes when N changes: L/N, f₀ and the ripple frequency all move, so the compensator must be checked at every active-phase count. Use this tool at 1, 2 and 4 to see that spread.</p>
+
+  ${h('8. When not to use it')}
+  <ul><li>Low current: the extra inductors, drivers and layout cost more than the saved capacitance.</li><li>Poor matching or an unlucky duty cycle: the cancellation depends on D, and at D = 1/N × (an integer + 0.5) it is weakest.</li><li>Very tight board area or pin count: each phase adds a switch node, an inductor and a gate drive.</li><li>Voltage mode without any balancing: the current spread can exceed the average phase current.</li></ul>
+  <p>Numbers on this page come from the same linear model as the Bode plot. They are a starting point for the design, not a substitute for measuring the board.</p>`;
 }
 
 /* ---------- persistence & events ---------- */
-const FIELDS=['vin','vout','iout','fsw','L','dcr','mode','src','vramp','ri','se','gknown','amp','gm','vref','rtop','method','fc','pm','fz1','fz2','fp1','fp2','snap'];
+const FIELDS=['vin','vout','iout','fsw','L','dcr','mode','src','vramp','ri','se','gknown','amp','gm','vref','rtop','method','fc','pm','fz1','fz2','fp1','fp2','snap','nph','arch','tolr','vos'];
 const DEFAULTS={}; FIELDS.forEach(k=>{const el=$(k); DEFAULTS[k]=el.type==='checkbox'?el.checked:el.value;});
 function save(){try{const o={t:typeSel(),bank};FIELDS.forEach(k=>{const el=$(k);o[k]=el.type==='checkbox'?el.checked:el.value;o['u_'+k]=el.dataset.user||'';});localStorage.setItem('buckcomp.v1',JSON.stringify(o));}catch(e){}}
 function restore(){try{const o=JSON.parse(localStorage.getItem('buckcomp.v1')||'null');if(!o)return;FIELDS.forEach(k=>{if(o[k]===undefined)return;const el=$(k);if(el.type==='checkbox')el.checked=o[k];else el.value=o[k];if(o['u_'+k])el.dataset.user=o['u_'+k];});
