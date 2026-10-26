@@ -1,0 +1,1966 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Buck converter design with worst-case analysis, compensation, Mouser part lookup and a formatted design report.">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Buck Designer | MX Tools</title>
+<meta property="og:title" content="Buck Designer">
+<meta property="og:description" content="Buck converter design with worst-case analysis, compensation, Mouser part lookup and a formatted design report.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style id="app-css">/* Layout: engineering workbench. Sticky tab bar (Design / Results / Report); design inputs as part cards; results as dense tables and plots; report as a typeset document. Copper accent = PCB trace. */
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --sunk:#f5f7f9; --ink:#17202a; --muted:#5b6672; --line:#d3d9e0;
+  --copper:#a8541f; --copper-soft:#f6e6d9; --solder:#2d5a8a; --violet:#6a4c9c; --ok:#2f7a4f; --warn:#9a6300; --bad:#b3261e;
+  --ok-soft:#e3f1e8; --warn-soft:#f8ecd2; --bad-soft:#f8e0de;
+  --plot-bg:#fbfcfd; --grid:#e3e8ee; --band:#e9c9b1;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#10151b; --panel:#171f28; --sunk:#131a22; --ink:#e4e9ee; --muted:#97a3af; --line:#2a3541;
+  --copper:#e48c50; --copper-soft:#3a2718; --solder:#82aee0; --violet:#b39ae6; --ok:#62c48f; --warn:#e3a740; --bad:#f17c71;
+  --ok-soft:#173326; --warn-soft:#3a2d12; --bad-soft:#3d1b19; --plot-bg:#141b23; --grid:#232d38; --band:#5a3a24; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151b; --panel:#171f28; --sunk:#131a22; --ink:#e4e9ee; --muted:#97a3af; --line:#2a3541;
+  --copper:#e48c50; --copper-soft:#3a2718; --solder:#82aee0; --violet:#b39ae6; --ok:#62c48f; --warn:#e3a740; --bad:#f17c71;
+  --ok-soft:#173326; --warn-soft:#3a2d12; --bad-soft:#3d1b19; --plot-bg:#141b23; --grid:#232d38; --band:#5a3a24; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.wrap{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 64px}
+h1,h2,h3,h4{font-family:var(--f-display);font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:28px}
+h2{font-size:19px;display:flex;align-items:baseline;gap:10px}
+h2 .n{font-family:var(--f-mono);font-size:12px;color:var(--copper);font-weight:500}
+h3{font-size:16px}h4{font-size:14px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500}
+a{color:var(--solder)}
+
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px;padding-bottom:12px}
+header.top p{margin:4px 0 0;color:var(--muted);max-width:70ch}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;flex-wrap:wrap;gap:4px;align-items:center;border-bottom:2px solid var(--ink);margin-bottom:18px;padding-top:4px}
+nav.tabs a{font:600 15px var(--f-display);color:var(--muted);text-decoration:none;padding:9px 14px;border-radius:6px 6px 0 0;letter-spacing:.02em}
+nav.tabs a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+nav.tabs .run{margin-left:auto;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;padding-right:2px;min-width:0}
+@media (max-width:540px){nav.tabs .run{order:3;width:100%;margin-left:0;padding:2px 2px 6px}}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
+.dot.busy{background:var(--warn)}
+@media (prefers-reduced-motion:no-preference){.dot.busy{animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.3}}}
+
+.view{display:flex;flex-direction:column;gap:22px}
+section.block{display:flex;flex-direction:column;gap:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0}
+.cols{display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
+@media (min-width:1060px){.cols{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 12px}
+.gtitle{grid-column:1/-1;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500;border-bottom:1px solid var(--line);padding-bottom:4px;margin-top:6px}
+.gtitle:first-child{margin-top:0}
+.fld{display:flex;flex-direction:column;gap:3px;min-width:0}
+.fl{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;min-height:18px}
+.fi{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:4px;background:var(--sunk);overflow:hidden}
+.fi:focus-within{border-color:var(--copper);box-shadow:0 0 0 2px var(--copper-soft)}
+.fi input,.fi select,.fi textarea{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font-family:var(--f-mono);font-size:14px;padding:6px 8px;outline:none;font-variant-numeric:tabular-nums}
+.fi textarea{font-family:var(--f-body);resize:vertical;min-height:60px}
+.fi select{font-family:var(--f-body)}
+.fi em{font-style:normal;font-family:var(--f-mono);font-size:12px;color:var(--muted);padding:6px 8px 6px 0;white-space:nowrap;align-self:center}
+.fi.text input{font-family:var(--f-body)}
+.src{width:7px;height:7px;border-radius:50%;flex:none}
+.src.ex{border:1px dashed var(--muted)}.src.mouser{background:var(--solder)}.src.lib{background:var(--ok)}.src.user{background:var(--ink)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+
+.segs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;background:var(--panel);flex-wrap:wrap}
+.seg button{border:0;background:transparent;color:var(--muted);font:500 13px var(--f-body);padding:7px 11px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
+.check input{accent-color:var(--copper);width:16px;height:16px}
+
+.part{display:flex;flex-direction:column;gap:12px}
+.part-h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.pn{display:flex;gap:8px;flex-wrap:wrap}
+.pn .fi{flex:1 1 180px}
+.pn .fi input{text-transform:uppercase}
+.meta{font-size:13px;display:flex;flex-direction:column;gap:4px}
+.mz{display:flex;flex-direction:column;gap:6px;background:var(--sunk);border:1px solid var(--line);border-radius:5px;padding:10px 12px}
+.mrow{display:flex;gap:6px 10px;flex-wrap:wrap;align-items:center;font-size:12px}
+.hint{font-size:12px;color:var(--muted);padding-left:12px;position:relative}
+.hint::before{content:"";position:absolute;left:2px;top:7px;width:4px;height:4px;border-radius:50%;background:var(--muted)}
+.links{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;align-items:center}
+.verify{display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px}
+.libbar select{width:100%;font:13px var(--f-body);color:var(--ink);background:var(--sunk);border:1px solid var(--line);border-radius:4px;padding:6px 8px}
+details.more>summary{cursor:pointer;font-size:12px;color:var(--solder);list-style:none;padding:2px 0}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::before{content:"+ "}
+details.more[open]>summary::before{content:"− "}
+details.more>.grid2{margin-top:10px}
+
+.btn{font:500 13px var(--f-body);border-radius:5px;padding:7px 12px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--muted)}
+.btn.pri{background:var(--copper);border-color:var(--copper);color:#fff}
+.btn.sm{padding:5px 9px;font-size:12px}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.5;cursor:default}
+.btn:focus-visible,.seg button:focus-visible,nav.tabs a:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.chip.ex,.chip.info{background:var(--sunk);color:var(--muted);border:1px dashed var(--line)}
+.chip.ai{background:var(--copper-soft);color:var(--copper)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.note{font-size:12px;color:var(--muted);margin:0}
+.status{font-size:13px;color:var(--muted)}
+.status.err{color:var(--bad)}
+
+.capgrp{border:1px solid var(--line);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--panel)}
+.capgrp .hd{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.capgrp .hd .tag{font:600 13px var(--f-mono);color:var(--copper)}
+.caps{display:flex;flex-direction:column;gap:12px}
+
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+table.t th,table.t td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;vertical-align:top}
+table.t th:first-child,table.t td:first-child{text-align:left}
+table.t thead th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:500;white-space:nowrap}
+table.t td{font-family:var(--f-mono)}
+table.t td:first-child,table.t td.lim{font-family:var(--f-body)}
+table.t td.lim{text-align:left;color:var(--muted);font-size:12px}
+table.t .sub{font-size:11px;color:var(--muted);font-family:var(--f-body);margin-top:2px}
+table.t .u{font-size:11px;color:var(--muted);font-weight:400}
+table.t tr.tot td{font-weight:600;border-top:2px solid var(--ink)}
+table.wca tr.st-bad td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
+table.wca tr.st-warn td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+table.kvt th{text-align:left;font-size:13px;text-transform:none;letter-spacing:0;color:var(--muted);font-weight:500;width:34%}
+table.kvt td{text-align:left;font-family:var(--f-body)}
+.scroll{overflow-x:auto;min-width:0}
+.meter{display:inline-block;width:46px;height:6px;background:var(--sunk);border-radius:3px;margin-right:6px;vertical-align:middle;overflow:hidden}
+.meter i{display:block;height:100%}
+.m-ok{background:var(--ok)}.m-warn{background:var(--warn)}.m-bad{background:var(--bad)}.m-info{background:var(--muted)}
+i.sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
+.bar{display:flex;height:14px;border-radius:3px;overflow:hidden;background:var(--sunk);margin-top:12px}
+.bar i{display:block;height:100%}
+
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.summary div{background:var(--panel);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.summary b{font-family:var(--f-mono);font-size:19px;font-weight:500;font-variant-numeric:tabular-nums}
+.summary .sub{font-size:12px;color:var(--muted)}
+.checks{list-style:none;margin:0;padding:0}
+.checks li{display:grid;grid-template-columns:62px minmax(0,1fr);gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.checks li:last-child{border-bottom:0}
+.checks .t1{font-weight:500}.checks .t2{font-size:12px;color:var(--muted)}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;font-size:13px;margin:0}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.kv.two{grid-template-columns:minmax(0,1fr) auto}
+@media (min-width:760px){.kv.two{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;column-gap:28px}}
+.circs{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.circ{border:1px solid var(--line);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:8px}
+svg.plot{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--f-mono);font-size:11px}
+.plegend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin-top:4px}
+.plegend span{display:inline-flex;align-items:center;gap:6px}
+.plegend i{display:inline-block;width:16px;height:3px;border-radius:2px}
+figure{margin:0}
+figcaption{font-size:12px;color:var(--muted);margin-top:6px;max-width:80ch}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:5px;font-size:13px;z-index:20;max-width:calc(100% - 32px)}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+
+/* ---------- report ---------- */
+.report{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:clamp(18px,4vw,48px);max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:30px}
+.report section{display:flex;flex-direction:column;gap:12px}
+.report h2{font-size:22px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.report h2 .n{font-size:13px}
+.report h3{font-size:16px;margin-top:6px}
+.report p{margin:0;max-width:72ch}
+.rp-head{display:flex;flex-direction:column;gap:10px;border-bottom:3px solid var(--ink);padding-bottom:18px}
+.rp-kicker{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--copper);font-weight:600}
+.rp-head h1{font-size:clamp(26px,4vw,36px);line-height:1.15}
+.rp-meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:13px;color:var(--muted)}
+.rp-meta b{color:var(--ink);font-weight:500}
+.rp-notes{color:var(--muted)}
+.verdict{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-radius:6px;padding:12px 14px;border:1px solid var(--line)}
+.verdict>div:first-child{display:flex;flex-direction:column;gap:2px}
+.verdict span{font-size:12px;color:var(--muted)}
+.verdict b{font-size:16px}
+.verdict.v-ok{background:var(--ok-soft)}.verdict.v-warn{background:var(--warn-soft)}.verdict.v-bad{background:var(--bad-soft)}
+.verdict .vc{display:flex;gap:6px;flex-wrap:wrap}
+.toc{font-size:13px}
+.toc ol{columns:2 220px;margin:6px 0 0;padding-left:20px}
+.toc li{padding:1px 0}
+.eq{font-family:var(--f-mono);font-size:13px;background:var(--sunk);border-left:3px solid var(--copper);padding:8px 12px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;overflow-x:auto}
+.eq .lhs{font-weight:500}.eq .op{color:var(--muted)}.eq b{font-weight:600;color:var(--copper)}
+ul.assume,ul.issues{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;max-width:80ch}
+ul.issues{list-style:none;padding-left:0}
+ul.issues li{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.callout{background:var(--warn-soft);border-radius:5px;padding:10px 12px}
+.rp-foot{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+body.standalone{padding:24px 16px;background:var(--bg)}
+@media print{
+  :root{--bg:#fff;--panel:#fff;--sunk:#f4f6f8;--plot-bg:#fff}
+  body{background:#fff}
+  header.top,nav.tabs,.view:not(#view-report),.rp-tools,.toast,body::before{display:none!important}
+  #view-report{display:block!important}
+  .report{border:0;padding:0;max-width:none}
+  .report section{break-inside:auto}
+  .report h2{break-after:avoid}
+  figure,table,.eq,.verdict{break-inside:avoid}
+  a{color:inherit;text-decoration:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Buck Designer</h1>
+      <p>Synchronous buck design with worst-case analysis: specify, pick parts, then review results and the design report.</p>
+    </div>
+    <div class="tools">
+      <button class="btn sm" id="btn-proj-save" type="button">Save project</button>
+      <button class="btn sm" id="btn-proj-open" type="button">Open project</button>
+      <button class="btn sm" id="btn-lib-x" type="button">Export library</button>
+      <button class="btn sm" id="btn-lib-i" type="button">Import library</button>
+      <button class="btn sm" id="btn-reset" type="button">New from example</button>
+      <input type="file" id="file-proj" accept=".json,application/json" hidden>
+      <input type="file" id="file-lib" accept=".json,application/json" hidden>
+    </div>
+  </header>
+  <nav class="tabs" aria-label="Sections">
+    <a href="#design">Design</a><a href="#results">Results</a><a href="#report">Report</a>
+    <span class="run" id="run" role="status"></span>
+  </nav>
+  <main>
+    <div class="view" id="view-design"></div>
+    <div class="view" id="view-results" hidden></div>
+    <div class="view" id="view-report" hidden></div>
+  </main>
+</div>
+<script id="engine">/* ===================== Buck WCA core: pure engineering, no DOM ===================== */
+"use strict";
+const Core=(function(){
+const TW=2*Math.PI;
+
+/* ---------- complex arithmetic: [re, im] ---------- */
+const CX={
+  add:(a,b)=>[a[0]+b[0],a[1]+b[1]],
+  sub:(a,b)=>[a[0]-b[0],a[1]-b[1]],
+  mul:(a,b)=>[a[0]*b[0]-a[1]*b[1],a[0]*b[1]+a[1]*b[0]],
+  div:(a,b)=>{const d=b[0]*b[0]+b[1]*b[1];return [(a[0]*b[0]+a[1]*b[1])/d,(a[1]*b[0]-a[0]*b[1])/d]},
+  inv:a=>{const d=a[0]*a[0]+a[1]*a[1];return [a[0]/d,-a[1]/d]},
+  sc:(a,k)=>[a[0]*k,a[1]*k],
+  par:(a,b)=>{const s=[a[0]+b[0],a[1]+b[1]];const p=[a[0]*b[0]-a[1]*b[1],a[0]*b[1]+a[1]*b[0]];const d=s[0]*s[0]+s[1]*s[1];return [(p[0]*s[0]+p[1]*s[1])/d,(p[1]*s[0]-p[0]*s[1])/d]},
+  abs:a=>Math.hypot(a[0],a[1]),
+  arg:a=>Math.atan2(a[1],a[0]),
+  conj:a=>[a[0],-a[1]],
+  expj:th=>[Math.cos(th),Math.sin(th)]
+};
+const jw=f=>[0,TW*f];
+const zC=(s,C)=>CX.inv(CX.sc(s,C));
+
+/* ---------- preferred values ---------- */
+const E96=[1.00,1.02,1.05,1.07,1.10,1.13,1.15,1.18,1.21,1.24,1.27,1.30,1.33,1.37,1.40,1.43,1.47,1.50,1.54,1.58,1.62,1.65,1.69,1.74,1.78,1.82,1.87,1.91,1.96,2.00,2.05,2.10,2.15,2.21,2.26,2.32,2.37,2.43,2.49,2.55,2.61,2.67,2.74,2.80,2.87,2.94,3.01,3.09,3.16,3.24,3.32,3.40,3.48,3.57,3.65,3.74,3.83,3.92,4.02,4.12,4.22,4.32,4.42,4.53,4.64,4.75,4.87,4.99,5.11,5.23,5.36,5.49,5.62,5.76,5.90,6.04,6.19,6.34,6.49,6.65,6.81,6.98,7.15,7.32,7.50,7.68,7.87,8.06,8.25,8.45,8.66,8.87,9.09,9.31,9.53,9.76];
+const E12=[1.0,1.2,1.5,1.8,2.2,2.7,3.3,3.9,4.7,5.6,6.8,8.2];
+const E192=Array.from({length:192},(_,i)=>{const v=Math.round(Math.pow(10,i/192)*100)/100;return v===9.19?9.20:v});
+const E6=[1.0,1.5,2.2,3.3,4.7,6.8];
+function snap(x,ser,dir){
+  if(!(x>0)||!isFinite(x))return NaN;
+  const dec=Math.floor(Math.log10(x));const cand=[];
+  for(const d of [dec-1,dec,dec+1])for(const v of ser)cand.push(v*Math.pow(10,d));
+  if(dir==="up"){return cand.filter(v=>v>=x*0.9999).sort((a,b)=>a-b)[0]}
+  let best=cand[0];for(const v of cand)if(Math.abs(Math.log(v/x))<Math.abs(Math.log(best/x)))best=v;return best;
+}
+
+/* ---------- capacitor type presets ---------- */
+const CAP_TYPES={
+  mlcc:{label:"Ceramic (MLCC)",esl:0.5,tol:10,temp:15,eol:5,esrLo:0.7,esrHi:1.5,derate:"drCapMlcc"},
+  poly:{label:"Polymer (Al/Ta)",esl:1.5,tol:20,temp:10,eol:10,esrLo:0.8,esrHi:2,derate:"drCapPoly"},
+  tant:{label:"Tantalum (MnO₂)",esl:2,tol:20,temp:10,eol:10,esrLo:0.8,esrHi:2.5,derate:"drCapTant"},
+  alu:{label:"Aluminium electrolytic",esl:5,tol:20,temp:20,eol:20,esrLo:0.8,esrHi:3,derate:"drCapAlu"},
+  film:{label:"Film",esl:3,tol:5,temp:3,eol:3,esrLo:0.8,esrHi:1.3,derate:"drCapFilm"}
+};
+
+/* ---------- impedance of a bank of capacitor rows ---------- */
+function rowZ(b,s){return CX.add(CX.add([b.esr,0],CX.sc(s,b.esl)),zC(s,b.C))}
+function bankZ(rows,s){
+  let y=[0,0];
+  for(const b of rows){if(!(b.n>0&&b.C>0))continue;y=CX.add(y,CX.sc(CX.inv(rowZ(b,s)),b.n))}
+  return CX.abs(y)>0?CX.inv(y):[1e12,0];
+}
+
+/* ---------- design → realised model at a corner ----------
+   corner c = {vin, io, T:'min'|'nom'|'max', life:'bol'|'eol', k:{param:-1|0|1}} */
+function capRow(r,kc,ke){
+  const C0=r.c*1e-6*(1-(r.dc||0)/100);
+  const C=kc>0?C0*(1+r.tol/100):kc<0?C0*(1-r.tol/100)*(1-r.temp/100)*(1-r.eol/100):C0;
+  const esr=r.esr*1e-3*(ke>0?r.esrHi:ke<0?r.esrLo:1);
+  return {n:Math.max(0,Math.round(r.n||0)),C,esr,esl:(r.esl||0)*1e-9,type:r.type,vr:r.vr,irms:r.irmsC};
+}
+function rdsAt(rds25,alpha,Tj,eolPct,eol){return rds25*1e-3*(1+alpha/100*(Tj-25))*(eol?1+eolPct/100:1)}
+function rtotPct(D,fb){
+  const sp=D.specs,ru=D.rules;
+  return (fb?ru.rFbTol:ru.rTol)+ru.rTc*1e-4*Math.max(Math.abs(sp.tMax-25),Math.abs(sp.tMin-25))+ru.rEol;
+}
+function realize(D,c){
+  const sp=D.specs,ic=D.ic,k=c.k||{},v=x=>x||0,ind=D.ind;
+  const m={vin:c.vin,io:c.io,vo:sp.vout,ctrl:D.ctrl,ea:D.ea,mode:D.mode,life:c.life||"bol"};
+  m.T=c.T==="min"?sp.tMin:c.T==="max"?sp.tMax:25;
+  m.fsw=sp.fsw*1e3*(1+v(k.fsw)*ic.fswTol/100);
+  const L0=ind.L*1e-6;
+  m.L=k.L>0?L0*(1+ind.ltol/100):k.L<0?L0*(1-ind.ltol/100)*(1-ind.ltemp/100)*(1-ind.lsat/100):L0;
+  m.cout=D.cout.map(r=>capRow(r,v(k.cout),v(k.esr)));
+  m.cin=D.cin.map(r=>capRow(r,v(k.cin),v(k.cinEsr)));
+  m.vref=ic.vref*(1+v(k.vref)*ic.vrefTol/100);
+  const rt=rtotPct(D,true);
+  m.ratio=D.fb.rtop*(1+v(k.rt)*rt/100)/(D.fb.rbot*(1-v(k.rb)*rt/100));
+  const mod=1+v(k.mod)*ic.modTol/100;
+  m.vramp=ic.vramp*mod*(D.feedforward?c.vin/sp.vinNom:1);
+  m.ri=ic.ri*mod;
+  m.se=ic.se*1e6*(1-v(k.mod)*ic.modTol/100);
+  m.gm=ic.eaGm*1e-6*(1+v(k.ea)*ic.eaTol/100);
+  m.a0=Math.pow(10,ic.eaAol/20);
+  m.gbw=ic.eaGbw*1e6*(1+v(k.ea)*ic.eaTol/100);
+  const cr=1+v(k.compR)*D.rules.rTol/100,cc=1+v(k.compC)*D.rules.cTolComp/100;
+  const q=(D.comp&&D.comp.chosen)||{type:2,R2:1,R3:0,C1:1e-9,C2:0,C3:0,Rc:1,Cc:1e-9,Cp:0,Cff:0};
+  m.comp={type:q.type,R1:D.fb.rtop*cr,R2:q.R2*cr,R3:q.R3*cr,C1:q.C1*cc,C2:q.C2*cc,C3:q.C3*cc,Rc:q.Rc*cr,Cc:q.Cc*cc,Cp:q.Cp*cc,Cff:q.Cff*cc,rtop:D.fb.rtop*cr,rbot:D.fb.rbot*cr};
+  m.D=Math.min(m.vo/m.vin,0.99);
+  const rhs=D.mode==="ext"?D.hs.rds*1e-3:ic.rdsHs*1e-3, rls=D.mode==="ext"?D.ls.rds*1e-3:ic.rdsLs*1e-3;
+  m.rdc=ind.dcr*1e-3+m.D*rhs+(1-m.D)*rls;
+  m.sn=(m.vin-m.vo)/m.L;
+  m.mc=1+m.se/m.sn;
+  m.lf=D.filter.lf*1e-6*(1+v(k.lf)*D.filter.lfTol/100);
+  return m;
+}
+
+/* ---------- compensator and loop ---------- */
+function compAt(m,s){
+  const q=m.comp;
+  if(m.ea==="opamp"){
+    let Zi=[q.R1,0];
+    if(q.type===3)Zi=CX.par(Zi,CX.add([q.R3,0],zC(s,q.C3)));
+    let Zf=CX.add([q.R2,0],zC(s,q.C1));
+    if(q.C2>0)Zf=CX.par(Zf,zC(s,q.C2));
+    const G=CX.div(Zf,Zi);
+    const wa=TW*m.gbw/m.a0;
+    const A=CX.div([m.a0,0],CX.add([1,0],CX.sc(s,1/wa)));
+    return CX.div(G,CX.add([1,0],CX.div(CX.add([1,0],G),A)));
+  }
+  let Zt=[q.rtop,0];
+  if(q.type===3&&q.Cff>0)Zt=CX.par(Zt,zC(s,q.Cff));
+  const H=CX.div([q.rbot,0],CX.add([q.rbot,0],Zt));
+  let Zc=CX.add([q.Rc,0],zC(s,q.Cc));
+  if(q.Cp>0)Zc=CX.par(Zc,zC(s,q.Cp));
+  Zc=CX.par(Zc,[m.a0/m.gm,0]);
+  return CX.sc(CX.mul(H,Zc),m.gm);
+}
+function plantAt(m,s){
+  const Zc=bankZ(m.cout,s),R=[m.vo/Math.max(m.io,1e-6),0];
+  if(m.ctrl==="vm"){
+    const Zs=CX.add([m.rdc,0],CX.sc(s,m.L));
+    const Zp=CX.par(Zc,R);
+    return {Gp:CX.sc(CX.div(Zp,CX.add(Zs,Zp)),m.vin/m.vramp),Zol:CX.par(Zs,Zc)};
+  }
+  const x=m.mc*(1-m.D)-0.5;
+  const Rp=x>0?m.L*m.fsw/x:1e6;
+  const wn=Math.PI*m.fsw,Qp=x>0?1/(Math.PI*x):50;
+  const Fh=CX.inv(CX.add(CX.add([1,0],CX.sc(s,1/(wn*Qp))),CX.sc(CX.mul(s,s),1/(wn*wn))));
+  const Zl=CX.par(CX.par(Zc,R),[Rp,0]);
+  return {Gp:CX.mul(CX.sc(Zl,1/m.ri),Fh),Zol:CX.par(Zc,[Rp,0])};
+}
+function loopAt(m,s){
+  const p=plantAt(m,s),Gc=compAt(m,s);
+  return {T:CX.mul(Gc,p.Gp),Zol:p.Zol,Gp:p.Gp,Gc};
+}
+function logspace(a,b,n){const r=[],la=Math.log10(a),lb=Math.log10(b);for(let i=0;i<n;i++)r.push(Math.pow(10,la+(lb-la)*i/(n-1)));return r}
+function sweep(m,freqs){
+  const mag=[],ph=[],zcl=[],zol=[],gpm=[],gpp=[],gcm=[],gcp=[];let prev=null,pg=null,pc=null;
+  for(const f of freqs){
+    const r=loopAt(m,jw(f));
+    let p=CX.arg(r.T)*180/Math.PI;
+    if(prev!==null){while(p-prev>180)p-=360;while(p-prev<-180)p+=360}
+    prev=p;mag.push(CX.abs(r.T));ph.push(p);
+    zcl.push(CX.abs(CX.div(r.Zol,CX.add([1,0],r.T))));zol.push(CX.abs(r.Zol));
+    let a=CX.arg(r.Gp)*180/Math.PI;if(pg!==null){while(a-pg>180)a-=360;while(a-pg<-180)a+=360}pg=a;gpm.push(CX.abs(r.Gp));gpp.push(a);
+    let b=CX.arg(r.Gc)*180/Math.PI;if(pc!==null){while(b-pc>180)b-=360;while(b-pc<-180)b+=360}pc=b;gcm.push(CX.abs(r.Gc));gcp.push(b);
+  }
+  return {f:freqs,mag,ph,zcl,zol,gpm,gpp,gcm,gcp};
+}
+function loopMetrics(sw){
+  const {f,mag,ph}=sw;let fc=NaN,pm=NaN,gm=Infinity,fgm=NaN,crossings=0,ic=-1;
+  for(let i=0;i<f.length-1;i++){
+    if(mag[i]>=1&&mag[i+1]<1){crossings++;if(ic<0){ic=i;const t=Math.log(mag[i])/(Math.log(mag[i])-Math.log(mag[i+1]));fc=f[i]*Math.pow(f[i+1]/f[i],t);pm=180+ph[i]+(ph[i+1]-ph[i])*t}}
+  }
+  if(ic>=0){
+    for(let i=ic;i<f.length-1;i++){
+      if(ph[i]>-180&&ph[i+1]<=-180){const t=(ph[i]+180)/(ph[i]-ph[i+1]);const lm=Math.log10(mag[i])+(Math.log10(mag[i+1])-Math.log10(mag[i]))*t;gm=-20*lm;fgm=f[i]*Math.pow(f[i+1]/f[i],t);break}
+    }
+  }
+  let zpk=0;for(const z of sw.zcl)zpk=Math.max(zpk,z);
+  return {fc,pm,gm,fgm,conditional:crossings>1,zclPk:zpk};
+}
+
+/* ---------- compensation design (nominal) ---------- */
+function plantFeatures(D){
+  const sp=D.specs;
+  const m=realize(D,{vin:sp.vinNom,io:sp.ioutMax,k:{}});
+  const Ct=m.cout.reduce((a,b)=>a+b.n*b.C,0);
+  const f0=1/(TW*Math.sqrt(m.L*Ct));
+  let fesr=Infinity;
+  for(const f of logspace(f0,m.fsw,200)){const z=bankZ(m.cout,jw(f));if(CX.arg(z)*180/Math.PI>-45){fesr=f;break}}
+  const x=m.mc*(1-m.D)-0.5,Rp=x>0?m.L*m.fsw/x:1e6;
+  const Rl=m.vo/m.io;const Req=Rl*Rp/(Rl+Rp);
+  const fpl=1/(TW*Req*Ct);
+  return {m,Ct,f0,fesr,fpl,fc:m.fsw/sp.fcRatio};
+}
+function designComp(D){
+  const pf=plantFeatures(D),m=pf.m,fc=pf.fc,fsw=m.fsw;
+  const type=D.compType==="2"?2:D.compType==="3"?3:(D.ctrl==="vm"?3:2);
+  const fpHi=Math.min(pf.fesr,fsw/2);
+  let pl={};
+  if(D.ctrl==="vm"){
+    if(type===3)pl={fz1:0.5*pf.f0,fz2:pf.f0,fp1:Math.max(fpHi,pf.f0*1.5),fp2:fsw/2};
+    else pl={fz1:pf.f0,fp2:fsw/2};
+  }else{
+    const fz=Math.min(Math.max(pf.fpl,fc/5),fc/3);
+    if(type===3)pl={fz1:fz,fz2:fc/3,fp1:Math.min(fc*3,fsw/2),fp2:fpHi};
+    else pl={fz1:fz,fp2:fpHi};
+  }
+  const R1=D.fb.rtop,rbot=D.fb.rbot;
+  if(D.ea==="gm"&&type===3){
+    /* feed-forward capacitor across Rtop: centre its zero/pole pair on the crossover for maximum boost */
+    const kr=(R1+rbot)/rbot;pl.fz2=fc/Math.sqrt(kr);pl.fpff=fc*Math.sqrt(kr);
+    if(D.ctrl==="vm")pl.fz1=pf.f0;
+  }
+  const q={type,R2:0,R3:0,C1:0,C2:0,C3:0,Rc:0,Cc:0,Cp:0,Cff:0};
+  const set=x=>{
+    if(D.ea==="opamp"){
+      q.R2=x;q.C1=1/(TW*x*pl.fz1);q.C2=1/(TW*x*pl.fp2);
+      if(type===3){q.R3=R1/(pl.fp1/pl.fz2-1);q.C3=1/(TW*q.R3*pl.fp1)}
+    }else{
+      q.Rc=x;q.Cc=1/(TW*x*pl.fz1);q.Cp=1/(TW*x*pl.fp2);
+      if(type===3)q.Cff=1/(TW*R1*pl.fz2);
+    }
+  };
+  const mm=Object.assign({},m);
+  let x=10e3;
+  for(let i=0;i<60;i++){
+    set(x);mm.comp=Object.assign({},q,{R1,rtop:R1,rbot});
+    const g=CX.abs(loopAt(mm,jw(fc)).T);
+    if(!isFinite(g)||g<=0)break;
+    const nx=x/g;if(Math.abs(nx/x-1)<1e-4){x=nx;break}x=nx;
+  }
+  set(x);
+  const ideal=Object.assign({},q);
+  const chosen={type};
+  for(const key of ["R2","R3","Rc"])chosen[key]=q[key]>0?snap(q[key],E96):0;
+  for(const key of ["C1","C2","C3","Cc","Cp","Cff"])chosen[key]=q[key]>0?snap(q[key],E12):0;
+  return {ideal,chosen,pl,f0:pf.f0,fesr:pf.fesr,fpl:pf.fpl,fc,Ct:pf.Ct,type};
+}
+
+/* ---------- periodic waveforms → harmonics ---------- */
+function harmonics(fn,K,N){
+  N=N||512;const x=[];for(let n=0;n<N;n++)x.push(fn(n/N));
+  const a=[];
+  for(let k=1;k<=K;k++){let re=0,im=0;for(let n=0;n<N;n++){const th=-TW*k*n/N;re+=x[n]*Math.cos(th);im+=x[n]*Math.sin(th)}a.push([re/N,im/N])}
+  return a;
+}
+function synth(V,P){const w=[];for(let j=0;j<P;j++){let s=0;for(let k=0;k<V.length;k++){const th=TW*(k+1)*j/P;s+=2*(V[k][0]*Math.cos(th)-V[k][1]*Math.sin(th))}w.push(s)}return w}
+const KH=40;
+function outRipple(m){
+  const D=m.D,dI=(m.vin-m.vo)*D/(m.L*m.fsw);
+  const a=harmonics(t=>t<D?-dI/2+dI*t/D:dI/2-dI*(t-D)/(1-D),KH);
+  const R=[m.vo/Math.max(m.io,1e-6),0];
+  const V=[],I=m.cout.map(()=>0);
+  a.forEach((ak,i)=>{
+    const s=jw((i+1)*m.fsw);const Zc=bankZ(m.cout,s);const Vk=CX.mul(ak,CX.par(Zc,R));V.push(Vk);
+    m.cout.forEach((b,j)=>{if(b.n>0&&b.C>0){const Ib=CX.div(Vk,rowZ(b,s));I[j]+=2*(Ib[0]*Ib[0]+Ib[1]*Ib[1])}});
+  });
+  const w=synth(V,200);
+  return {dI,vpp:Math.max(...w)-Math.min(...w),wave:w,irms:m.cout.map((b,j)=>b.n>0?Math.sqrt(I[j]):0)};
+}
+function inRipple(m,filt){
+  const D=m.D,dI=(m.vin-m.vo)*D/(m.L*m.fsw);
+  const a=harmonics(t=>t<D?m.io-dI/2+dI*t/D:0,KH);
+  const V=[],I=m.cin.map(()=>0);let Isrc=0,Isrc1=0;
+  a.forEach((ak,i)=>{
+    const s=jw((i+1)*m.fsw);let Zn=bankZ(m.cin,s);let Zlf=null;
+    if(filt&&filt.on){Zlf=CX.add([filt.lfDcr*1e-3,0],CX.sc(s,m.lf));Zn=CX.par(Zn,Zlf);
+      if(filt.rd>0&&filt.cd>0)Zn=CX.par(Zn,CX.add([filt.rd,0],zC(s,filt.cd*1e-6)))}
+    const Vk=CX.mul(ak,Zn);V.push(Vk);
+    m.cin.forEach((b,j)=>{if(b.n>0&&b.C>0){const Ib=CX.div(Vk,rowZ(b,s));I[j]+=2*(Ib[0]*Ib[0]+Ib[1]*Ib[1])}});
+    if(Zlf){const Is=CX.div(Vk,Zlf);const p=Is[0]*Is[0]+Is[1]*Is[1];Isrc+=2*p;if(i===0)Isrc1=2*Math.sqrt(p)}
+  });
+  const w=synth(V,200);
+  return {vpp:Math.max(...w)-Math.min(...w),wave:w,irms:m.cin.map((b,j)=>b.n>0?Math.sqrt(I[j]):0),srcRms:Math.sqrt(Isrc),srcPk1:Isrc1,
+    irmsTotal:m.io*Math.sqrt(D*(1-D)+D*dI*dI/(12*m.io*m.io))};
+}
+
+/* ---------- losses and thermal at an operating point ---------- */
+function losses(D,vin,io,Ta,eol,opt){
+  opt=opt||{};
+  const sp=D.specs,ic=D.ic,ind=D.ind,f=sp.fsw*1e3,vo=sp.vout,L=ind.L*1e-6;
+  const Dc=Math.min(vo/vin,0.99),dI=(vin-vo)*Dc/(f*L),i2=io*io+dI*dI/12,irms=Math.sqrt(i2);
+  const tInd=Ta+ind.dTr*Math.pow(irms/ind.irms,2);
+  const dcr=ind.dcr*1e-3*(1+ind.dcrTc/100*(tInd-25));
+  const o={};let tjHs=Ta,tjLs=Ta,tjIc=Ta;
+  for(let it=0;it<8;it++){
+    if(D.mode==="ext"){
+      const h=D.hs,l=D.ls;
+      const rh=rdsAt(h.rds,h.rdsAlpha,tjHs,h.rdsEol,eol),rl=rdsAt(l.rds,l.rdsAlpha,tjLs,l.rdsEol,eol);
+      o["HS conduction"]=Dc*i2*rh;
+      const qsw=(h.qgd+h.qgs/2)*1e-9,ion=Math.max(ic.vdrv-h.vpl,0.2)/ic.rdrv,ioff=Math.max(h.vpl,0.2)/ic.rdrv;
+      o["HS switching"]=0.5*vin*io*(qsw/ion+qsw/ioff)*f;
+      o["Reverse recovery"]=l.qrr*1e-9*vin*f;
+      o["Coss"]=0.5*(h.coss+l.coss)*1e-12*vin*vin*f;
+      o["LS conduction"]=(1-Dc)*i2*rl;
+      o["Dead time"]=l.vf*io*2*ic.tdead*1e-9*f;
+      o["Gate drive"]=(h.qg+l.qg)*1e-9*ic.vdrv*f;
+      const pHs=o["HS conduction"]+o["HS switching"]+o["Reverse recovery"]+o["Coss"]/2;
+      const pLs=o["LS conduction"]+o["Dead time"]+o["Coss"]/2;
+      tjHs=Ta+pHs*h.rth;tjLs=Ta+pLs*l.rth;
+      o._pHs=pHs;o._pLs=pLs;
+    }else{
+      const rh=rdsAt(ic.rdsHs,ic.rdsAlpha,tjIc,0,false),rl=rdsAt(ic.rdsLs,ic.rdsAlpha,tjIc,0,false);
+      o["HS conduction"]=Dc*i2*rh;
+      o["HS switching"]=0.5*vin*io*ic.tsw*1e-9*f;
+      o["LS conduction"]=(1-Dc)*i2*rl;
+      o["Dead time"]=0.7*io*2*ic.tdead*1e-9*f;
+      const pIc=o["HS conduction"]+o["HS switching"]+o["LS conduction"]+o["Dead time"]+ic.iq*1e-3*vin;
+      tjIc=Ta+pIc*ic.rthIc;o._pIc=pIc;
+    }
+  }
+  o["Controller bias"]=ic.iq*1e-3*vin;
+  o["Inductor DCR"]=i2*dcr;
+  o["Inductor core"]=(ind.pcore||0)*1e-3;
+  if(opt.capOut!=null)o["Output cap ESR"]=opt.capOut;
+  if(opt.capIn!=null)o["Input cap ESR"]=opt.capIn;
+  if(opt.snub)o["Snubber"]=opt.snub;
+  let tot=0;for(const k in o)if(k[0]!=="_")tot+=o[k];
+  const pout=vo*io;
+  return {o,tot,eff:pout/(pout+tot),tjHs,tjLs,tjIc,tInd,irmsL:irms,dI,pin:pout+tot};
+}
+
+/* ---------- FFT and load-step transient ---------- */
+function fft(re,im,inv){
+  const n=re.length;
+  for(let i=1,j=0;i<n;i++){let b=n>>1;for(;j&b;b>>=1)j^=b;j^=b;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]]}}
+  for(let len=2;len<=n;len<<=1){
+    const ang=TW/len*(inv?1:-1),wr=Math.cos(ang),wi=Math.sin(ang);
+    for(let i=0;i<n;i+=len){let cr=1,ci=0;
+      for(let j=0;j<len/2;j++){const a=i+j,b=a+len/2;const tr=re[b]*cr-im[b]*ci,ti=re[b]*ci+im[b]*cr;
+        re[b]=re[a]-tr;im[b]=im[a]-ti;re[a]+=tr;im[a]+=ti;const nr=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=nr}}
+  }
+}
+function transient(m,dIstep,slew,fc){
+  let Tw=Math.max(40/fc,1e-5),r=null;
+  for(let a=0;a<4;a++){
+    r=transientWin(m,dIstep,slew,Tw);
+    const tail=Math.abs(r.v[r.v.length-1]-r.v0);
+    if(tail<0.03*r.dev)break;
+    Tw*=2;
+  }
+  return r;
+}
+function transientWin(m,dIstep,slew,Tw){
+  const N=4096;
+  const t0=Tw/10,tr=Math.max(dIstep/(slew*1e6),Tw/N);
+  const df=1/Tw;
+  const re=new Array(N).fill(0),im=new Array(N).fill(0);
+  for(let k=0;k<=N/2;k++){
+    const f=k===0?df*1e-3:k*df;const w=TW*f;const s=[0,w];
+    const r=loopAt(m,s);
+    const Zcl=CX.div(r.Zol,CX.add([1,0],r.T));
+    const num=CX.sub([1,0],CX.expj(-w*tr));
+    const den=CX.mul(s,s);
+    let I=CX.sc(CX.div(num,den),dIstep/tr);
+    I=CX.mul(I,CX.expj(-w*t0));
+    let V=CX.sc(CX.mul(Zcl,I),-1);
+    const taper=k>N*0.4?0.5*(1+Math.cos(Math.PI*(k-N*0.4)/(N*0.1))):1;
+    V=CX.sc(V,taper*df);
+    re[k]=V[0];im[k]=V[1];
+    if(k>0&&k<N/2){re[N-k]=V[0];im[N-k]=-V[1]}
+  }
+  fft(re,im,true);
+  const t=[],v=[];const dt=Tw/N;
+  for(let n=0;n<N;n++){t.push(n*dt-t0);v.push(re[n])}
+  const keep=Math.floor(N*0.7);
+  const v0=v[0];
+  const tt=t.slice(0,keep),vv=v.slice(0,keep).map(x=>x-v0);
+  let vmin=0,vmax=0;for(const x of vv){vmin=Math.min(vmin,x);vmax=Math.max(vmax,x)}
+  const pk=Math.max(Math.abs(vmin),Math.abs(vmax));let ts=0;
+  for(let i=vv.length-1;i>=0;i--){if(Math.abs(vv[i])>0.1*pk){ts=tt[i];break}}
+  return {t:tt,v:vv,dev:pk,undershoot:-vmin,overshoot:vmax,tSettle:ts,tr,v0:0,Tw};
+}
+
+/* ---------- input filter / Middlebrook ---------- */
+function middlebrook(D,m,eff,freqs){
+  const filt=D.filter;
+  const zinMag=m.vin*m.vin*eff/(m.vo*m.io);
+  const zo=freqs.map(f=>{const s=jw(f);let z=CX.add([filt.lfDcr*1e-3,0],CX.sc(s,m.lf));z=CX.par(z,bankZ(m.cin,s));
+    if(filt.rd>0&&filt.cd>0)z=CX.par(z,CX.add([filt.rd,0],zC(s,filt.cd*1e-6)));return CX.abs(z)});
+  let worst=-Infinity,fw=NaN;zo.forEach((z,i)=>{const r=20*Math.log10(z/zinMag);if(r>worst){worst=r;fw=freqs[i]}});
+  return {zinMag,zo,worstRatioDb:worst,fWorst:fw,margin:-worst};
+}
+function suggestDamping(D,m){
+  const Ct=m.cin.reduce((a,b)=>a+b.n*b.C,0),Lf=D.filter.lf*1e-6,n=4;
+  const R0=Math.sqrt(Lf/Ct);
+  const Rd=R0*Math.sqrt((2+n)*(4+3*n)/(2*n*n*(4+n)));
+  return {rd:snap(Rd,E96),cd:snap(n*Ct*1e6,E12),f0:1/(TW*Math.sqrt(Lf*Ct)),R0};
+}
+
+return {CX,TW,jw,E96,E12,E6,E192,snap,CAP_TYPES,bankZ,rowZ,realize,compAt,plantAt,loopAt,logspace,sweep,loopMetrics,plantFeatures,designComp,outRipple,inRipple,losses,transient,middlebrook,suggestDamping,rtotPct,rdsAt};
+})();
+if(typeof module!=="undefined")module.exports=Core;
+
+/* ===================== Field definitions and the example design ===================== */
+"use strict";
+const Model=(function(){
+const F={
+  /* requirements */
+  vinMin:["Input, min","V"],vinNom:["Input, nominal","V"],vinMax:["Input, max","V"],vout:["Output voltage","V"],
+  ioutMax:["Output current, max","A"],ioutMin:["Output current, min","A"],fsw:["Switching frequency","kHz"],
+  ripple:["Inductor ripple target","% Iout"],vrip:["Output ripple limit","mV pk-pk"],voutAcc:["DC accuracy limit","± %"],
+  step:["Load step","% Iout"],slew:["Load step slew","A/µs"],dvTran:["Transient limit","± % Vout"],
+  tMin:["Ambient, min","°C"],tMax:["Ambient, max","°C"],pmMin:["Phase margin, min","°"],gmMin:["Gain margin, min","dB"],fcRatio:["Crossover target","fsw ÷"],
+  tss:["Soft-start time","ms"],ioStart:["Load during start-up","A"],uvStart:["UVLO start","V"],uvStop:["UVLO stop","V"],
+  /* rules */
+  isatMargin:["Isat margin over peak","%"],rTol:["Resistor tolerance","%"],rFbTol:["Feedback resistor tolerance","%"],rbot:["Feedback R bottom (approx.)","kΩ"],rTc:["Resistor tempco","ppm/°C"],rEol:["Resistor EOL drift","%"],
+  cTolComp:["Compensation C tolerance","%"],dvBoot:["Bootstrap droop allowed","V"],swOvershoot:["Switch-node overshoot","% Vin"],
+  drMosV:["MOSFET Vds","% rating"],drMosI:["MOSFET Id","% rating"],tjLim:["Junction temp limit","°C"],drIcV:["IC input voltage","% rating"],
+  drCapMlcc:["Ceramic cap voltage","% rating"],drCapPoly:["Polymer cap voltage","% rating"],drCapTant:["Tantalum cap voltage","% rating"],
+  drCapAlu:["Electrolytic voltage","% rating"],drCapFilm:["Film cap voltage","% rating"],drCapI:["Cap ripple current","% rating"],
+  drIndI:["Inductor RMS current","% rating"],drResP:["Resistor power","% rating"],
+  /* controller */
+  vinMaxIc:["Max input voltage","V"],vref:["Reference voltage","V"],vrefTol:["Reference tolerance","± %"],fswMax:["Max switching freq","kHz"],
+  fswTol:["Frequency tolerance","± %"],tonMin:["Min on-time (max)","ns"],ilim:["Current limit","A"],ilimTol:["Current limit tolerance","± %"],
+  vdrv:["Gate drive voltage","V"],rdrv:["Driver resistance","Ω"],tdead:["Dead time","ns"],iq:["Quiescent current","mA"],ibst:["Bootstrap leakage","µA"],
+  eaAol:["EA DC gain","dB"],eaGbw:["EA gain-bandwidth","MHz"],eaGm:["EA transconductance","µS"],eaTol:["EA gain tolerance","± %"],
+  vramp:["PWM ramp amplitude","V"],ri:["Current-sense gain Ri","V/A"],se:["Slope compensation","A/µs"],modTol:["Modulator tolerance","± %"],
+  iss:["Soft-start current","µA"],issTol:["Soft-start current tol.","± %"],venR:["EN threshold","V"],venTol:["EN threshold tol.","± %"],
+  ihys:["EN hysteresis current","µA"],ihysTol:["Hysteresis current tol.","± %"],
+  ioutMaxIc:["Rated output current","A"],rdsHs:["High-side Rds(on) max","mΩ"],rdsLs:["Low-side Rds(on) max","mΩ"],rdsAlpha:["Rds(on) tempco","%/°C"],
+  tsw:["Switch rise + fall","ns"],rthIc:["IC RθJA","°C/W"],tjmaxIc:["IC max junction temp","°C"],
+  /* MOSFET */
+  vds:["Vds rating","V"],id:["Continuous Id","A"],rds:["Rds(on) max at 25 °C","mΩ"],rdsEol:["Rds(on) EOL drift","%"],
+  qg:["Total gate charge Qg","nC"],qgs:["Qgs","nC"],qgd:["Qgd","nC"],vpl:["Miller plateau","V"],coss:["Coss","pF"],qrr:["Qrr","nC"],
+  vf:["Body diode Vf","V"],rth:["RθJA","°C/W"],tjmax:["Max junction temp","°C"],
+  /* inductor */
+  L:["Inductance","µH"],ltol:["Tolerance","± %"],ltemp:["Drift over temperature","%"],lsat:["Drop at peak current","%"],
+  isat:["Saturation current","A"],isatHot:["Isat reduction when hot","%"],irms:["Rated RMS current","A"],dTr:["Rise at rated current","°C"],
+  dcr:["DCR max","mΩ"],dcrTc:["DCR tempco","%/°C"],pcore:["Core loss estimate","mW"],
+  /* capacitor row */
+  n:["Qty","pcs"],c:["Capacitance","µF"],esr:["ESR","mΩ"],esl:["ESL","nH"],vr:["Voltage rating","V"],irmsC:["Ripple current","A rms"],
+  tol:["Tolerance","± %"],dc:["DC-bias loss","%"],temp:["Temp drift","%"],eol:["EOL drift","%"],esrLo:["ESR low","×"],esrHi:["ESR high","×"],
+  /* filter / snubber */
+  lf:["Filter inductance","µH"],lfTol:["Filter L tolerance","± %"],lfDcr:["Filter DCR","mΩ"],rd:["Damping R","Ω"],cd:["Damping C","µF"],
+  srcLim:["Source ripple limit","mA pk"],mbMargin:["Middlebrook margin","dB"],lloop:["Power loop inductance","nH"],rsP:["Snubber R rating","W"]
+};
+const GROUP_REQ=[
+  {t:"Input and output",k:["vinMin","vinNom","vinMax","vout","ioutMin","ioutMax","fsw"]},
+  {t:"Performance limits",k:["ripple","vrip","voutAcc","step","slew","dvTran","pmMin","gmMin","fcRatio"]},
+  {t:"Environment",k:["tMin","tMax"]},
+  {t:"Start-up and UVLO",k:["tss","ioStart","uvStart","uvStop"]}
+];
+const GROUP_RULES=[
+  {t:"Margins and tolerances",k:["isatMargin","rFbTol","rTol","rTc","rEol","cTolComp","dvBoot","swOvershoot","rbot"]},
+  {t:"Derating",k:["drMosV","drMosI","tjLim","drIcV","drCapMlcc","drCapPoly","drCapTant","drCapAlu","drCapFilm","drCapI","drIndI","drResP"]}
+];
+const CTRL_GROUPS=[
+  {t:"Ratings and protection",k:["vinMaxIc","fswMax","fswTol","tonMin","ilim","ilimTol","iq"]},
+  {t:"Reference",k:["vref","vrefTol"]},
+  {t:"Error amplifier",k:["eaAol","eaGbw","eaGm","eaTol"]},
+  {t:"Modulator",k:["vramp","ri","se","modTol"]},
+  {t:"Gate drive",k:["vdrv","rdrv","tdead","ibst"],ext:true},
+  {t:"Power stage",k:["ioutMaxIc","rdsHs","rdsLs","rdsAlpha","tsw","tdead","rthIc","tjmaxIc"],int:true},
+  {t:"Start-up and enable",k:["iss","issTol","venR","venTol","ihys","ihysTol"]}
+];
+const FET_KEYS=["vds","id","rds","rdsAlpha","rdsEol","qg","qgs","qgd","vpl","coss","qrr","vf","rth","tjmax"];
+const IND_KEYS=["L","ltol","ltemp","lsat","isat","isatHot","irms","dTr","dcr","dcrTc","pcore"];
+const CAP_KEYS=["n","c","esr","esl","vr","irmsC","tol","dc","temp","eol","esrLo","esrHi"];
+/* values that come from a datasheet (others are design choices or tolerances) */
+const DATASHEET=new Set(["vinMaxIc","vref","fswMax","tonMin","ilim","vdrv","rdrv","tdead","iq","ibst","eaAol","eaGbw","eaGm","vramp","ri","se","iss","venR","ihys","ioutMaxIc","rdsHs","rdsLs","tsw","rthIc","tjmaxIc",
+  "vds","id","rds","qg","qgs","qgd","vpl","coss","qrr","vf","rth","tjmax","L","isat","irms","dcr","c","esr","esl","vr","irmsC"]);
+
+function example(){
+  return {
+    v:2,
+    meta:{project:"12 V to 3.3 V, 10 A point-of-load",designer:"",rev:"A",notes:""},
+    mode:"ext",ctrl:"vm",ea:"opamp",compType:"auto",feedforward:true,compManual:false,manual:null,
+    specs:{vinMin:10,vinNom:12,vinMax:14,vout:3.3,ioutMin:1,ioutMax:10,fsw:500,ripple:30,vrip:33,voutAcc:3,step:50,slew:1,dvTran:5,
+      tMin:-40,tMax:85,pmMin:45,gmMin:10,fcRatio:20,tss:2,ioStart:0,uvStart:9,uvStop:8},
+    rules:{isatMargin:20,rFbTol:0.1,rTol:1,rTc:25,rEol:0.5,cTolComp:10,dvBoot:0.3,swOvershoot:25,
+      drMosV:75,drMosI:75,tjLim:110,drIcV:80,drCapMlcc:60,drCapPoly:80,drCapTant:50,drCapAlu:80,drCapFilm:60,drCapI:70,drIndI:80,drResP:50,rbot:10},
+    parts:{
+      ctrl:{pn:"",verified:false,mouser:null,src:{},vals:{vinMaxIc:40,vref:0.8,vrefTol:1,fswMax:1000,fswTol:10,tonMin:80,ilim:14,ilimTol:15,vdrv:5,rdrv:2,tdead:20,iq:1.5,ibst:10,
+        eaAol:80,eaGbw:10,eaGm:1000,eaTol:20,vramp:1,ri:0.1,se:1,modTol:10,iss:10,issTol:10,venR:1.2,venTol:3,ihys:5,ihysTol:20}},
+      conv:{pn:"",verified:false,mouser:null,src:{},vals:{vinMaxIc:20,vref:0.6,vrefTol:1,fswMax:1000,fswTol:10,tonMin:60,ilim:12,ilimTol:15,iq:1,
+        eaAol:70,eaGbw:5,eaGm:300,eaTol:20,vramp:1,ri:0.125,se:1,modTol:10,iss:6,issTol:10,venR:1.2,venTol:3,ihys:4,ihysTol:20,
+        ioutMaxIc:12,rdsHs:8,rdsLs:4,rdsAlpha:0.4,tsw:8,tdead:15,rthIc:25,tjmaxIc:150}},
+      hs:{pn:"",verified:false,mouser:null,src:{},vals:{vds:30,id:40,rds:6,rdsAlpha:0.5,rdsEol:5,qg:10,qgs:3,qgd:2,vpl:2.5,coss:400,qrr:15,vf:0.8,rth:35,tjmax:150}},
+      ls:{pn:"",verified:false,mouser:null,src:{},vals:{vds:30,id:60,rds:2.5,rdsAlpha:0.5,rdsEol:5,qg:25,qgs:7,qgd:5,vpl:2.3,coss:900,qrr:30,vf:0.7,rth:45,tjmax:150}},
+      ind:{pn:"",verified:false,mouser:null,src:{},vals:{L:2.2,ltol:20,ltemp:5,lsat:10,isat:18,isatHot:10,irms:14,dTr:40,dcr:4,dcrTc:0.39,pcore:150}}
+    },
+    cout:[
+      {id:"o1",pn:"",type:"mlcc",verified:false,mouser:null,n:4,c:47,esr:3,esl:0.5,vr:10,irmsC:3,tol:10,dc:40,temp:15,eol:5,esrLo:0.7,esrHi:1.5},
+      {id:"o2",pn:"",type:"poly",verified:false,mouser:null,n:1,c:330,esr:9,esl:1.5,vr:6.3,irmsC:4,tol:20,dc:0,temp:10,eol:10,esrLo:0.8,esrHi:2}
+    ],
+    cin:[
+      {id:"i1",pn:"",type:"mlcc",verified:false,mouser:null,n:3,c:22,esr:3,esl:0.5,vr:25,irmsC:3,tol:10,dc:50,temp:15,eol:5,esrLo:0.7,esrHi:1.5},
+      {id:"i2",pn:"",type:"alu",verified:false,mouser:null,n:1,c:100,esr:80,esl:5,vr:25,irmsC:1.5,tol:20,dc:0,temp:20,eol:20,esrLo:0.8,esrHi:3}
+    ],
+    filter:{on:true,lf:2.2,lfTol:20,lfDcr:10,rd:0.15,cd:220,srcLim:50,mbMargin:6},
+    snub:{on:false,lloop:1.5,rsP:0.25}
+  };
+}
+
+/* flatten the UI state into the numeric design the engine reads */
+function toDesign(S){
+  const ext=S.mode==="ext",icv=ext?S.parts.ctrl.vals:S.parts.conv.vals;
+  const ic=Object.assign({},icv,{vinMax:icv.vinMaxIc,ioutMax:icv.ioutMaxIc});
+  if(ext){ic.rdsAlpha=ic.rdsAlpha||0.5}
+  const D={specs:S.specs,rules:S.rules,mode:S.mode,ctrl:S.ctrl,ea:S.ea,compType:S.compType,feedforward:S.feedforward,
+    ic,hs:S.parts.hs.vals,ls:S.parts.ls.vals,ind:S.parts.ind.vals,cout:S.cout,cin:S.cin,filter:S.filter,snub:S.snub};
+  /* best E96 pair near the requested bottom resistor */
+  const k=S.specs.vout/ic.vref-1,target=S.rules.rbot*1e3;let best=null;
+  for(const d of [Math.pow(10,Math.floor(Math.log10(target))-1),Math.pow(10,Math.floor(Math.log10(target)))])for(const e of Core.E192){
+    const rb=Math.round(e*d*10);if(rb<target/2||rb>target*2)continue;
+    const rt=Core.snap(rb*k,Core.E192);const err=Math.abs(rt/rb/k-1);
+    if(!best||err<best.err-1e-9||(Math.abs(err-best.err)<1e-9&&Math.abs(Math.log(rb/target))<Math.abs(Math.log(best.rb/target))))best={rb,rt,err};
+  }
+  D.fb={rbot:best.rb,rtop:best.rt,rtopIdeal:best.rb*k,err:best.err};
+  return D;
+}
+/* design + compensation, honouring the designer's own values when set */
+function prepare(S){
+  const D=toDesign(S);
+  D.comp=Core.designComp(D);
+  if(S.compManual&&S.manual){
+    const u=S.manual,t=D.comp.type,q={type:t,R2:0,R3:0,C1:0,C2:0,C3:0,Rc:0,Cc:0,Cp:0,Cff:0};
+    if(D.ea==="opamp"){q.R2=u.R2*1e3;q.C1=u.C1*1e-12;q.C2=u.C2*1e-12;if(t===3){q.R3=u.R3*1e3;q.C3=u.C3*1e-12}}
+    else{q.Rc=u.Rc*1e3;q.Cc=u.Cc*1e-12;q.Cp=u.Cp*1e-12;if(t===3)q.Cff=u.Cff*1e-12}
+    const ok=Object.keys(q).every(k=>k==="type"||(isFinite(q[k])&&q[k]>=0));
+    if(ok)D.comp.chosen=q;
+  }
+  return D;
+}
+function validate(S){
+  const e=[],sp=S.specs;
+  const pos=(o,keys,where)=>keys.forEach(k=>{if(!(isFinite(o[k])&&o[k]>0))e.push(`${where}: ${F[k]?F[k][0]:k} must be a positive number`)});
+  pos(sp,["vinMin","vinNom","vinMax","vout","ioutMax","fsw","fcRatio","tss"],"Requirements");
+  if(sp.vinMin>sp.vinNom||sp.vinNom>sp.vinMax)e.push("Requirements: input voltages must satisfy min ≤ nominal ≤ max");
+  if(sp.vout>=sp.vinMin*0.95)e.push("Requirements: output voltage must be below the minimum input voltage");
+  if(!(sp.ioutMin>=0)||sp.ioutMin>sp.ioutMax)e.push("Requirements: minimum current must be between 0 and the maximum");
+  if(!(sp.tMax>sp.tMin))e.push("Requirements: maximum ambient must be above minimum");
+  const ic=S.mode==="ext"?S.parts.ctrl.vals:S.parts.conv.vals;
+  pos(ic,["vref","vramp","ri","eaGm","eaGbw","eaAol"],S.mode==="ext"?"Controller":"Converter");
+  if(ic.vref>=sp.vout)e.push("Controller: reference voltage must be below the output voltage");
+  if(S.mode==="ext"){pos(S.parts.hs.vals,["rds","rth"],"High-side MOSFET");pos(S.parts.ls.vals,["rds","rth"],"Low-side MOSFET")}
+  pos(S.parts.ind.vals,["L","isat","irms","dcr"],"Inductor");
+  const capOk=a=>a.some(r=>r.n>0&&r.c>0);
+  if(!capOk(S.cout))e.push("Output capacitors: add at least one group with quantity and capacitance");
+  if(!capOk(S.cin))e.push("Input capacitors: add at least one group with quantity and capacitance");
+  [["cout","Output"],["cin","Input"]].forEach(([b,nm])=>S[b].forEach((r,i)=>{if(r.n>0&&!(r.esr>0))e.push(`${nm} C${i+1}: ESR must be above zero`)}));
+  if(S.filter.on)pos(S.filter,["lf"],"Input filter");
+  return e;
+}
+return {F,GROUP_REQ,GROUP_RULES,CTRL_GROUPS,FET_KEYS,IND_KEYS,CAP_KEYS,DATASHEET,example,toDesign,prepare,validate};
+})();
+if(typeof module!=="undefined")module.exports=Model;
+
+/* ===================== Worst-case analysis: EVA by corner enumeration, RSS by sensitivities ===================== */
+"use strict";
+const WCA=(function(){
+const {CX,jw,realize,sweep,loopMetrics,outRipple,inRipple,losses,transient,middlebrook,logspace,snap,E96,E12,E6,bankZ,rowZ,suggestDamping,TW}=Core;
+
+const PARAM_LABEL={L:"L",cout:"Cout",esr:"Cout ESR",cin:"Cin",cinEsr:"Cin ESR",fsw:"fsw",mod:"Modulator gain",ea:"EA gain",compR:"Comp R",compC:"Comp C",vref:"Vref",rt:"R top",rb:"R bottom",lf:"Filter L"};
+function combos(params){
+  const out=[];const n=params.length;
+  for(let b=0;b<(1<<n);b++){const k={};params.forEach((p,i)=>k[p]=(b>>i)&1?1:-1);out.push(k)}
+  return out;
+}
+function cornerText(c){
+  const parts=[];
+  if(c.vin!=null)parts.push(`Vin ${+c.vin.toFixed(2)} V`);
+  if(c.io!=null)parts.push(`Iout ${+c.io.toFixed(2)} A`);
+  if(c.T&&c.T!=="nom")parts.push(c.T==="max"?"hot":"cold");
+  if(c.life==="eol")parts.push("EOL");
+  const k=c.k||{};
+  const tol=Object.keys(k).filter(p=>k[p]).map(p=>PARAM_LABEL[p]+(k[p]>0?"+":"−"));
+  return parts.concat(tol).join(", ");
+}
+/* run a group of metrics over operating points × tolerance corners */
+function group(ops,params,fn,keys){
+  const r={};keys.forEach(k=>r[k]={min:Infinity,max:-Infinity,cMin:null,cMax:null});
+  const ks=combos(params);let n=0;
+  for(const op of ops)for(const k of ks){
+    const c=Object.assign({},op,{k});const v=fn(c);n++;
+    for(const key of keys){const x=v[key];if(!isFinite(x))continue;
+      if(x<r[key].min){r[key].min=x;r[key].cMin=c}
+      if(x>r[key].max){r[key].max=x;r[key].cMax=c}}
+  }
+  r._n=n;return r;
+}
+function rss(fn,op,params,key){
+  const base=fn(Object.assign({},op,{k:{}}))[key];let up=0,dn=0;const contrib=[];
+  for(const p of params){
+    const a=fn(Object.assign({},op,{k:{[p]:1}}))[key]-base,b=fn(Object.assign({},op,{k:{[p]:-1}}))[key]-base;
+    const u=Math.max(0,a,b),d=Math.max(0,-a,-b);up+=u*u;dn+=d*d;contrib.push({p,u,d});
+  }
+  return {base,hi:base+Math.sqrt(up),lo:base-Math.sqrt(dn),contrib};
+}
+function status(row){
+  const {dir,limit}=row;if(limit==null||!isFinite(limit))return "info";
+  if(dir==="max"){if(row.eva.max<=limit)return "ok";if(row.rss&&row.rss.hi<=limit)return "warn";return "bad"}
+  if(dir==="min"){if(row.eva.min>=limit)return "ok";if(row.rss&&row.rss.lo>=limit)return "warn";return "bad"}
+  return "info";
+}
+
+function run(D){
+  const sp=D.specs,ru=D.rules,ic=D.ic,ind=D.ind,ext=D.mode==="ext";
+  const VIN=[sp.vinMin,sp.vinNom,sp.vinMax];
+  const opsVin=(io,extra)=>VIN.map(v=>Object.assign({vin:v,io},extra||{}));
+  const nomOp={vin:sp.vinNom,io:sp.ioutMax,T:"nom",life:"bol"};
+  const R={rows:[],plots:{},circuits:{},stress:[],checks:[],corners:0,notes:[]};
+  const rows=R.rows;
+  const addRow=o=>{o.status=o.status||status(o);rows.push(o);return o};
+
+  /* ---- 1. DC set-point ---- */
+  {
+    const fn=c=>{const m=realize(D,c);return {vo:m.vref*(1+m.ratio)}};
+    const ops=[{vin:sp.vinNom,io:sp.ioutMax,T:"max",life:"eol"}];
+    const g=group(ops,["vref","rt","rb"],fn,["vo"]);R.corners+=g._n;
+    const r=rss(fn,ops[0],["vref","rt","rb"],"vo");
+    const nom=fn({vin:sp.vinNom,io:sp.ioutMax,k:{}}).vo;
+    const lim=sp.vout*sp.voutAcc/100;
+    const worst=Math.max(Math.abs(g.vo.max-sp.vout),Math.abs(sp.vout-g.vo.min));
+    const worstR=Math.max(Math.abs(r.hi-sp.vout),Math.abs(sp.vout-r.lo));
+    addRow({id:"vo",label:"Output DC set-point",unit:"V",nom,rss:{lo:r.lo,hi:r.hi},eva:{min:g.vo.min,max:g.vo.max},
+      limitText:`${sp.vout} V ± ${sp.voutAcc} %`,status:worst<=lim?"ok":worstR<=lim?"warn":"bad",corner:cornerText(Math.abs(g.vo.max-sp.vout)>Math.abs(sp.vout-g.vo.min)?g.vo.cMax:g.vo.cMin),
+      basis:"Vref tolerance; each divider resistor at its tolerance + tempco over the range + EOL drift",dig:4});
+    R.vo={min:g.vo.min,max:g.vo.max,nom};
+  }
+
+  /* ---- 2. Inductor currents ---- */
+  let gi;
+  {
+    const fn=c=>{const m=realize(D,c);const dI=(m.vin-m.vo)*m.D/(m.L*m.fsw);return {dI,ipk:m.io+dI/2,irms:Math.sqrt(m.io*m.io+dI*dI/12)}};
+    gi=group(opsVin(sp.ioutMax),["L","fsw"],fn,["dI","ipk","irms"]);R.corners+=gi._n;
+    const nom=fn(Object.assign({},nomOp,{k:{}}));
+    const rI=rss(fn,gi.dI.cMax,["L","fsw"],"dI"),rP=rss(fn,gi.ipk.cMax,["L","fsw"],"ipk"),rR=rss(fn,gi.irms.cMax,["L","fsw"],"irms");
+    addRow({id:"dI",label:"Inductor ripple current",unit:"A",dir:"max",limit:null,nom:nom.dI,rss:rI,eva:{min:gi.dI.min,max:gi.dI.max},limitText:`target ${sp.ripple} % = ${(sp.ripple/100*sp.ioutMax).toFixed(2)} A`,corner:cornerText(gi.dI.cMax),basis:"L tolerance, temperature and saturation drop; fsw tolerance"});
+    const isatHot=ind.isat*(1-ind.isatHot/100);
+    addRow({id:"ipk",label:"Inductor peak current",unit:"A",dir:"max",limit:isatHot/(1+ru.isatMargin/100),nom:nom.ipk,rss:rP,eva:{min:gi.ipk.min,max:gi.ipk.max},limitText:`Isat hot ÷ ${1+ru.isatMargin/100} = ${(isatHot/(1+ru.isatMargin/100)).toFixed(2)} A`,corner:cornerText(gi.ipk.cMax),basis:"Full load plus half the worst-case ripple"});
+    addRow({id:"irmsL",label:"Inductor RMS current",unit:"A",dir:"max",limit:ind.irms*ru.drIndI/100,nom:nom.irms,rss:rR,eva:{min:gi.irms.min,max:gi.irms.max},limitText:`${ru.drIndI} % of ${ind.irms} A`,corner:cornerText(gi.irms.cMax)});
+  }
+
+  /* ---- 3. Output ripple and output cap currents ---- */
+  let goR,nomOut;
+  {
+    const P=["L","cout","esr","fsw"];
+    const fn=c=>{const r=outRipple(realize(D,c));const o={vpp:r.vpp};r.irms.forEach((x,i)=>o["ic"+i]=x);return o};
+    const keys=["vpp"].concat(D.cout.map((_,i)=>"ic"+i));
+    goR=group(opsVin(sp.ioutMax),P,fn,keys);R.corners+=goR._n;
+    nomOut=outRipple(realize(D,Object.assign({},nomOp,{k:{}})));
+    const r=rss(fn,goR.vpp.cMax,P,"vpp");
+    addRow({id:"vrip",label:"Output ripple",unit:"mV",scale:1e3,dir:"max",limit:sp.vrip*1e-3,nom:nomOut.vpp,rss:r,eva:{min:goR.vpp.min,max:goR.vpp.max},limitText:`${sp.vrip} mV pk-pk`,corner:cornerText(goR.vpp.cMax),basis:`Harmonic sum (40 harmonics) of the inductor ripple into the complex impedance of ${D.cout.length} capacitor group${D.cout.length>1?"s":""} (C, ESR, ESL)`});
+    const worstM=realize(D,goR.vpp.cMax);R.plots.rippleOut={nom:nomOut.wave,worst:outRipple(worstM).wave,fsw:sp.fsw*1e3};
+    R.capOut=D.cout.map((row,i)=>({max:goR["ic"+i].max,nom:nomOut.irms[i]}));
+  }
+
+  /* ---- 4. Input ripple, input cap currents, source current ---- */
+  let gin,nomIn;
+  {
+    const P=["L","cin","cinEsr","fsw"].concat(D.filter.on?["lf"]:[]);
+    const fn=c=>{const r=inRipple(realize(D,c),D.filter);const o={vpp:r.vpp,src:r.srcPk1};r.irms.forEach((x,i)=>o["ic"+i]=x);return o};
+    const keys=["vpp","src"].concat(D.cin.map((_,i)=>"ic"+i));
+    gin=group(opsVin(sp.ioutMax),P,fn,keys);R.corners+=gin._n;
+    nomIn=inRipple(realize(D,Object.assign({},nomOp,{k:{}})),D.filter);
+    const r=rss(fn,gin.vpp.cMax,P,"vpp");
+    addRow({id:"vinrip",label:"Input ripple at converter",unit:"mV",scale:1e3,dir:"max",limit:null,nom:nomIn.vpp,rss:r,eva:{min:gin.vpp.min,max:gin.vpp.max},limitText:"—",corner:cornerText(gin.vpp.cMax),basis:"Pulsed input current harmonics into the input capacitor groups"+(D.filter.on?" in parallel with the filter":"")});
+    if(D.filter.on){
+      const rs=rss(fn,gin.src.cMax,P,"src");
+      addRow({id:"src",label:"Source ripple current (fundamental)",unit:"mA",scale:1e3,dir:"max",limit:D.filter.srcLim*1e-3,nom:nomIn.srcPk1,rss:rs,eva:{min:gin.src.min,max:gin.src.max},limitText:`${D.filter.srcLim} mA pk`,corner:cornerText(gin.src.cMax),basis:"Current through the filter inductor at fsw"});
+    }
+    R.capIn=D.cin.map((row,i)=>({max:gin["ic"+i].max,nom:nomIn.irms[i]}));
+    R.plots.rippleIn={nom:nomIn.wave,fsw:sp.fsw*1e3};
+  }
+
+  /* ---- 5. Control loop over corners ---- */
+  const fsw=sp.fsw*1e3;
+  const gridC=logspace(10,fsw/2,90);
+  const P=["L","cout","esr","mod","ea","compR","compC","fsw"];
+  const loopOps=[];for(const v of VIN)for(const io of [Math.max(sp.ioutMin,sp.ioutMax*0.01),sp.ioutMax])loopOps.push({vin:v,io});
+  const env={magLo:gridC.map(()=>Infinity),magHi:gridC.map(()=>-Infinity),phLo:gridC.map(()=>Infinity),phHi:gridC.map(()=>-Infinity)};
+  const loopFn=(c,keepEnv)=>{
+    const m=realize(D,c);const sw=sweep(m,gridC);const lm=loopMetrics(sw);
+    if(keepEnv){sw.mag.forEach((x,i)=>{const db=20*Math.log10(x);if(db<env.magLo[i])env.magLo[i]=db;if(db>env.magHi[i])env.magHi[i]=db;
+      if(sw.ph[i]<env.phLo[i])env.phLo[i]=sw.ph[i];if(sw.ph[i]>env.phHi[i])env.phHi[i]=sw.ph[i]})}
+    return {fc:lm.fc,pm:lm.pm,gm:isFinite(lm.gm)?lm.gm:99,zpk:lm.zclPk,cond:lm.conditional?1:0};
+  };
+  const gl=group(loopOps,P,c=>loopFn(c,true),["fc","pm","gm","zpk","cond"]);R.corners+=gl._n;
+  const nomM=realize(D,Object.assign({},nomOp,{k:{}}));
+  const gridD=logspace(10,fsw,200);
+  const nomSw=sweep(nomM,gridD),nomLm=loopMetrics(nomSw);
+  R.loop={nom:nomLm,sw:nomSw,env,gridC,gl};
+  const rPm=rss(loopFn,gl.pm.cMin,P,"pm"),rGm=rss(loopFn,gl.gm.cMin,P,"gm"),rFcLo=rss(loopFn,gl.fc.cMin,P,"fc"),rFcHi=rss(loopFn,gl.fc.cMax,P,"fc");
+  addRow({id:"fc",label:"Crossover frequency",unit:"kHz",scale:1e-3,dir:"max",limit:fsw/5,nom:nomLm.fc,rss:{lo:rFcLo.lo,hi:rFcHi.hi},eva:{min:gl.fc.min,max:gl.fc.max},limitText:`≤ fsw/5 = ${(fsw/5e3).toFixed(0)} kHz`,corner:cornerText(gl.fc.cMax),basis:"Highest crossover across all corners"});
+  addRow({id:"pm",label:"Phase margin",unit:"°",dir:"min",limit:sp.pmMin,nom:nomLm.pm,rss:rPm,eva:{min:gl.pm.min,max:gl.pm.max},limitText:`≥ ${sp.pmMin}°`,corner:cornerText(gl.pm.cMin),basis:"Loop gain T = Gc·Gp swept 10 Hz to fsw/2 at every corner"});
+  addRow({id:"gm",label:"Gain margin",unit:"dB",dir:"min",limit:sp.gmMin,nom:isFinite(nomLm.gm)?nomLm.gm:99,rss:rGm,eva:{min:gl.gm.min,max:gl.gm.max},limitText:`≥ ${sp.gmMin} dB`,corner:cornerText(gl.gm.cMin),basis:"99 dB means the phase never reaches −180° below fsw/2"});
+  if(gl.cond.max>0)R.notes.push("Some corners cross 0 dB more than once (conditional stability). Review the Bode plot at the listed corner.");
+
+  /* ---- 6. Load-step transient ---- */
+  {
+    const dIs=sp.ioutMax*sp.step/100;
+    const tNom=transient(nomM,dIs,sp.slew,nomLm.fc);
+    const cands=[gl.zpk.cMax,gl.pm.cMin,gl.fc.cMin].filter(Boolean);
+    let worst=tNom,wc=nomOp;
+    for(const c of cands){const m=realize(D,c);const lm=loopMetrics(sweep(m,gridC));if(!isFinite(lm.fc))continue;const t=transient(m,dIs,sp.slew,lm.fc);if(t.dev>worst.dev){worst=t;wc=c}}
+    const lim=sp.vout*sp.dvTran/100;
+    addRow({id:"tran",label:"Load-step deviation",unit:"mV",scale:1e3,dir:"max",limit:lim,nom:tNom.dev,rss:null,eva:{min:tNom.dev,max:worst.dev},limitText:`± ${sp.dvTran} % = ${(lim*1e3).toFixed(0)} mV`,corner:cornerText(wc),
+      basis:`${dIs.toFixed(2)} A step at ${sp.slew} A/µs; closed-loop output impedance Zout/(1+T), inverse FFT. EVA checks the corners with highest |Zcl|, lowest PM and lowest fc.`});
+    R.plots.tran={nom:tNom,worst,corner:cornerText(wc)};
+    /* large-signal bounds when the loop saturates */
+    const Lmax=ind.L*1e-6*(1+ind.ltol/100);
+    const mMin=realize(D,{vin:sp.vinMin,io:sp.ioutMax,k:{cout:-1}});const Cmin=mMin.cout.reduce((a,b)=>a+b.n*b.C,0);
+    R.slewBound={release:Math.sqrt(sp.vout*sp.vout+Lmax*dIs*dIs/Cmin)-sp.vout,apply:Lmax*dIs*dIs/(2*Cmin*(sp.vinMin-sp.vout))};
+  }
+
+  /* ---- 7. Current-mode sub-harmonic stability ---- */
+  if(D.ctrl==="pcm"){
+    const fn=c=>{const m=realize(D,c);const x=m.mc*(1-m.D)-0.5;return {qp:x>0?1/(Math.PI*x):99,mcd:m.mc*(1-m.D)}};
+    const g=group(opsVin(sp.ioutMax),["L","mod","fsw"],fn,["qp","mcd"]);R.corners+=g._n;
+    const nom=fn(Object.assign({},nomOp,{k:{}}));
+    const r=rss(fn,g.qp.cMax,["L","mod","fsw"],"qp");
+    addRow({id:"qp",label:"Sampling-gain Q (sub-harmonic)",unit:"",dir:"max",limit:1.5,nom:nom.qp,rss:r,eva:{min:g.qp.min,max:g.qp.max},limitText:"≤ 1.5 (≈ 0.64 ideal)",corner:cornerText(g.qp.cMax),basis:"Qp = 1/(π(mc·D′ − 0.5)), mc = 1 + Se/Sn",dig:3});
+  }
+
+  /* ---- 8. Losses and thermal ---- */
+  {
+    const capLoss=(arr,cur)=>arr.reduce((a,row,i)=>a+(row.n>0?row.n*Math.pow(cur[i]||0,2)*row.esr*1e-3:0),0);
+    const snubP=D.snub.on&&ext?null:0;
+    const fn=c=>{
+      const Ta=c.T==="max"?sp.tMax:25;
+      const mm=realize(D,Object.assign({},c,{k:{}}));const ro=outRipple(mm),ri=inRipple(mm,D.filter);
+      const sn=D.snub.on&&ext?snubberDesign(D,c.vin).p:0;
+      const L=losses(D,c.vin,c.io,Ta,c.life==="eol",{capOut:capLoss(D.cout,ro.irms),capIn:capLoss(D.cin,ri.irms),snub:sn});
+      return {eff:L.eff,tot:L.tot,tjHs:ext?L.tjHs:NaN,tjLs:ext?L.tjLs:NaN,tjIc:ext?NaN:L.tjIc,tInd:L.tInd,_L:L};
+    };
+    const ops=[];for(const v of VIN)ops.push({vin:v,io:sp.ioutMax,T:"max",life:"eol"});
+    const keys=["eff","tot","tjHs","tjLs","tjIc","tInd"];
+    const g=group(ops,[],fn,keys);R.corners+=g._n;
+    const nom=fn(Object.assign({},nomOp,{k:{}}));
+    R.lossNom=nom._L;R.lossWorst=fn(g.tot.cMax)._L;R.lossWorstCorner=cornerText(g.tot.cMax);
+    R.lossByVin=VIN.map(v=>({vin:v,nom:fn({vin:v,io:sp.ioutMax,T:"nom",life:"bol"})._L,hot:fn({vin:v,io:sp.ioutMax,T:"max",life:"eol"})._L}));
+    addRow({id:"eff",label:"Efficiency at full load",unit:"%",scale:100,dir:"min",limit:null,nom:nom.eff,rss:null,eva:{min:g.eff.min,max:g.eff.max},limitText:"—",corner:cornerText(g.eff.cMin),basis:`Nominal at 25 °C, BOL; worst at ${sp.tMax} °C ambient, EOL Rds(on)`,dig:3});
+    if(ext){
+      const limH=Math.min(ru.tjLim,D.hs.tjmax),limL=Math.min(ru.tjLim,D.ls.tjmax);
+      addRow({id:"tjHs",label:"High-side MOSFET Tj",unit:"°C",dir:"max",limit:limH,nom:nom.tjHs,rss:null,eva:{min:g.tjHs.min,max:g.tjHs.max},limitText:`≤ ${limH} °C`,corner:cornerText(g.tjHs.cMax),basis:"Ta + P·RθJA with Rds(on) iterated at Tj",dig:3});
+      addRow({id:"tjLs",label:"Low-side MOSFET Tj",unit:"°C",dir:"max",limit:limL,nom:nom.tjLs,rss:null,eva:{min:g.tjLs.min,max:g.tjLs.max},limitText:`≤ ${limL} °C`,corner:cornerText(g.tjLs.cMax),dig:3});
+    }else{
+      const lim=Math.min(ru.tjLim,ic.tjmaxIc);
+      addRow({id:"tjIc",label:"Converter IC Tj",unit:"°C",dir:"max",limit:lim,nom:nom.tjIc,rss:null,eva:{min:g.tjIc.min,max:g.tjIc.max},limitText:`≤ ${lim} °C`,corner:cornerText(g.tjIc.cMax),dig:3});
+    }
+    addRow({id:"tInd",label:"Inductor temperature",unit:"°C",dir:"max",limit:125,nom:nom.tInd,rss:null,eva:{min:g.tInd.min,max:g.tInd.max},limitText:"≤ 125 °C (check part rating)",corner:cornerText(g.tInd.cMax),basis:"Ta + rated rise × (Irms/Irated)²",dig:3});
+    /* efficiency curve at nominal */
+    const curve=[];for(const v of VIN){const pts=[];for(let i=1;i<=24;i++){const io=sp.ioutMax*i/24;const L=losses(D,v,io,25,false);pts.push([io,L.eff*100])}curve.push({vin:v,pts})}
+    R.plots.eff=curve;
+  }
+
+  /* ---- 9. Timing and protection ---- */
+  {
+    const fswMax=fsw*(1+ic.fswTol/100),fswMin=fsw*(1-ic.fswTol/100);
+    const tonReq=sp.vout/sp.vinMax/fswMax;
+    addRow({id:"ton",label:"On-time at Vin max, fsw max",unit:"ns",scale:1e9,dir:"min",limit:ic.tonMin*1.25e-9,nom:sp.vout/sp.vinNom/fsw,rss:null,eva:{min:tonReq,max:sp.vout/sp.vinMin/fswMin},limitText:`≥ 1.25 × ${ic.tonMin} ns`,corner:`Vin ${sp.vinMax} V, fsw+`,dig:3});
+    const ilimMin=ic.ilim*(1-ic.ilimTol/100),ilimMax=ic.ilim*(1+ic.ilimTol/100);
+    addRow({id:"ilim",label:"Current-limit headroom",unit:"A",dir:"min",limit:gi.ipk.max,nom:ic.ilim,rss:null,eva:{min:ilimMin,max:ilimMax},limitText:`min limit ≥ worst peak ${gi.ipk.max.toFixed(2)} A`,corner:"Current limit at its low tolerance",dig:3});
+    const isatHot=ind.isat*(1-ind.isatHot/100);
+    addRow({id:"satlim",label:"Inductor Isat at current limit",unit:"A",dir:"min",limit:ilimMax,nom:ind.isat,rss:null,eva:{min:isatHot,max:ind.isat},limitText:`hot Isat ≥ max limit ${ilimMax.toFixed(2)} A`,corner:`${sp.tMax} °C`,basis:"Keeps the inductor out of saturation during overload",dig:3});
+    R.ilim={min:ilimMin,max:ilimMax};
+  }
+
+  /* ---- 10. Supporting circuits ---- */
+  R.circuits=supporting(D,gi,R);
+  if(R.circuits.ss){const s=R.circuits.ss;
+    addRow({id:"inrush",label:"Start-up inductor current",unit:"A",dir:"max",limit:R.ilim.min,nom:s.inrushNom,rss:null,eva:{min:s.inrushNom,max:s.inrushMax},limitText:`≤ min current limit ${R.ilim.min.toFixed(2)} A`,corner:"Cout max, soft-start fastest",basis:"Cout·Vout/tss + start-up load",dig:3})}
+  if(R.circuits.uvlo){const u=R.circuits.uvlo;
+    addRow({id:"uvlo",label:"UVLO start threshold",unit:"V",dir:"max",limit:sp.vinMin,nom:u.startNom,rss:null,eva:{min:u.startMin,max:u.startMax},limitText:`≤ Vin min ${sp.vinMin} V`,corner:"EN threshold and divider at tolerance",dig:3})}
+
+  /* ---- 11. Input filter Middlebrook ---- */
+  if(D.filter.on){
+    const grid=logspace(100,fsw,160);
+    const effW=R.lossByVin[0].hot.eff;
+    const fn=c=>{const m=realize(D,c);return {mg:middlebrook(D,m,effW,grid).margin}};
+    const g=group([{vin:sp.vinMin,io:sp.ioutMax}],["cin","cinEsr","lf"],fn,["mg"]);R.corners+=g._n;
+    const nomMb=middlebrook(D,realize(D,{vin:sp.vinMin,io:sp.ioutMax,k:{}}),effW,grid);
+    const worstMb=middlebrook(D,realize(D,g.mg.cMin),effW,grid);
+    addRow({id:"mb",label:"Middlebrook impedance margin",unit:"dB",dir:"min",limit:D.filter.mbMargin,nom:nomMb.margin,rss:null,eva:{min:g.mg.min,max:g.mg.max},limitText:`≥ ${D.filter.mbMargin} dB`,corner:cornerText(g.mg.cMin),basis:"Filter output impedance against converter input impedance |Vin²·η/Pout| at Vin min, full load",dig:3});
+    R.plots.mb={grid,nom:nomMb,worst:worstMb};
+    R.damp=suggestDamping(D,realize(D,{vin:sp.vinNom,io:sp.ioutMax,k:{}}));
+  }
+
+  /* ---- 12. Capacitor impedance plot ---- */
+  {
+    const grid=logspace(1e3,Math.max(20e6,fsw*40),160);
+    const mN=realize(D,{vin:sp.vinNom,io:sp.ioutMax,k:{}}),mLo=realize(D,{vin:sp.vinNom,io:sp.ioutMax,k:{cout:-1,esr:1}}),mHi=realize(D,{vin:sp.vinNom,io:sp.ioutMax,k:{cout:1,esr:-1}});
+    R.plots.zout={grid,total:grid.map(f=>CX.abs(bankZ(mN.cout,jw(f)))),lo:grid.map(f=>CX.abs(bankZ(mHi.cout,jw(f)))),hi:grid.map(f=>CX.abs(bankZ(mLo.cout,jw(f)))),
+      rows:mN.cout.map(b=>grid.map(f=>b.n>0?CX.abs(CX.sc(rowZ(b,jw(f)),1/b.n)):NaN))};
+    const mi=realize(D,{vin:sp.vinNom,io:sp.ioutMax,k:{}});
+    R.plots.zin={grid,total:grid.map(f=>CX.abs(bankZ(mi.cin,jw(f)))),rows:mi.cin.map(b=>grid.map(f=>b.n>0?CX.abs(CX.sc(rowZ(b,jw(f)),1/b.n)):NaN))};
+  }
+
+  /* ---- 13. Stress and derating ---- */
+  R.stress=stressTable(D,R,gi);
+  R.nomOut=nomOut;R.nomIn=nomIn;
+  return R;
+}
+
+function snubberDesign(D,vin){
+  const coss=D.ls.coss*1e-12,Lp=D.snub.lloop*1e-9;
+  const fr=1/(TW*Math.sqrt(Lp*coss)),z0=Math.sqrt(Lp/coss);
+  const Rs=snap(z0,E96),Cs=snap(3*coss,E12);
+  return {fr,z0,Rs,Cs,p:Cs*vin*vin*D.specs.fsw*1e3};
+}
+function supporting(D,gi,R){
+  const sp=D.specs,ic=D.ic,ru=D.rules,ext=D.mode==="ext",out={};
+  const fsw=sp.fsw*1e3,fswMin=fsw*(1-ic.fswTol/100);
+  /* bootstrap */
+  if(ext){
+    const tonMax=(sp.vout/sp.vinMin)/fswMin;
+    const qg=D.hs.qg*1e-9;
+    const cmin=(qg+ic.ibst*1e-6*tonMax)/ru.dvBoot;
+    const rec=snap(Math.max(cmin*3,100e-9),E6,"up");
+    out.boot={tonMax,qg,cmin,rec,droop:(qg+ic.ibst*1e-6*tonMax)/rec,vr:ic.vdrv};
+  }
+  /* soft-start */
+  {
+    const css=snap(ic.iss*1e-6*sp.tss*1e-3/ic.vref,E12);
+    const vrefMin=ic.vref*(1-ic.vrefTol/100),vrefMax=ic.vref*(1+ic.vrefTol/100);
+    const cTol=ru.cTolComp/100,iTol=ic.issTol/100;
+    const tssNom=css*ic.vref/(ic.iss*1e-6),tssMin=css*(1-cTol)*vrefMin/(ic.iss*1e-6*(1+iTol)),tssMax=css*(1+cTol)*vrefMax/(ic.iss*1e-6*(1-iTol));
+    const mHi=realize(D,{vin:sp.vinNom,io:sp.ioutMax,k:{cout:1}});
+    const CmaxRaw=D.cout.reduce((a,r)=>a+r.n*r.c*1e-6*(1+r.tol/100),0);
+    const Cnom=realize(D,{vin:sp.vinNom,io:sp.ioutMax,k:{}}).cout.reduce((a,b)=>a+b.n*b.C,0);
+    out.ss={css,tssNom,tssMin,tssMax,inrushNom:Cnom*sp.vout/tssNom+sp.ioStart,inrushMax:CmaxRaw*sp.vout/tssMin+sp.ioStart,Cmax:CmaxRaw};
+  }
+  /* UVLO divider */
+  if(sp.uvStart>0&&ic.venR>0){
+    const ven=ic.venR,ih=ic.ihys*1e-6;
+    let rt,rb;
+    if(ih>0&&sp.uvStart>sp.uvStop){rt=(sp.uvStart-sp.uvStop)/ih;rb=rt*ven/(sp.uvStart-ven)}
+    else{rb=10e3;rt=rb*(sp.uvStart/ven-1)}
+    const Rt=snap(rt,E96),Rb=snap(rb,E96);
+    const rt2=Core.rtotPct(D)/100,vt=ic.venTol/100,ht=ic.ihysTol/100;
+    const start=(v,a,b)=>v*(1+a/b);
+    const startNom=start(ven,Rt,Rb),startMax=start(ven*(1+vt),Rt*(1+rt2),Rb*(1-rt2)),startMin=start(ven*(1-vt),Rt*(1-rt2),Rb*(1+rt2));
+    const stopNom=startNom-ih*Rt,stopMin=startMin-ih*(1+ht)*Rt*(1+rt2),stopMax=startMax-ih*(1-ht)*Rt*(1-rt2);
+    out.uvlo={Rt,Rb,startNom,startMin,startMax,stopNom,stopMin,stopMax,model:ih>0?"current":"ratio"};
+  }
+  /* snubber */
+  if(ext&&D.snub.on){const s=snubberDesign(D,sp.vinMax);s.pr=D.snub.rsP;out.snub=s}
+  return out;
+}
+
+function capDerateKey(type){return (Core.CAP_TYPES[type]||Core.CAP_TYPES.mlcc).derate}
+function stressTable(D,R,gi){
+  const sp=D.specs,ru=D.rules,ic=D.ic,ind=D.ind,ext=D.mode==="ext",rows=[];
+  const add=(part,param,applied,rated,der,unit,dig)=>{
+    const lim=rated*der/100;const u=applied/lim;
+    rows.push({part,param,applied,rated,der,lim,unit,util:u,status:!isFinite(u)?"info":u<=1?"ok":applied<=rated?"warn":"bad",dig:dig||3});
+  };
+  const vsw=sp.vinMax*(1+(D.snub.on&&ext?0.05:ru.swOvershoot/100));
+  add(ext?"Controller":"Converter IC","Input voltage",sp.vinMax,ic.vinMax,ru.drIcV,"V");
+  if(ext){
+    for(const [nm,f] of [["High-side MOSFET",D.hs],["Low-side MOSFET",D.ls]]){
+      add(nm,"Vds incl. overshoot",vsw,f.vds,ru.drMosV,"V");
+      add(nm,"Drain current (peak)",gi.ipk.max,f.id,ru.drMosI,"A");
+    }
+    const tH=R.rows.find(r=>r.id==="tjHs"),tL=R.rows.find(r=>r.id==="tjLs");
+    if(tH)rows.push({part:"High-side MOSFET",param:"Junction temperature",applied:tH.eva.max,rated:D.hs.tjmax,der:null,lim:Math.min(ru.tjLim,D.hs.tjmax),unit:"°C",util:tH.eva.max/Math.min(ru.tjLim,D.hs.tjmax),status:tH.status,dig:3});
+    if(tL)rows.push({part:"Low-side MOSFET",param:"Junction temperature",applied:tL.eva.max,rated:D.ls.tjmax,der:null,lim:Math.min(ru.tjLim,D.ls.tjmax),unit:"°C",util:tL.eva.max/Math.min(ru.tjLim,D.ls.tjmax),status:tL.status,dig:3});
+  }else{
+    add("Converter IC","Output current",sp.ioutMax,ic.ioutMax,100,"A");
+  }
+  add("Inductor","RMS current",gi.irms.max,ind.irms,ru.drIndI,"A");
+  rows.push({part:"Inductor",param:"Peak vs hot Isat",applied:gi.ipk.max,rated:ind.isat,der:null,lim:ind.isat*(1-ind.isatHot/100)/(1+ru.isatMargin/100),unit:"A",util:gi.ipk.max/(ind.isat*(1-ind.isatHot/100)/(1+ru.isatMargin/100)),status:gi.ipk.max<=ind.isat*(1-ind.isatHot/100)/(1+ru.isatMargin/100)?"ok":gi.ipk.max<=ind.isat*(1-ind.isatHot/100)?"warn":"bad",dig:3});
+  const ripOut=(R.rows.find(r=>r.id==="vrip")||{eva:{max:0}}).eva.max,ripIn=(R.rows.find(r=>r.id==="vinrip")||{eva:{max:0}}).eva.max;
+  D.cout.forEach((r,i)=>{if(!(r.n>0))return;const nm=`Output C${i+1}${r.pn?" "+r.pn:""}`;
+    add(nm,"Voltage",R.vo.max+ripOut/2+sp.vout*sp.dvTran/100,r.vr,ru[capDerateKey(r.type)],"V");
+    add(nm,"Ripple current per cap",R.capOut[i].max,r.irmsC,ru.drCapI,"A");});
+  D.cin.forEach((r,i)=>{if(!(r.n>0))return;const nm=`Input C${i+1}${r.pn?" "+r.pn:""}`;
+    add(nm,"Voltage",sp.vinMax+ripIn/2,r.vr,ru[capDerateKey(r.type)],"V");
+    add(nm,"Ripple current per cap",R.capIn[i].max,r.irmsC,ru.drCapI,"A");});
+  if(R.circuits.snub){const s=R.circuits.snub;add("Snubber resistor","Power",s.p,s.pr,ru.drResP,"W")}
+  return rows;
+}
+
+return {run,cornerText,PARAM_LABEL,snubberDesign};
+})();
+if(typeof module!=="undefined")module.exports=WCA;
+</script>
+<script>/* ===================== Formatting and SVG plots ===================== */
+"use strict";
+const Fmt=(function(){
+  const PFX=[[1e9,"G"],[1e6,"M"],[1e3,"k"],[1,""],[1e-3,"m"],[1e-6,"µ"],[1e-9,"n"],[1e-12,"p"]];
+  function si(v,unit,d){
+    d=d||3;if(v==null||!isFinite(v))return "—";
+    if(v===0)return "0 "+unit;
+    const a=Math.abs(v);
+    for(const [m,p] of PFX){if(a>=m*0.9995){return (+(v/m).toPrecision(d))+" "+p+unit}}
+    return (+(v/1e-12).toPrecision(d))+" p"+unit;
+  }
+  const n=(v,d)=>v==null||!isFinite(v)?"—":(+v.toPrecision(d||3)).toString();
+  const fx=(v,d)=>v==null||!isFinite(v)?"—":v.toFixed(d==null?1:d);
+  const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  return {si,n,fx,esc};
+})();
+
+const Plot=(function(){
+  const {esc}=Fmt;
+  function niceTicks(lo,hi,count){
+    const span=hi-lo;if(!(span>0))return [lo];
+    const step0=span/(count||5);const mag=Math.pow(10,Math.floor(Math.log10(step0)));
+    const step=[1,2,2.5,5,10].map(x=>x*mag).find(x=>x>=step0)||10*mag;
+    const out=[];for(let v=Math.ceil(lo/step)*step;v<=hi+step*1e-6;v+=step)out.push(+v.toPrecision(10));return out;
+  }
+  function freqLabel(f){return f>=1e6?(f/1e6)+"M":f>=1e3?(f/1e3)+"k":String(f)}
+  /* opts: {w,h,xlog,ylog,xmin,xmax,ymin,ymax,xlabel,ylabel,xfmt,yfmt,series:[{x,y,color,width,dash,label,opacity}],bands:[{x,lo,hi,color}],hlines:[{y,color,label,dash}],vlines:[{x,color,label,dash}],legend:true} */
+  function draw(o){
+    const W=o.w||640,H=o.h||240,ml=o.ml||52,mr=o.mr||14,mt=o.mt||12,mb=o.mb||36,pw=W-ml-mr,ph=H-mt-mb;
+    const xs=[],ys=[];
+    (o.series||[]).forEach(s=>s.x.forEach((x,i)=>{const y=s.y[i];if(isFinite(x)&&isFinite(y)){xs.push(x);ys.push(y)}}));
+    (o.bands||[]).forEach(b=>b.x.forEach((x,i)=>{if(isFinite(b.lo[i]))ys.push(b.lo[i]);if(isFinite(b.hi[i]))ys.push(b.hi[i])}));
+    (o.hlines||[]).forEach(h=>ys.push(h.y));
+    let xmin=o.xmin!=null?o.xmin:Math.min(...xs),xmax=o.xmax!=null?o.xmax:Math.max(...xs);
+    let ymin=o.ymin!=null?o.ymin:Math.min(...ys),ymax=o.ymax!=null?o.ymax:Math.max(...ys);
+    if(!isFinite(xmin)||!isFinite(xmax)||!isFinite(ymin)||!isFinite(ymax))return `<svg viewBox="0 0 ${W} ${H}" width="100%"></svg>`;
+    if(ymin===ymax){ymin-=1;ymax+=1}
+    if(!o.ylog&&o.ymin==null){const pad=(ymax-ymin)*0.06;ymin-=pad;ymax+=pad}
+    const lx=v=>o.xlog?Math.log10(v):v,ly=v=>o.ylog?Math.log10(v):v;
+    const X=v=>ml+(lx(v)-lx(xmin))/(lx(xmax)-lx(xmin))*pw,Y=v=>mt+(ly(ymax)-ly(v))/(ly(ymax)-ly(ymin))*ph;
+    const cx=v=>Math.max(ml,Math.min(ml+pw,X(v))),cy=v=>Math.max(mt-2,Math.min(mt+ph+2,Y(v)));
+    let g=`<rect x="${ml}" y="${mt}" width="${pw}" height="${ph}" fill="var(--plot-bg)"/>`;
+    /* x grid */
+    if(o.xlog){
+      for(let d=Math.floor(Math.log10(xmin));d<=Math.ceil(Math.log10(xmax));d++){
+        for(let m=1;m<10;m++){const v=m*Math.pow(10,d);if(v<xmin*0.999||v>xmax*1.001)continue;
+          g+=`<line x1="${X(v)}" x2="${X(v)}" y1="${mt}" y2="${mt+ph}" stroke="var(--grid)" stroke-width="${m===1?1:0.5}" opacity="${m===1?1:0.6}"/>`;
+          if(m===1)g+=`<text x="${X(v)}" y="${mt+ph+15}" text-anchor="middle" fill="var(--muted)">${o.xfmt?o.xfmt(v):freqLabel(v)}</text>`}
+      }
+    }else{
+      for(const v of niceTicks(xmin,xmax,o.xticks||6)){g+=`<line x1="${X(v)}" x2="${X(v)}" y1="${mt}" y2="${mt+ph}" stroke="var(--grid)" stroke-width="1"/><text x="${X(v)}" y="${mt+ph+15}" text-anchor="middle" fill="var(--muted)">${o.xfmt?o.xfmt(v):+v.toPrecision(4)}</text>`}
+    }
+    /* y grid */
+    if(o.ylog){
+      for(let d=Math.floor(Math.log10(ymin));d<=Math.ceil(Math.log10(ymax));d++){const v=Math.pow(10,d);if(v<ymin*0.999||v>ymax*1.001)continue;
+        g+=`<line x1="${ml}" x2="${ml+pw}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)" stroke-width="1"/><text x="${ml-6}" y="${Y(v)+4}" text-anchor="end" fill="var(--muted)">${o.yfmt?o.yfmt(v):v}</text>`}
+    }else{
+      for(const v of niceTicks(ymin,ymax,o.yticks||5)){g+=`<line x1="${ml}" x2="${ml+pw}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)" stroke-width="1"/><text x="${ml-6}" y="${Y(v)+4}" text-anchor="end" fill="var(--muted)">${o.yfmt?o.yfmt(v):+v.toPrecision(4)}</text>`}
+    }
+    /* bands */
+    for(const b of o.bands||[]){
+      const top=b.x.map((x,i)=>`${X(x).toFixed(1)},${cy(b.hi[i]).toFixed(1)}`),bot=b.x.map((x,i)=>`${X(x).toFixed(1)},${cy(b.lo[i]).toFixed(1)}`).reverse();
+      g+=`<polygon points="${top.concat(bot).join(" ")}" fill="var(${b.color||"--band"})" opacity="${b.opacity||0.6}"/>`;
+    }
+    for(const h of o.hlines||[]){if(h.y<ymin||h.y>ymax)continue;g+=`<line x1="${ml}" x2="${ml+pw}" y1="${Y(h.y)}" y2="${Y(h.y)}" stroke="var(${h.color||"--muted"})" stroke-width="1.2" ${h.dash!==false?'stroke-dasharray="5 4"':""}/>`+(h.label?`<text x="${ml+pw-4}" y="${Y(h.y)-5}" text-anchor="end" fill="var(${h.color||"--muted"})">${esc(h.label)}</text>`:"")}
+    for(const v of o.vlines||[]){if(!isFinite(v.x)||v.x<xmin||v.x>xmax)continue;g+=`<line x1="${X(v.x)}" x2="${X(v.x)}" y1="${mt}" y2="${mt+ph}" stroke="var(${v.color||"--muted"})" stroke-width="1.2" stroke-dasharray="4 4"/>`+(v.label?`<text x="${X(v.x)+4}" y="${mt+12}" fill="var(${v.color||"--muted"})">${esc(v.label)}</text>`:"")}
+    /* series */
+    for(const s of o.series||[]){
+      let d="",pen=false;
+      s.x.forEach((x,i)=>{const y=s.y[i];if(!isFinite(x)||!isFinite(y)||x<xmin||x>xmax||(o.ylog&&y<=0)){pen=false;return}d+=(pen?"L":"M")+X(x).toFixed(1)+","+cy(y).toFixed(1);pen=true});
+      g+=`<path d="${d}" fill="none" stroke="var(${s.color||"--copper"})" stroke-width="${s.width||2}" ${s.dash?'stroke-dasharray="6 4"':""} opacity="${s.opacity||1}" stroke-linejoin="round"/>`;
+    }
+    for(const p of o.points||[]){if(!isFinite(p.x)||!isFinite(p.y))continue;g+=`<circle cx="${X(p.x)}" cy="${cy(p.y)}" r="3.5" fill="var(${p.color||"--copper"})"/>`+(p.label?`<text x="${X(p.x)+6}" y="${cy(p.y)-6}" fill="var(${p.color||"--copper"})">${esc(p.label)}</text>`:"")}
+    g+=`<rect x="${ml}" y="${mt}" width="${pw}" height="${ph}" fill="none" stroke="var(--line)"/>`;
+    if(o.xlabel)g+=`<text x="${ml+pw}" y="${H-2}" text-anchor="end" fill="var(--muted)">${esc(o.xlabel)}</text>`;
+    if(o.ylabel)g+=`<text x="12" y="${mt+ph/2}" text-anchor="middle" fill="var(--muted)" transform="rotate(-90 12 ${mt+ph/2})">${esc(o.ylabel)}</text>`;
+    return `<svg class="plot" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(o.aria||o.ylabel||"plot")}">${g}</svg>`;
+  }
+  function legend(items){return `<div class="plegend">${items.map(i=>`<span><i style="background:var(${i.color});${i.dash?"background:repeating-linear-gradient(90deg,var("+i.color+") 0 5px,transparent 5px 8px);":""}${i.band?"height:9px;opacity:.6;":""}"></i>${esc(i.label)}</span>`).join("")}</div>`}
+  return {draw,legend,niceTicks};
+})();
+
+/* ===================== Result views shared by the Results tab and the report ===================== */
+"use strict";
+const Views=(function(){
+const {si,n,fx,esc}=Fmt;
+const LAB={ok:"Pass",warn:"Check",bad:"Fail",info:"Info"};
+const chip=s=>`<span class="chip ${s}">${LAB[s]||s}</span>`;
+const BANKC=["--solder","--ok","--warn","--violet","--bad"];
+
+function val(r,x){const s=r.scale||1;if(x==null||!isFinite(x))return "—";const v=x*s;return (+v.toPrecision(r.dig||3)).toString()}
+function wcaTable(R,opts){
+  opts=opts||{};
+  const rows=R.rows.filter(r=>!opts.filter||opts.filter(r));
+  return `<div class="scroll"><table class="t wca"><thead><tr><th>Parameter</th><th>Nominal</th><th>RSS range</th><th>EVA range</th><th>Limit</th><th>Result</th></tr></thead><tbody>${
+    rows.map(r=>`<tr class="st-${r.status}"><td><b>${esc(r.label)}</b>${r.unit?` <span class="u">${esc(r.unit)}</span>`:""}${opts.corners!==false&&r.corner?`<div class="sub">Worst: ${esc(r.corner)}</div>`:""}</td>
+      <td>${val(r,r.nom)}</td><td>${r.rss?val(r,r.rss.lo)+" – "+val(r,r.rss.hi):"—"}</td><td>${val(r,r.eva.min)} – ${val(r,r.eva.max)}</td>
+      <td class="lim">${esc(r.limitText||"—")}</td><td>${chip(r.status)}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function stressTable(R){
+  return `<div class="scroll"><table class="t"><thead><tr><th>Part</th><th>Stress</th><th>Applied</th><th>Rating</th><th>Derating</th><th>Derated limit</th><th>Use</th><th>Result</th></tr></thead><tbody>${
+    R.stress.map(s=>`<tr class="st-${s.status}"><td>${esc(s.part)}</td><td>${esc(s.param)}</td><td>${n(s.applied)} ${esc(s.unit)}</td><td>${n(s.rated)} ${esc(s.unit)}</td><td>${s.der!=null?s.der+" %":"—"}</td><td>${n(s.lim)} ${esc(s.unit)}</td>
+      <td><span class="meter"><i style="width:${Math.min(100,s.util*100).toFixed(0)}%" class="m-${s.status}"></i></span>${fx(s.util*100,0)} %</td><td>${chip(s.status)}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function bode(R,D,opts){
+  opts=opts||{};
+  const L=R.loop,sw=L.sw,fsw=D.specs.fsw*1e3;
+  const magDb=sw.mag.map(x=>20*Math.log10(x));
+  const bands=[{x:L.gridC,lo:L.env.magLo,hi:L.env.magHi}];
+  const gain=Plot.draw({w:640,h:opts.h||210,xlog:true,xmin:10,xmax:fsw,ymin:-60,ymax:Math.min(120,Math.max(40,Math.ceil(Math.max(...magDb.filter(isFinite))/20)*20)),ylabel:"Gain (dB)",
+    series:[{x:sw.f,y:magDb,color:"--copper",width:2.2}].concat(opts.parts?[{x:sw.f,y:sw.gpm.map(x=>20*Math.log10(x)),color:"--solder",width:1.4,dash:true},{x:sw.f,y:sw.gcm.map(x=>20*Math.log10(x)),color:"--ok",width:1.4,dash:true}]:[]),
+    bands,hlines:[{y:0,color:"--muted",dash:false}],vlines:[{x:L.nom.fc,color:"--copper",label:`fc ${si(L.nom.fc,"Hz")}`},{x:fsw/2,color:"--muted",label:"fsw/2"}],aria:"Loop gain magnitude"});
+  const ph=Plot.draw({w:640,h:opts.h||190,xlog:true,xmin:10,xmax:fsw,ymin:-270,ymax:90,yticks:6,ylabel:"Phase (°)",xlabel:"Frequency (Hz)",
+    series:[{x:sw.f,y:sw.ph,color:"--copper",width:2.2}].concat(opts.parts?[{x:sw.f,y:sw.gpp,color:"--solder",width:1.4,dash:true},{x:sw.f,y:sw.gcp,color:"--ok",width:1.4,dash:true}]:[]),
+    bands:[{x:L.gridC,lo:L.env.phLo,hi:L.env.phHi}],hlines:[{y:-180,color:"--bad",label:"−180°"}],vlines:[{x:L.nom.fc,color:"--copper",label:`PM ${fx(L.nom.pm,0)}°`}],aria:"Loop gain phase"});
+  const items=[{color:"--copper",label:"Loop gain T, nominal"},{color:"--band",label:`All ${L.gl._n} worst-case corners`,band:true}];
+  if(opts.parts)items.push({color:"--solder",label:"Power stage",dash:true},{color:"--ok",label:"Compensator",dash:true});
+  return gain+ph+Plot.legend(items);
+}
+function zout(R,D){
+  const Z=R.plots.zout;
+  const series=[{x:Z.grid,y:Z.total,color:"--copper",width:2.4}].concat(Z.rows.map((r,i)=>({x:Z.grid,y:r,color:BANKC[i%BANKC.length],width:1.3,dash:true})));
+  return Plot.draw({w:640,h:230,xlog:true,ylog:true,ylabel:"|Z| (Ω)",xlabel:"Frequency (Hz)",yfmt:v=>si(v,"Ω",2).replace(" ",""),series,bands:[{x:Z.grid,lo:Z.lo,hi:Z.hi}],vlines:[{x:D.specs.fsw*1e3,label:"fsw"}],aria:"Output capacitor bank impedance"})+
+    Plot.legend([{color:"--copper",label:"Output bank, nominal"},{color:"--band",label:"Min–max over tolerance",band:true}].concat(D.cout.map((r,i)=>({color:BANKC[i%BANKC.length],dash:true,label:`C${i+1}: ${r.n}× ${r.c} µF ${(Core.CAP_TYPES[r.type]||{}).label||""}`}))));
+}
+function ripple(R,D){
+  const P=R.plots.rippleOut,T=1/P.fsw,N=P.nom.length,t=P.nom.map((_,i)=>i/N*T*1e6);
+  return Plot.draw({w:640,h:200,ylabel:"Output ripple (mV)",xlabel:"Time (µs), one switching period",series:[{x:t,y:P.nom.map(v=>v*1e3),color:"--copper"},{x:t,y:P.worst.map(v=>v*1e3),color:"--solder",dash:true}],aria:"Output ripple waveform"})+
+    Plot.legend([{color:"--copper",label:`Nominal ${fx((Math.max(...P.nom)-Math.min(...P.nom))*1e3,2)} mV pk-pk`},{color:"--solder",dash:true,label:`Worst case ${fx((Math.max(...P.worst)-Math.min(...P.worst))*1e3,2)} mV pk-pk`}]);
+}
+function tran(R,D){
+  const P=R.plots.tran,lim=D.specs.vout*D.specs.dvTran/100*1e3;
+  return Plot.draw({w:640,h:220,ylabel:"ΔVout (mV)",xlabel:"Time after load step (µs)",series:[{x:P.nom.t.map(x=>x*1e6),y:P.nom.v.map(v=>v*1e3),color:"--copper"},{x:P.worst.t.map(x=>x*1e6),y:P.worst.v.map(v=>v*1e3),color:"--solder",dash:true}],
+    hlines:[{y:-lim,color:"--bad",label:`−${fx(lim,0)} mV limit`},{y:lim,color:"--bad"}],xmin:-P.nom.t.length&&Math.min(P.nom.t[0],P.worst.t[0])*1e6,aria:"Load step response"})+
+    Plot.legend([{color:"--copper",label:`Nominal, ${fx(P.nom.dev*1e3,1)} mV`},{color:"--solder",dash:true,label:`Worst corner, ${fx(P.worst.dev*1e3,1)} mV`}]);
+}
+function mb(R,D){
+  const P=R.plots.mb;if(!P)return "";
+  return Plot.draw({w:640,h:220,xlog:true,ylog:true,ylabel:"|Z| (Ω)",xlabel:"Frequency (Hz)",yfmt:v=>si(v,"Ω",2).replace(" ",""),
+    series:[{x:P.grid,y:P.nom.zo,color:"--copper"},{x:P.grid,y:P.worst.zo,color:"--solder",dash:true}],
+    hlines:[{y:P.nom.zinMag,color:"--bad",label:"|Zin| converter",dash:false},{y:P.nom.zinMag/Math.pow(10,D.filter.mbMargin/20),color:"--warn",label:`${D.filter.mbMargin} dB margin`}],aria:"Middlebrook check"})+
+    Plot.legend([{color:"--copper",label:"Filter output impedance, nominal"},{color:"--solder",dash:true,label:"Worst corner"},{color:"--bad",label:"Converter input impedance at Vin min, full load"}]);
+}
+function eff(R,D){
+  const cols=["--solder","--copper","--muted"];
+  return Plot.draw({w:640,h:220,ylabel:"Efficiency (%)",xlabel:"Load current (A)",xmin:0,series:R.plots.eff.map((c,i)=>({x:c.pts.map(p=>p[0]),y:c.pts.map(p=>p[1]),color:cols[i]})),aria:"Efficiency against load"})+
+    Plot.legend(R.plots.eff.map((c,i)=>({color:cols[i],label:`Vin ${c.vin} V`})));
+}
+const LOSSC={"HS conduction":"--copper","HS switching":"--warn","Reverse recovery":"--bad","LS conduction":"--solder","Dead time":"--muted","Coss":"--ok","Gate drive":"--violet","Controller bias":"--line","Inductor DCR":"--copper","Inductor core":"--solder","Output cap ESR":"--ok","Input cap ESR":"--warn","Snubber":"--bad"};
+function lossTable(R,D){
+  const keys=Object.keys(R.lossNom.o).filter(k=>k[0]!=="_");
+  const V=R.lossByVin;
+  let h=`<div class="scroll"><table class="t"><thead><tr><th>Loss</th>${V.map(v=>`<th>${v.vin} V<br><span class="u">25 °C</span></th><th>${v.vin} V<br><span class="u">${D.specs.tMax} °C, EOL</span></th>`).join("")}</tr></thead><tbody>`;
+  keys.forEach(k=>h+=`<tr><td><i class="sw" style="background:var(${LOSSC[k]||"--muted"})"></i>${esc(k)}</td>${V.map(v=>`<td>${si(v.nom.o[k],"W",2)}</td><td>${si(v.hot.o[k],"W",2)}</td>`).join("")}</tr>`);
+  h+=`<tr class="tot"><td>Total</td>${V.map(v=>`<td>${si(v.nom.tot,"W")}</td><td>${si(v.hot.tot,"W")}</td>`).join("")}</tr>`;
+  h+=`<tr><td>Efficiency</td>${V.map(v=>`<td>${fx(v.nom.eff*100,2)} %</td><td>${fx(v.hot.eff*100,2)} %</td>`).join("")}</tr></tbody></table></div>`;
+  const L=R.lossNom,tot=L.tot;
+  h+=`<div class="bar">${keys.map(k=>`<i title="${esc(k)}" style="width:${(L.o[k]/tot*100).toFixed(2)}%;background:var(${LOSSC[k]||"--muted"})"></i>`).join("")}</div>`;
+  return h;
+}
+function compTable(D){
+  const c=D.comp,q=c.chosen,id=c.ideal,op=D.ea==="opamp";
+  const rows=[];
+  if(op){
+    rows.push(["R1 (= R top)","Upper feedback resistor",D.fb.rtop,D.fb.rtop,"Ω"]);
+    rows.push(["R2","Mid-band gain",id.R2,q.R2,"Ω"],["C1","Zero fz1 = 1/(2π·R2·C1)",id.C1,q.C1,"F"],["C2","High-frequency pole",id.C2,q.C2,"F"]);
+    if(c.type===3)rows.push(["R3","Pole fp1 = 1/(2π·R3·C3)",id.R3,q.R3,"Ω"],["C3","Zero fz2 = 1/(2π·(R1+R3)·C3)",id.C3,q.C3,"F"]);
+  }else{
+    rows.push(["Rc","Mid-band gain gm·Rc·H",id.Rc,q.Rc,"Ω"],["Cc","Zero = 1/(2π·Rc·Cc)",id.Cc,q.Cc,"F"],["Cp","Pole = 1/(2π·Rc·Cp)",id.Cp,q.Cp,"F"]);
+    if(c.type===3)rows.push(["Cff","Feed-forward zero across R top",id.Cff,q.Cff,"F"]);
+  }
+  rows.push(["R bottom","Lower feedback resistor",D.fb.rbot,D.fb.rbot,"Ω"]);
+  const used=D.compManual?"Your values":"Preferred value";
+  return `<div class="scroll"><table class="t"><thead><tr><th>Part</th><th>Sets</th><th>Calculated</th><th>${used}</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${r[0]}</b></td><td class="lim">${esc(r[1])}</td><td>${si(r[2],r[4])}</td><td><b>${si(r[3],r[4])}</b></td></tr>`).join("")}</tbody></table></div>`;
+}
+function polesZeros(D){
+  const c=D.comp,pl=c.pl,rows=[["LC double pole f0",c.f0],["Output cap ESR zero",c.fesr],["Target crossover fc",c.fc]];
+  if(D.ctrl==="pcm")rows.splice(1,0,["Load pole (full load)",c.fpl]);
+  if(pl.fz1)rows.push(["Compensator zero fz1",pl.fz1]);if(pl.fz2)rows.push([D.ea==="gm"?"Feed-forward zero":"Compensator zero fz2",pl.fz2]);
+  if(pl.fpff)rows.push(["Feed-forward pole",pl.fpff]);if(pl.fp1)rows.push(["Compensator pole fp1",pl.fp1]);if(pl.fp2)rows.push(["Compensator pole fp2",pl.fp2]);
+  return `<dl class="kv">${rows.map(r=>`<dt>${esc(r[0])}</dt><dd>${isFinite(r[1])?si(r[1],"Hz"):"above fsw"}</dd>`).join("")}</dl>`;
+}
+function circuits(R,D){
+  const c=R.circuits,out=[];
+  if(c.boot)out.push(`<div class="circ"><h4>Bootstrap capacitor</h4><dl class="kv"><dt>Minimum</dt><dd>${si(c.boot.cmin,"F")}</dd><dt>Recommended</dt><dd><b>${si(c.boot.rec,"F")}</b>, ≥ ${Math.ceil(c.boot.vr*2)} V</dd><dt>Droop per cycle</dt><dd>${si(c.boot.droop,"V")}</dd><dt>Longest on-time</dt><dd>${si(c.boot.tonMax,"s")}</dd></dl></div>`);
+  if(c.ss)out.push(`<div class="circ"><h4>Soft-start</h4><dl class="kv"><dt>Css</dt><dd><b>${si(c.ss.css,"F")}</b></dd><dt>Soft-start time</dt><dd>${si(c.ss.tssMin,"s")} – ${si(c.ss.tssMax,"s")}</dd><dt>Charging current, worst</dt><dd>${si(c.ss.inrushMax,"A")}</dd></dl></div>`);
+  if(c.uvlo)out.push(`<div class="circ"><h4>UVLO divider (EN pin)</h4><dl class="kv"><dt>R top / R bottom</dt><dd><b>${si(c.uvlo.Rt,"Ω")} / ${si(c.uvlo.Rb,"Ω")}</b></dd><dt>Start</dt><dd>${fx(c.uvlo.startMin,2)} – ${fx(c.uvlo.startMax,2)} V</dd><dt>Stop</dt><dd>${c.uvlo.model==="current"?fx(c.uvlo.stopMin,2)+" – "+fx(c.uvlo.stopMax,2)+" V":"set by the IC's EN hysteresis"}</dd></dl></div>`);
+  if(c.snub)out.push(`<div class="circ"><h4>Switch-node RC snubber</h4><dl class="kv"><dt>Ring frequency</dt><dd>${si(c.snub.fr,"Hz")}</dd><dt>Rs (≈ Z₀)</dt><dd><b>${si(c.snub.Rs,"Ω")}</b></dd><dt>Cs (≈ 3 × Coss)</dt><dd><b>${si(c.snub.Cs,"F")}</b></dd><dt>Snubber loss at Vin max</dt><dd>${si(c.snub.p,"W")}</dd></dl></div>`);
+  if(D.filter.on&&R.damp)out.push(`<div class="circ"><h4>Input filter</h4><dl class="kv"><dt>Filter resonance</dt><dd>${si(R.damp.f0,"Hz")}</dd><dt>Characteristic impedance</dt><dd>${si(R.damp.R0,"Ω")}</dd><dt>Suggested damping</dt><dd>${si(R.damp.rd,"Ω")} + ${si(R.damp.cd*1e-6,"F")}</dd><dt>In use</dt><dd><b>${si(D.filter.rd,"Ω")} + ${si(D.filter.cd*1e-6,"F")}</b></dd></dl></div>`);
+  return `<div class="circs">${out.join("")}</div>`;
+}
+return {wcaTable,stressTable,bode,zout,ripple,tran,mb,eff,lossTable,compTable,polesZeros,circuits,chip,val};
+})();
+
+/* ===================== Formatted design report ===================== */
+"use strict";
+const Report=(function(){
+const {si,n,fx,esc}=Fmt;
+const eq=(lhs,expr,res)=>`<div class="eq"><span class="lhs">${lhs}</span><span class="op">=</span><span class="ex">${expr}</span>${res!=null?`<span class="op">=</span><b>${res}</b>`:""}</div>`;
+const V=(s,sub)=>`${s}<sub>${sub}</sub>`;
+
+function build(S,D,R){
+  const sp=D.specs,ru=D.rules,ic=D.ic,ind=D.ind,ext=D.mode==="ext",fsw=sp.fsw*1e3;
+  const cnt={ok:0,warn:0,bad:0};R.rows.forEach(r=>{if(cnt[r.status]!=null)cnt[r.status]++});R.stress.forEach(r=>{if(cnt[r.status]!=null)cnt[r.status]++});
+  const verdict=cnt.bad?"bad":cnt.warn?"warn":"ok";
+  const verdictText={bad:"Does not meet requirements",warn:"Meets requirements with items to review",ok:"Meets all requirements at worst case"}[verdict];
+  const date=new Date().toISOString().slice(0,10);
+  const row=id=>R.rows.find(r=>r.id===id);
+  const rv=(id,which)=>{const r=row(id);if(!r)return "—";const x=which==="nom"?r.nom:which==="min"?r.eva.min:r.eva.max;return Views.val(r,x)+(r.unit?" "+r.unit:"")};
+  const ctrlName={vm:"voltage mode",pcm:"peak current mode"}[D.ctrl];
+  const eaName={opamp:"voltage op-amp",gm:"transconductance (gm)"}[D.ea];
+  const partsAll=partsList(S,D);
+  const unverified=partsAll.filter(p=>!p.verified);
+  let sec=0;const H=t=>`<h2 id="r${++sec}"><span class="n">${sec}</span>${esc(t)}</h2>`;
+  const out=[];
+
+  /* ---------- title block ---------- */
+  out.push(`<header class="rp-head">
+    <div class="rp-kicker">Buck converter design and worst-case analysis</div>
+    <h1>${esc(S.meta.project||"Untitled design")}</h1>
+    <div class="rp-meta"><span>Revision <b>${esc(S.meta.rev||"—")}</b></span><span>Date <b>${date}</b></span>${S.meta.designer?`<span>Designer <b>${esc(S.meta.designer)}</b></span>`:""}<span>${sp.vinMin}–${sp.vinMax} V → ${sp.vout} V, ${sp.ioutMax} A, ${sp.fsw} kHz</span></div>
+    <div class="verdict v-${verdict}"><div><b>${verdictText}</b><span>${R.corners.toLocaleString()} worst-case corners analysed · ${sp.tMin} to ${sp.tMax} °C · beginning and end of life</span></div>
+      <div class="vc"><span class="chip bad">${cnt.bad} fail</span><span class="chip warn">${cnt.warn} check</span><span class="chip ok">${cnt.ok} pass</span></div></div>
+    ${S.meta.notes?`<p class="rp-notes">${esc(S.meta.notes)}</p>`:""}
+  </header>`);
+  const toc=["Summary","Requirements","Architecture","Method and assumptions","Parts","Power stage","Control loop","Load transient","Losses and thermal",...(D.filter.on?["Input filter and stability"]:[]),"Supporting circuits","Stress and derating","Worst-case results","Open items"];
+  out.push(`<nav class="toc"><b>Contents</b><ol>${toc.map((t,i)=>`<li><a href="#r${i+1}">${t}</a></li>`).join("")}</ol></nav>`);
+
+  /* ---------- 1 summary ---------- */
+  const key=[["Efficiency, full load",`${rv("eff","nom")} nominal, ${rv("eff","min")} worst`],["Output set-point",`${rv("vo","min")} to ${rv("vo","max")}`],
+    ["Output ripple, worst",rv("vrip","max")],["Load-step deviation, worst",rv("tran","max")],["Crossover",`${rv("fc","min")} to ${rv("fc","max")}`],
+    ["Phase margin, worst",rv("pm","min")],["Gain margin, worst",rv("gm","min")],["Inductor peak, worst",rv("ipk","max")],
+    [ext?"Hottest MOSFET":"Converter IC",ext?Math.max(row("tjHs").eva.max,row("tjLs").eva.max).toFixed(0)+" °C":rv("tjIc","max")]];
+  if(D.filter.on)key.push(["Middlebrook margin, worst",rv("mb","min")]);
+  const issues=R.rows.filter(r=>r.status==="bad"||r.status==="warn").concat(R.stress.filter(s=>s.status!=="ok"&&s.status!=="info").map(s=>({label:`${s.part}: ${s.param}`,status:s.status,limitText:`${n(s.applied)} ${s.unit} applied, ${n(s.lim)} ${s.unit} allowed`})));
+  out.push(`<section>${H("Summary")}
+    <p>This report documents a synchronous buck converter using ${ext?"a controller with external MOSFETs":"a converter IC with integrated MOSFETs"} in ${ctrlName} control with a ${eaName} error amplifier and Type ${D.comp.type} compensation. Every requirement was checked by extreme value analysis (EVA) across all combinations of operating conditions and component tolerances, with a root-sum-square (RSS) estimate alongside it.</p>
+    <dl class="kv two">${key.map(k=>`<dt>${k[0]}</dt><dd>${k[1]}</dd>`).join("")}</dl>
+    ${issues.length?`<h3>Items needing attention</h3><ul class="issues">${issues.map(i=>`<li>${Views.chip(i.status)} <b>${esc(i.label)}</b> <span class="muted">${esc(i.limitText||"")}</span></li>`).join("")}</ul>`:`<p><b>No failures or marginal results.</b></p>`}
+    ${unverified.length?`<p class="callout">${unverified.length} part${unverified.length>1?"s have":" has"} not been checked against a datasheet: ${unverified.map(p=>esc(p.ref)).join(", ")}. Results that depend on them are provisional.</p>`:""}
+  </section>`);
+
+  /* ---------- 2 requirements ---------- */
+  const reqRows=[["Input voltage",`${sp.vinMin} / ${sp.vinNom} / ${sp.vinMax} V (min / nom / max)`],["Output",`${sp.vout} V, ${sp.ioutMin} – ${sp.ioutMax} A`],["Switching frequency",`${sp.fsw} kHz ± ${ic.fswTol} %`],
+    ["DC accuracy",`± ${sp.voutAcc} %`],["Output ripple",`≤ ${sp.vrip} mV pk-pk`],["Load step",`${sp.step} % of Iout (${fx(sp.ioutMax*sp.step/100,2)} A) at ${sp.slew} A/µs, deviation ≤ ± ${sp.dvTran} %`],
+    ["Loop stability",`Phase margin ≥ ${sp.pmMin}°, gain margin ≥ ${sp.gmMin} dB, crossover target fsw/${sp.fcRatio} = ${si(fsw/sp.fcRatio,"Hz")}`],["Ambient temperature",`${sp.tMin} to ${sp.tMax} °C`],
+    ["Start-up",`soft-start ${sp.tss} ms, ${sp.ioStart} A load during start-up, UVLO ${sp.uvStart} V start / ${sp.uvStop} V stop`]];
+  if(D.filter.on)reqRows.push(["Input filter",`source ripple ≤ ${D.filter.srcLim} mA pk at fsw, Middlebrook margin ≥ ${D.filter.mbMargin} dB`]);
+  out.push(`<section>${H("Requirements")}<table class="t kvt"><tbody>${reqRows.map(r=>`<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join("")}</tbody></table></section>`);
+
+  /* ---------- 3 architecture ---------- */
+  out.push(`<section>${H("Architecture")}
+    <p>${ext?`The power stage uses an external high-side and low-side N-channel MOSFET pair driven by the controller (${esc(S.parts.ctrl.pn||"controller not yet selected")}).`:`The power stage is integrated in the converter IC (${esc(S.parts.conv.pn||"converter not yet selected")}).`}
+    The converter regulates in ${ctrlName}${D.ctrl==="vm"&&D.feedforward?" with input-voltage feed-forward (ramp proportional to Vin)":""}. The error amplifier is a ${eaName} type and the loop is compensated with a Type ${D.comp.type} network${D.compManual?" using values entered by the designer":" designed by the tool and rounded to E96 resistors and E12 capacitors"}.</p>
+    ${schematic(D)}
+  </section>`);
+
+  /* ---------- 4 method and assumptions ---------- */
+  const tolRows=[
+    ["Reference voltage",`${ic.vref} V`,`± ${ic.vrefTol} %`,"Datasheet, includes temperature"],
+    ["Switching frequency",`${sp.fsw} kHz`,`± ${ic.fswTol} %`,"Datasheet"],
+    ["Feedback resistors",`${si(D.fb.rtop,"Ω")} / ${si(D.fb.rbot,"Ω")}`,`± ${fx(Core.rtotPct(D,true),2)} % each`,`${ru.rFbTol} % initial + ${ru.rTc} ppm/°C over range + ${ru.rEol} % EOL`],
+    ["Compensation resistors","—",`± ${ru.rTol} %`,"Initial tolerance"],["Compensation capacitors","—",`± ${ru.cTolComp} %`,"C0G/NP0 assumed"],
+    ["Inductance",`${ind.L} µH`,`+${ind.ltol} % / −${fx(100*(1-(1-ind.ltol/100)*(1-ind.ltemp/100)*(1-ind.lsat/100)),1)} %`,`± ${ind.ltol} % initial, ${ind.ltemp} % temperature, ${ind.lsat} % drop at peak current`],
+    ["Inductor Isat",`${ind.isat} A`,`−${ind.isatHot} % hot`,"Datasheet saturation curve"],
+    [D.ctrl==="vm"?"PWM ramp":"Current-sense gain",D.ctrl==="vm"?`${ic.vramp} V`:`${ic.ri} V/A`,`± ${ic.modTol} %`,"Datasheet"],
+    ["Error amplifier gain",D.ea==="gm"?`${ic.eaGm} µS`:`${ic.eaGbw} MHz GBW`,`± ${ic.eaTol} %`,"Datasheet"],
+    ...(ext?[["MOSFET Rds(on)",`${D.hs.rds} / ${D.ls.rds} mΩ (25 °C max)`,`+${D.hs.rdsAlpha} %/°C, +${D.hs.rdsEol} % EOL`,"Iterated with junction temperature"]]:[["Switch Rds(on)",`${ic.rdsHs} / ${ic.rdsLs} mΩ`,`+${ic.rdsAlpha} %/°C`,"Iterated with junction temperature"]]),
+    ...D.cout.map((r,i)=>[`Output C${i+1} (${(Core.CAP_TYPES[r.type]||{}).label||r.type})`,`${r.n} × ${r.c} µF, ${r.esr} mΩ`,`C ±${r.tol} %, −${r.temp} % temp, −${r.eol} % EOL; ESR ×${r.esrLo}–×${r.esrHi}`,`DC-bias loss ${r.dc} % applied to nominal`]),
+    ...D.cin.map((r,i)=>[`Input C${i+1} (${(Core.CAP_TYPES[r.type]||{}).label||r.type})`,`${r.n} × ${r.c} µF, ${r.esr} mΩ`,`C ±${r.tol} %, −${r.temp} % temp, −${r.eol} % EOL; ESR ×${r.esrLo}–×${r.esrHi}`,`DC-bias loss ${r.dc} % applied to nominal`])
+  ];
+  out.push(`<section>${H("Method and assumptions")}
+    <h3>Worst-case method</h3>
+    <ul class="assume">
+      <li><b>Extreme value analysis (EVA).</b> Each result is evaluated at every combination of its operating conditions (Vin min, nominal and max; minimum and full load; ${sp.tMin} °C and ${sp.tMax} °C; beginning and end of life) and of each relevant tolerance at its upper and lower limit. ${R.corners.toLocaleString()} corners were evaluated in total. Pass/fail is judged on EVA.</li>
+      <li><b>Root-sum-square (RSS).</b> At the operating point where EVA found the worst case, each tolerance is moved alone to its extreme and the changes are combined as √Σ Δ². Tolerance limits are treated as ±3σ of independent distributions. A result that fails EVA but passes RSS is marked <i>Check</i>.</li>
+      <li><b>Temperature and life.</b> Capacitor temperature drift and end-of-life loss are applied together with the lower tolerance; ESR uses the stated low and high multipliers. MOSFET Rds(on) is iterated with junction temperature and increased by the end-of-life drift.</li>
+    </ul>
+    <h3>Tolerance budget</h3>
+    <div class="scroll"><table class="t"><thead><tr><th>Parameter</th><th>Nominal</th><th>Variation</th><th>Basis</th></tr></thead><tbody>${tolRows.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td class="lim">${esc(r[3])}</td></tr>`).join("")}</tbody></table></div>
+    <h3>Models</h3>
+    <ul class="assume">
+      <li>Continuous conduction (forced PWM) at every load; light-load pulse skipping or diode emulation is not modelled.</li>
+      <li>Each capacitor group is modelled as ESR + ESL + C per part, n parts in parallel; groups are combined as complex impedances. Ripple uses a 40-harmonic sum of the actual inductor and input current waveforms.</li>
+      <li>${D.ctrl==="vm"?`Voltage mode plant: G<sub>vd</sub>(s) = (Vin/V<sub>ramp</sub>) · Z<sub>C</sub>∥R / (sL + R<sub>dc</sub> + Z<sub>C</sub>∥R), with R<sub>dc</sub> = DCR + D·R<sub>HS</sub> + (1−D)·R<sub>LS</sub>.`:`Current mode plant (Ridley): G<sub>vc</sub>(s) = (Z<sub>C</sub>∥R∥R<sub>p</sub>)/R<sub>i</sub> · F<sub>h</sub>(s), with R<sub>p</sub> = L·fsw/(m<sub>c</sub>D′ − 0.5) and a sampling double pole at fsw/2 with Q<sub>p</sub> = 1/(π(m<sub>c</sub>D′ − 0.5)).`}</li>
+      <li>The error amplifier includes finite ${D.ea==="gm"?"output resistance (Ro = A<sub>0</sub>/gm)":"open-loop gain and gain-bandwidth"}.</li>
+      <li>Switching loss uses gate charge (Qgs/2 + Qgd) and driver current; Coss, reverse recovery, dead-time and gate drive losses are included. Thermal results use T<sub>j</sub> = T<sub>a</sub> + P·RθJA, so RθJA must represent the real board copper and airflow.</li>
+      <li>Load-step results are small-signal (closed-loop output impedance, inverse FFT). Large-signal, slew-limited bounds are reported separately.</li>
+      <li>Derating limits are the project values entered in the tool${ru.drMosV===75?" (typical space-programme values)":""}; confirm them against the governing derating standard.</li>
+    </ul>
+  </section>`);
+
+  /* ---------- 5 parts ---------- */
+  out.push(`<section>${H("Parts")}<div class="scroll"><table class="t"><thead><tr><th>Ref</th><th>Part</th><th>Key values</th><th>Status</th></tr></thead><tbody>${
+    partsAll.map(p=>`<tr><td><b>${esc(p.ref)}</b></td><td>${p.pn?`<span class="mono">${esc(p.pn)}</span>`:"<i>not selected</i>"}${p.mfr?`<div class="sub">${esc(p.mfr)}</div>`:""}${p.ds?`<div class="sub"><a href="${esc(p.ds)}" target="_blank" rel="noopener">Datasheet</a></div>`:""}${p.life?`<div class="sub">${esc(p.life)}</div>`:""}</td><td class="lim">${esc(p.key)}</td><td>${p.verified?'<span class="chip ok">Checked</span>':p.example?'<span class="chip ex">Example values</span>':'<span class="chip warn">Not checked</span>'}</td></tr>`).join("")}</tbody></table></div></section>`);
+
+  /* ---------- 6 power stage ---------- */
+  const Dmin=sp.vout/sp.vinMax,Dnom=sp.vout/sp.vinNom,Dmax=sp.vout/sp.vinMin;
+  const Lreq=(sp.vinMax-sp.vout)*Dmin/(fsw*sp.ripple/100*sp.ioutMax);
+  const dInom=(sp.vinMax-sp.vout)*Dmin/(fsw*ind.L*1e-6);
+  const Ct=R.nomOut?D.cout.reduce((a,r)=>a+r.n*r.c*(1-r.dc/100),0):0;
+  out.push(`<section>${H("Power stage")}
+    <h3>Duty cycle</h3>
+    ${eq("D","V<sub>out</sub> / V<sub>in</sub>",`${fx(Dmin*100,1)} % at ${sp.vinMax} V, ${fx(Dnom*100,1)} % nominal, ${fx(Dmax*100,1)} % at ${sp.vinMin} V`)}
+    <h3>Inductor</h3>
+    ${eq("L<sub>req</sub>",`(V<sub>in,max</sub> − V<sub>out</sub>)·D<sub>min</sub> / (f<sub>sw</sub>·r·I<sub>out</sub>) = (${sp.vinMax} − ${sp.vout})·${fx(Dmin,3)} / (${si(fsw,"Hz")}·${sp.ripple/100}·${sp.ioutMax} A)`,si(Lreq,"H"))}
+    <p>Selected ${S.parts.ind.pn?`<span class="mono">${esc(S.parts.ind.pn)}</span>, `:""}<b>${ind.L} µH</b>, Isat ${ind.isat} A (${fx(ind.isat*(1-ind.isatHot/100),1)} A hot), ${ind.irms} A rms, DCR ${ind.dcr} mΩ.</p>
+    ${eq("ΔI<sub>L</sub>",`(V<sub>in</sub> − V<sub>out</sub>)·D / (L·f<sub>sw</sub>)`,`${fx(dInom,2)} A nominal L at ${sp.vinMax} V; ${rv("dI","max")} worst case`)}
+    ${eq("I<sub>pk</sub>",`I<sub>out</sub> + ΔI<sub>L</sub>/2`,`${rv("ipk","max")} worst case`)}
+    ${eq("I<sub>L,rms</sub>",`√(I<sub>out</sub>² + ΔI<sub>L</sub>²/12)`,`${rv("irmsL","max")} worst case`)}
+    <h3>Output capacitors</h3>
+    <p>${D.cout.map((r,i)=>`C${i+1}: ${r.n} × ${r.c} µF ${(Core.CAP_TYPES[r.type]||{}).label||""}${r.pn?` (<span class="mono">${esc(r.pn)}</span>)`:""}`).join("; ")}. Effective capacitance after DC bias ${fx(Ct,0)} µF nominal.</p>
+    <figure>${Views.zout(R,D)}<figcaption>Impedance of each output capacitor group and of the combined bank. The shaded band covers capacitance and ESR tolerance, temperature and end of life.</figcaption></figure>
+    <figure>${Views.ripple(R,D)}<figcaption>Output ripple over one switching period at full load, nominal and worst-case corner (${esc(row("vrip").corner)}).</figcaption></figure>
+    <table class="t"><thead><tr><th>Group</th><th>Ripple current per part, nominal</th><th>Worst case</th><th>Rating</th></tr></thead><tbody>${D.cout.map((r,i)=>`<tr><td>Output C${i+1}</td><td>${si(R.capOut[i].nom,"A")}</td><td>${si(R.capOut[i].max,"A")}</td><td>${r.irmsC} A</td></tr>`).join("")}</tbody></table>
+    <h3>Input capacitors</h3>
+    ${eq("I<sub>Cin,rms</sub>",`I<sub>out</sub>·√(D(1 − D))`,`${si(R.nomIn.irmsTotal,"A")} total at ${sp.vinNom} V`)}
+    <table class="t"><thead><tr><th>Group</th><th>Ripple current per part, nominal</th><th>Worst case</th><th>Rating</th></tr></thead><tbody>${D.cin.map((r,i)=>`<tr><td>Input C${i+1}: ${r.n} × ${r.c} µF ${(Core.CAP_TYPES[r.type]||{}).label||""}</td><td>${si(R.capIn[i].nom,"A")}</td><td>${si(R.capIn[i].max,"A")}</td><td>${r.irmsC} A</td></tr>`).join("")}</tbody></table>
+    <p>Input voltage ripple at the converter: ${rv("vinrip","nom")} nominal, ${rv("vinrip","max")} worst case.</p>
+  </section>`);
+
+  /* ---------- 7 control loop ---------- */
+  out.push(`<section>${H("Control loop")}
+    <h3>Output voltage set-point</h3>
+    ${eq("V<sub>out</sub>",`V<sub>ref</sub>·(1 + R<sub>top</sub>/R<sub>bot</sub>) = ${ic.vref} V·(1 + ${si(D.fb.rtop,"Ω")}/${si(D.fb.rbot,"Ω")})`,`${fx(row("vo").nom,4)} V`)}
+    <p>Worst case ${rv("vo","min")} to ${rv("vo","max")} (EVA), ${Views.val(row("vo"),row("vo").rss.lo)} to ${Views.val(row("vo"),row("vo").rss.hi)} V (RSS), against a ± ${sp.voutAcc} % requirement.</p>
+    <h3>Plant</h3>${Views.polesZeros(D)}
+    ${D.ctrl==="pcm"?eq("m<sub>c</sub>",`1 + S<sub>e</sub>/S<sub>n</sub> = 1 + ${ic.se} A/µs / ${fx((sp.vinNom-sp.vout)/(ind.L),2)} A/µs`,fx(1+ic.se/((sp.vinNom-sp.vout)/ind.L),3))+`<p>Sampling-gain Q is ${rv("qp","nom")} nominal and ${rv("qp","max")} worst case (target below 1.5; 0.64 gives critical damping).</p>`:""}
+    <h3>Compensation network</h3>
+    <p>Type ${D.comp.type} with a ${eaName} error amplifier. ${D.ea==="opamp"?"R1 is the upper feedback resistor; R2/C1 give the integrator zero, C2 the high-frequency pole"+(D.comp.type===3?", and R3/C3 across R1 add the second zero and pole.":"."):"Rc/Cc from COMP to ground set the zero and mid-band gain; Cp adds the high-frequency pole"+(D.comp.type===3?"; Cff across R top adds a zero–pole pair centred on the crossover.":".")}</p>
+    ${Views.compTable(D)}
+    <figure>${Views.bode(R,D,{parts:true})}<figcaption>Loop gain at ${sp.vinNom} V, full load (solid) with power stage and compensator shown dashed. The shaded band spans all ${R.loop.gl._n.toLocaleString()} worst-case loop corners.</figcaption></figure>
+    ${Views.wcaTable(R,{filter:r=>["fc","pm","gm","qp"].includes(r.id)})}
+  </section>`);
+
+  /* ---------- 8 transient ---------- */
+  out.push(`<section>${H("Load transient")}
+    <figure>${Views.tran(R,D)}<figcaption>Response to a ${fx(sp.ioutMax*sp.step/100,2)} A load step at ${sp.slew} A/µs. Worst corner: ${esc(R.plots.tran.corner)}.</figcaption></figure>
+    <dl class="kv"><dt>Deviation, nominal</dt><dd>${rv("tran","nom")}</dd><dt>Deviation, worst corner</dt><dd>${rv("tran","max")}</dd><dt>Recovery to within 10 % of peak, nominal</dt><dd>${si(R.plots.tran.nom.tSettle,"s")}</dd>
+    <dt>Slew-limited bound, load release</dt><dd>${si(R.slewBound.release,"V")}</dd><dt>Slew-limited bound, load apply</dt><dd>${si(R.slewBound.apply,"V")}</dd></dl>
+    <p class="muted">The slew-limited bounds assume the loop saturates and the inductor current changes at its maximum rate, using maximum L and minimum Cout. They apply when the step is faster than the loop can follow.</p>
+  </section>`);
+
+  /* ---------- 9 losses ---------- */
+  out.push(`<section>${H("Losses and thermal")}
+    ${Views.lossTable(R,D)}
+    <figure>${Views.eff(R,D)}<figcaption>Efficiency against load at 25 °C, nominal parts.</figcaption></figure>
+    ${Views.wcaTable(R,{filter:r=>["eff","tjHs","tjLs","tjIc","tInd"].includes(r.id)})}
+  </section>`);
+
+  /* ---------- 10 filter ---------- */
+  if(D.filter.on){
+    out.push(`<section>${H("Input filter and stability")}
+      <p>A ${D.filter.lf} µH filter inductor (DCR ${D.filter.lfDcr} mΩ) feeds the input capacitors, damped by ${si(D.filter.rd,"Ω")} in series with ${si(D.filter.cd*1e-6,"F")}. The converter has a negative incremental input impedance of magnitude V<sub>in</sub>²·η/P<sub>out</sub>; the filter's output impedance must stay below it by the required margin (Middlebrook criterion).</p>
+      ${eq("|Z<sub>in</sub>|",`V<sub>in,min</sub>²·η / P<sub>out</sub>`,si(R.plots.mb.nom.zinMag,"Ω"))}
+      <figure>${Views.mb(R,D)}<figcaption>Filter output impedance against converter input impedance at ${sp.vinMin} V, full load.</figcaption></figure>
+      ${Views.wcaTable(R,{filter:r=>["mb","src"].includes(r.id)})}
+      ${R.damp?`<p>Optimal parallel damping for this filter (n = 4): ${si(R.damp.rd,"Ω")} with ${si(R.damp.cd*1e-6,"F")}.</p>`:""}
+    </section>`);
+  }
+
+  /* ---------- 11 supporting ---------- */
+  const c=R.circuits;
+  out.push(`<section>${H("Supporting circuits")}
+    ${c.boot?`<h3>Bootstrap capacitor</h3>${eq("C<sub>boot,min</sub>",`(Q<sub>g,HS</sub> + I<sub>leak</sub>·t<sub>on,max</sub>) / ΔV<sub>boot</sub> = (${si(c.boot.qg,"C")} + ${ic.ibst} µA·${si(c.boot.tonMax,"s")}) / ${ru.dvBoot} V`,si(c.boot.cmin,"F"))}<p>Use <b>${si(c.boot.rec,"F")}</b> X7R rated at least ${Math.ceil(c.boot.vr*2)} V; droop per cycle is then ${si(c.boot.droop,"V")}.</p>`:""}
+    <h3>Soft-start</h3>
+    ${eq("C<sub>ss</sub>",`I<sub>ss</sub>·t<sub>ss</sub> / V<sub>ref</sub> = ${ic.iss} µA·${sp.tss} ms / ${ic.vref} V`,si(c.ss.css,"F")+" (E12)")}
+    <p>Soft-start time ${si(c.ss.tssMin,"s")} to ${si(c.ss.tssMax,"s")} over Iss, Css and Vref tolerance. Output capacitor charging plus start-up load needs up to ${si(c.ss.inrushMax,"A")}, against a minimum current limit of ${si(R.ilim.min,"A")}.</p>
+    ${c.uvlo?`<h3>Input UVLO (EN divider)</h3>${c.uvlo.model==="current"?eq("R<sub>top</sub>",`(V<sub>start</sub> − V<sub>stop</sub>) / I<sub>hys</sub> = (${sp.uvStart} − ${sp.uvStop}) V / ${ic.ihys} µA`,si(c.uvlo.Rt,"Ω")+" (E96)")+eq("R<sub>bot</sub>",`R<sub>top</sub>·V<sub>EN</sub> / (V<sub>start</sub> − V<sub>EN</sub>)`,si(c.uvlo.Rb,"Ω")+" (E96)"):eq("R<sub>top</sub>/R<sub>bot</sub>",`V<sub>start</sub>/V<sub>EN</sub> − 1`,fx(c.uvlo.Rt/c.uvlo.Rb,3))}
+      <p>Start threshold ${fx(c.uvlo.startMin,2)} – ${fx(c.uvlo.startMax,2)} V${c.uvlo.model==="current"?`, stop threshold ${fx(c.uvlo.stopMin,2)} – ${fx(c.uvlo.stopMax,2)} V`:""}, including EN threshold, hysteresis current and resistor tolerances.</p>`:""}
+    ${c.snub?`<h3>Switch-node snubber</h3>${eq("f<sub>ring</sub>",`1 / (2π·√(L<sub>loop</sub>·C<sub>oss</sub>)) = 1 / (2π·√(${D.snub.lloop} nH·${D.ls.coss} pF))`,si(c.snub.fr,"Hz"))}${eq("R<sub>s</sub>",`√(L<sub>loop</sub>/C<sub>oss</sub>)`,si(c.snub.Rs,"Ω"))}${eq("C<sub>s</sub>","3·C<sub>oss</sub>",si(c.snub.Cs,"F"))}${eq("P<sub>snub</sub>",`C<sub>s</sub>·V<sub>in,max</sub>²·f<sub>sw</sub>`,si(c.snub.p,"W"))}<p class="muted">Confirm the ring frequency on the bench and adjust: the loop inductance is an estimate.</p>`:""}
+  </section>`);
+
+  /* ---------- 12 stress ---------- */
+  out.push(`<section>${H("Stress and derating")}<p>Applied stress is the worst case from the analysis. Switch-node voltage includes ${D.snub.on&&ext?"5 % residual overshoot with the snubber fitted":ru.swOvershoot+" % overshoot"}.</p>${Views.stressTable(R)}</section>`);
+
+  /* ---------- 13 WCA ---------- */
+  out.push(`<section>${H("Worst-case results")}<p>All results, with the corner that produced each worst case.</p>${Views.wcaTable(R)}</section>`);
+
+  /* ---------- 14 open items ---------- */
+  const recs=[];
+  issues.forEach(i=>recs.push(`<li>${Views.chip(i.status)} <b>${esc(i.label)}</b>: ${esc(i.limitText||"")}</li>`));
+  unverified.forEach(p=>recs.push(`<li><span class="chip warn">Check</span> <b>${esc(p.ref)}</b>: confirm parameters against the datasheet.</li>`));
+  R.notes.forEach(t=>recs.push(`<li><span class="chip warn">Check</span> ${esc(t)}</li>`));
+  partsAll.filter(p=>p.life&&/obsolete|end of life|eol|nrnd|not recommended/i.test(p.life)).forEach(p=>recs.push(`<li><span class="chip bad">Fail</span> <b>${esc(p.ref)}</b> is ${esc(p.life)}. Select an active part.</li>`));
+  out.push(`<section>${H("Open items")}
+    ${recs.length?`<ul class="issues">${recs.join("")}</ul>`:"<p>None.</p>"}
+    <h3>Verification on hardware</h3>
+    <ul class="assume"><li>Measure loop gain with a network analyser at Vin min and max, at light and full load, and at temperature extremes; compare with the worst-case band above.</li>
+    <li>Capture load-step response at the specified slew rate and switch-node ringing at Vin max.</li><li>Thermal test at ${sp.tMax} °C ambient with the final layout to confirm RθJA.</li>
+    <li>Check start-up into full load and into the maximum output capacitance; confirm the current limit does not trip.</li></ul>
+  </section>`);
+  return `<article class="report">${out.join("")}<footer class="rp-foot">Generated by Buck Designer on ${date}. Results are calculations from the models and values stated above and do not replace measurement.</footer></article>`;
+}
+
+function partsList(S,D){
+  const ext=S.mode==="ext",L=[];
+  const st=p=>({verified:p.verified,example:!p.pn&&Object.values(p.src||{}).every(v=>v==="ex"||!v),pn:p.pn,mfr:p.mouser&&p.mouser.manufacturer,ds:p.mouser&&p.mouser.datasheet,life:p.mouser&&p.mouser.lifecycle});
+  const icv=ext?S.parts.ctrl:S.parts.conv;
+  L.push(Object.assign({ref:ext?"U1 controller":"U1 converter",key:`Vin ≤ ${icv.vals.vinMaxIc} V, Vref ${icv.vals.vref} V, limit ${icv.vals.ilim} A`},st(icv)));
+  if(ext){L.push(Object.assign({ref:"Q1 high-side",key:`${D.hs.vds} V, ${D.hs.rds} mΩ, Qg ${D.hs.qg} nC`},st(S.parts.hs)));L.push(Object.assign({ref:"Q2 low-side",key:`${D.ls.vds} V, ${D.ls.rds} mΩ, Qg ${D.ls.qg} nC`},st(S.parts.ls)))}
+  L.push(Object.assign({ref:"L1",key:`${D.ind.L} µH, Isat ${D.ind.isat} A, ${D.ind.irms} A rms, ${D.ind.dcr} mΩ`},st(S.parts.ind)));
+  S.cout.forEach((r,i)=>L.push({ref:`Output C${i+1} (×${r.n})`,key:`${r.c} µF, ${r.vr} V, ${r.esr} mΩ, ${(Core.CAP_TYPES[r.type]||{}).label||""}`,verified:r.verified,example:!r.pn,pn:r.pn,mfr:r.mouser&&r.mouser.manufacturer,ds:r.mouser&&r.mouser.datasheet,life:r.mouser&&r.mouser.lifecycle}));
+  S.cin.forEach((r,i)=>L.push({ref:`Input C${i+1} (×${r.n})`,key:`${r.c} µF, ${r.vr} V, ${r.esr} mΩ, ${(Core.CAP_TYPES[r.type]||{}).label||""}`,verified:r.verified,example:!r.pn,pn:r.pn,mfr:r.mouser&&r.mouser.manufacturer,ds:r.mouser&&r.mouser.datasheet,life:r.mouser&&r.mouser.lifecycle}));
+  return L;
+}
+
+/* simplified block schematic of the power stage and feedback */
+function schematic(D){
+  const ext=D.mode==="ext";
+  const t=(x,y,s,a)=>`<text x="${x}" y="${y}" ${a?`text-anchor="${a}"`:""} fill="var(--ink)">${s}</text>`;
+  const l=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--ink)" stroke-width="1.5"/>`;
+  let g="";
+  g+=t(16,64,"Vin");g+=l(40,60,90,60);
+  if(D.filter.on){g+=`<path d="M90 60 q6 -10 12 0 q6 -10 12 0 q6 -10 12 0" fill="none" stroke="var(--copper)" stroke-width="2"/>`+t(108,42,"Lf","middle");g+=l(126,60,170,60)}else g+=l(90,60,170,60);
+  g+=l(150,60,150,90)+`<line x1="140" y1="90" x2="160" y2="90" stroke="var(--ink)" stroke-width="2"/><line x1="140" y1="95" x2="160" y2="95" stroke="var(--ink)" stroke-width="2"/>`+l(150,95,150,120)+t(165,104,"Cin");
+  g+=`<rect x="170" y="40" width="70" height="40" rx="4" fill="var(--panel)" stroke="var(--ink)"/>`+t(205,64,ext?"Q1":"HS FET","middle");
+  g+=l(240,60,280,60)+`<rect x="255" y="80" width="50" height="34" rx="4" fill="var(--panel)" stroke="var(--ink)"/>`+t(280,101,ext?"Q2":"LS FET","middle")+l(280,60,280,80)+l(280,114,280,130);
+  g+=t(268,52,"SW","end");
+  g+=`<path d="M280 60 L300 60 q8 -12 16 0 q8 -12 16 0 q8 -12 16 0 L380 60" fill="none" stroke="var(--copper)" stroke-width="2"/>`+t(324,42,"L1","middle");
+  g+=l(380,60,470,60)+l(410,60,410,90)+`<line x1="400" y1="90" x2="420" y2="90" stroke="var(--ink)" stroke-width="2"/><line x1="400" y1="95" x2="420" y2="95" stroke="var(--ink)" stroke-width="2"/>`+l(410,95,410,120)+t(425,104,`Cout (${D.cout.length} groups)`);
+  g+=t(476,64,"Vout");
+  g+=l(450,60,450,150)+`<rect x="430" y="150" width="40" height="16" fill="var(--panel)" stroke="var(--ink)"/>`+t(478,162,"Rtop")+l(450,166,450,186)+`<rect x="430" y="186" width="40" height="16" fill="var(--panel)" stroke="var(--ink)"/>`+t(478,198,"Rbot");
+  g+=l(450,176,380,176);
+  g+=`<polygon points="380,160 380,192 340,176" fill="var(--panel)" stroke="var(--ink)"/>`+t(358,180,"EA","middle")+t(360,214,D.ea==="gm"?"gm + Type "+D.comp.type:"op-amp + Type "+D.comp.type,"middle");
+  g+=l(340,176,250,176)+`<rect x="170" y="156" width="80" height="40" rx="4" fill="var(--panel)" stroke="var(--ink)"/>`+t(210,174,"PWM","middle")+t(210,188,D.ctrl==="vm"?"V ramp":"current sense","middle");
+  g+=l(205,156,205,80);
+  return `<figure><svg class="plot schem" viewBox="0 0 560 230" width="100%" role="img" aria-label="Block schematic">${g}</svg><figcaption>Simplified block schematic.</figcaption></figure>`;
+}
+
+/* standalone HTML file for saving */
+function standalone(html,title,css){
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>${css}</style></head><body class="standalone">${html}</body></html>`;
+}
+return {build,standalone,partsList};
+})();
+
+/* ===================== App: state, design inputs, worker, results, report ===================== */
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const {si,n,fx,esc}=Fmt;
+const F=Model.F;
+const IN_CLAUDE=!!window.claude;
+const MOUSER_API="https://mouser.mail-manu-mx.workers.dev/part?pn=";
+const KEY="buck-designer.v2",LIBKEY="buck-designer.library.v1";
+
+/* ---------- state ---------- */
+function merge(def,sv){
+  if(Array.isArray(def))return Array.isArray(sv)?sv:def;
+  if(def&&typeof def==="object"){const o={};for(const k in def)o[k]=merge(def[k],sv&&typeof sv==="object"?sv[k]:undefined);
+    if(sv&&typeof sv==="object")for(const k in sv)if(!(k in o))o[k]=sv[k];return o}
+  return sv===undefined||sv===null?def:sv;
+}
+function load(){
+  let s=null;try{s=JSON.parse(localStorage.getItem(KEY)||"null")}catch(e){}
+  const ex=Model.example();
+  const st=s&&s.v===2?merge(ex,s):ex;
+  for(const id in st.parts){const p=st.parts[id];if(!p.src||!Object.keys(p.src).length){p.src={};for(const k in p.vals)p.src[k]="ex"}}
+  for(const b of ["cout","cin"])st[b].forEach(r=>{if(!r.src){r.src={};Model.CAP_KEYS.forEach(k=>r.src[k]="ex")}});
+  return st;
+}
+let S=load();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+let LIB={};try{LIB=JSON.parse(localStorage.getItem(LIBKEY)||"{}")||{}}catch(e){LIB={}}
+if(LIB.ctrl)LIB.ctrl.forEach(x=>{if(x.vals&&x.vals.vinMax!=null&&x.vals.vinMaxIc==null)x.vals.vinMaxIc=x.vals.vinMax});
+function saveLib(){try{localStorage.setItem(LIBKEY,JSON.stringify(LIB))}catch(e){}}
+
+/* path helpers: "parts.hs.vals.rds", "cout.#o1.c" */
+function resolve(path){
+  const seg=path.split(".");let o=S;
+  for(let i=0;i<seg.length-1;i++){const s=seg[i];o=s[0]==="#"?o.find(x=>x.id===s.slice(1)):o[s];if(o==null)return null}
+  return {obj:o,key:seg[seg.length-1]};
+}
+function num(v){const x=parseFloat(String(v).replace(",","."));return isFinite(x)?x:NaN}
+
+/* ---------- small UI helpers ---------- */
+function toast(m){const t=document.createElement("div");t.className="toast";t.setAttribute("role","status");t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
+const SRC_T={ex:"Example value",mouser:"From Mouser description",lib:"From your library",user:"Entered"};
+function fld(path,key,val,o){
+  o=o||{};const id="f-"+path.replace(/[.#]/g,"_");
+  const lab=o.label||(F[key]?F[key][0]:key),unit=o.unit!=null?o.unit:(F[key]?F[key][1]:"");
+  const src=o.src?`<i class="src ${o.src}" title="${SRC_T[o.src]||""}"></i>`:"";
+  return `<label class="fld" for="${id}"><span class="fl">${src}${esc(lab)}</span><span class="fi${o.text?" text":""}"><input id="${id}" data-path="${path}" ${o.text?'data-text="1"':'inputmode="decimal"'} ${o.srcobj?`data-srcobj="${o.srcobj}"`:""} autocomplete="off" value="${esc(val==null?"":val)}">${unit?`<em>${esc(unit)}</em>`:""}</span></label>`;
+}
+function grid(fields){return `<div class="grid2">${fields.join("")}</div>`}
+function segs(name,label,opts,cur){
+  return `<div class="fld"><span class="fl">${esc(label)}</span><div class="seg" role="group" aria-label="${esc(label)}">${opts.map(([v,t])=>`<button type="button" data-seg="${name}" data-val="${v}" aria-pressed="${cur===v}">${esc(t)}</button>`).join("")}</div></div>`;
+}
+const chipFor=p=>{
+  if(p.verified)return `<span class="chip ok">Checked</span>`;
+  const srcs=Object.entries(p.src||{}).filter(([k])=>Model.DATASHEET.has(k)).map(([,v])=>v);
+  if(srcs.includes("mouser"))return `<span class="chip ai">Check values</span>`;
+  if(!p.pn&&srcs.every(v=>v==="ex"))return `<span class="chip ex">Example values</span>`;
+  return `<span class="chip warn">Not checked</span>`;
+};
+function lifeChip(l){if(!l)return "";const s=l.toLowerCase();return `<span class="chip ${/obsolete|end of life|eol|discontinu/.test(s)?"bad":/not recommended|nrnd|last time/.test(s)?"warn":"ok"}">${esc(l)}</span>`}
+function priceAt(m,q){const b=(m.priceBreaks||[]).filter(x=>x.qty<=q).sort((a,c)=>c.qty-a.qty)[0]||(m.priceBreaks||[])[0];return b?b.price:null}
+function mouserHTML(m){
+  if(!m)return "";
+  const stock=parseInt(m.stock,10),p1=priceAt(m,1),p100=priceAt(m,100);
+  return `<div class="mz"><div><b>${esc(m.manufacturer)}</b> <span class="mono">${esc(m.mpn)}</span></div><div>${esc(m.description)}</div>
+    <div class="mrow">${lifeChip(m.lifecycle)}${isFinite(stock)?`<span class="chip ${stock>0?"ok":"bad"}">${stock>0?stock.toLocaleString()+" in stock":"No stock"}</span>`:""}${p1?`<span class="mono">${esc(p1)} each · ${esc(p100||p1)} at 100</span>`:""}</div>
+    <div class="links">${m.datasheet?`<a class="btn pri sm" href="${esc(m.datasheet)}" target="_blank" rel="noopener">Open datasheet</a>`:""}${m.productUrl?`<a href="${esc(m.productUrl)}" target="_blank" rel="noopener">Mouser page</a>`:""}</div>
+    ${(m.hints||[]).map(h=>`<div class="hint">${esc(h)}</div>`).join("")}</div>`;
+}
+const LIBTYPE={ctrl:"ctrl",conv:"conv",hs:"fet",ls:"fet",ind:"ind"};
+
+/* ---------- design view ---------- */
+function partCard(slot,title,groups,more){
+  const p=S.parts[slot],lt=LIBTYPE[slot],items=LIB[lt]||[];
+  const base=`parts.${slot}.vals`;
+  const f=k=>fld(`${base}.${k}`,k,p.vals[k],{src:Model.DATASHEET.has(k)?p.src[k]:null,srcobj:`parts.${slot}`});
+  let body="";
+  if(groups)body=`<div class="grid2">${groups.map(g=>`<div class="gtitle">${esc(g.t)}</div>${g.k.map(f).join("")}`).join("")}</div>`;
+  if(more)body+=`<details class="more"><summary>Tolerances and drift</summary>${grid(more.map(f))}</details>`;
+  return `<div class="panel part" id="card-${slot}">
+    <div class="part-h"><h3>${esc(title)}</h3><span id="chip-${slot}">${chipFor(p)}</span></div>
+    ${items.length?`<div class="libbar"><select data-lib="${slot}" aria-label="Use a part from your library"><option value="">Use a part from your library…</option>${items.map((x,i)=>`<option value="${i}">${esc(x.pn)}${x.manufacturer?" · "+esc(x.manufacturer):""}</option>`).join("")}</select></div>`:""}
+    <div class="pn"><span class="fi"><input id="pn-${slot}" data-path="parts.${slot}.pn" data-text="1" data-pn="1" placeholder="Manufacturer part number" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc(p.pn)}"></span>
+      <button class="btn pri" type="button" data-look="part:${slot}">Look up</button></div>
+    <div class="meta">${mouserHTML(p.mouser)}<div class="status" id="st-${slot}" role="status"></div></div>
+    ${body}
+    <div class="verify"><label class="check"><input type="checkbox" data-verify="part:${slot}" ${p.verified?"checked":""}>Checked against the datasheet</label>
+      <button class="btn sm" type="button" data-libsave="part:${slot}" ${p.verified&&p.pn?"":"disabled"}>Save to library</button></div>
+  </div>`;
+}
+function capCard(bank,r,i){
+  const items=LIB.cap||[],path=`${bank}.#${r.id}`;
+  const f=k=>fld(`${path}.${k}`,k,r[k],{src:Model.DATASHEET.has(k)?(r.src||{})[k]:null,srcobj:path});
+  return `<div class="capgrp" id="cap-${r.id}">
+    <div class="hd"><span class="tag">C${i+1}</span>
+      <span class="fi" style="flex:1 1 180px"><select data-captype="${path}" aria-label="Capacitor type">${Object.entries(Core.CAP_TYPES).map(([k,v])=>`<option value="${k}" ${r.type===k?"selected":""}>${esc(v.label)}</option>`).join("")}</select></span>
+      <span id="chip-${r.id}">${chipFor(r)}</span>
+      <button class="btn sm ghost" type="button" data-capdel="${path}" aria-label="Remove group C${i+1}">Remove</button></div>
+    ${items.length?`<div class="libbar"><select data-libcap="${path}" aria-label="Use a capacitor from your library"><option value="">Use a capacitor from your library…</option>${items.map((x,j)=>`<option value="${j}">${esc(x.pn)}${x.description?" · "+esc(x.description.slice(0,40)):""}</option>`).join("")}</select></div>`:""}
+    <div class="pn"><span class="fi"><input id="pn-${r.id}" data-path="${path}.pn" data-text="1" data-pn="1" placeholder="Manufacturer part number" autocomplete="off" spellcheck="false" value="${esc(r.pn||"")}"></span>
+      <button class="btn pri" type="button" data-look="cap:${path}">Look up</button></div>
+    <div class="meta">${mouserHTML(r.mouser)}<div class="status" id="st-${r.id}" role="status"></div></div>
+    ${grid(["n","c","esr","esl","vr","irmsC","dc"].map(f))}
+    <details class="more"><summary>Tolerance, drift and ESR spread</summary>${grid(["tol","temp","eol","esrLo","esrHi"].map(f))}</details>
+    <div class="verify"><label class="check"><input type="checkbox" data-verify="cap:${path}" ${r.verified?"checked":""}>Checked against the datasheet</label>
+      <button class="btn sm" type="button" data-libsave="cap:${path}" ${r.verified&&r.pn?"":"disabled"}>Save to library</button></div>
+  </div>`;
+}
+function renderDesign(){
+  const ext=S.mode==="ext";
+  const sp=S.specs;
+  const h=[];
+  h.push(`<section class="block"><h2><span class="n">01</span>Project</h2><div class="panel">${grid([
+    fld("meta.project","project",S.meta.project,{label:"Project name",unit:"",text:true}),fld("meta.designer","designer",S.meta.designer,{label:"Designer",unit:"",text:true}),fld("meta.rev","rev",S.meta.rev,{label:"Revision",unit:"",text:true})])}
+    <label class="fld" for="f-notes" style="margin-top:10px"><span class="fl">Notes for the report</span><span class="fi"><textarea id="f-notes" data-path="meta.notes" data-text="1" rows="2">${esc(S.meta.notes||"")}</textarea></span></label></div></section>`);
+  h.push(`<section class="block"><h2><span class="n">02</span>Requirements</h2><div class="panel"><div class="grid2">${Model.GROUP_REQ.map(g=>`<div class="gtitle">${esc(g.t)}</div>${g.k.map(k=>fld("specs."+k,k,sp[k])).join("")}`).join("")}</div></div></section>`);
+  h.push(`<section class="block"><h2><span class="n">03</span>Architecture</h2><div class="panel"><div class="segs">
+    ${segs("mode","Power stage",[["ext","Controller + external FETs"],["int","Integrated FETs"]],S.mode)}
+    ${segs("ctrl","Control mode",[["vm","Voltage mode"],["pcm","Peak current mode"]],S.ctrl)}
+    ${segs("ea","Error amplifier",[["opamp","Op-amp"],["gm","Transconductance"]],S.ea)}
+    ${segs("compType","Compensation",[["auto","Auto"],["2","Type II"],["3","Type III"]],S.compType)}
+    </div>${S.ctrl==="vm"?`<label class="check" style="margin-top:12px"><input type="checkbox" data-toggle="feedforward" ${S.feedforward?"checked":""}>Input-voltage feed-forward (ramp proportional to Vin)</label>`:""}</div></section>`);
+  h.push(`<section class="block"><h2><span class="n">04</span>Parts</h2>
+    <div class="legend"><span><i class="src ex"></i>Example</span><span><i class="src mouser"></i>From Mouser</span><span><i class="src lib"></i>From library</span><span><i class="src user"></i>Entered</span></div>
+    <p class="note">Look up finds the part on Mouser: datasheet, price, stock and lifecycle, plus any values in its description. Enter the rest from the datasheet, tick it as checked, then save it to your library.</p>
+    <div class="cols"><div class="view" style="gap:14px">
+      ${partCard(ext?"ctrl":"conv",ext?"Controller":"Converter IC",Model.CTRL_GROUPS.filter(g=>!(g.ext&&!ext)&&!(g.int&&ext)))}
+      ${partCard("ind","Inductor",[{t:"Datasheet",k:["L","isat","irms","dcr","pcore"]}],["ltol","ltemp","lsat","isatHot","dTr","dcrTc"])}
+    </div><div class="view" style="gap:14px">
+      ${ext?partCard("hs","High-side MOSFET",[{t:"Datasheet",k:["vds","id","rds","qg","qgs","qgd","vpl","coss","qrr","vf","rth","tjmax"]}],["rdsAlpha","rdsEol"]):""}
+      ${ext?partCard("ls","Low-side MOSFET",[{t:"Datasheet",k:["vds","id","rds","qg","qgs","qgd","vpl","coss","qrr","vf","rth","tjmax"]}],["rdsAlpha","rdsEol"]):""}
+      ${!ext?`<div class="panel"><p class="note">Integrated FETs: Rds(on), switching time and IC thermal resistance are entered on the converter card.</p></div>`:""}
+    </div></div></section>`);
+  for(const [bank,num,title,blurb] of [["cout","05","Output capacitors","Mix capacitor types to shape the bank's impedance. Each group is modelled with its own C, ESR, ESL and DC-bias loss."],["cin","06","Input capacitors","Bulk and ceramic groups share the input ripple current according to their impedance at each harmonic."]]){
+    h.push(`<section class="block"><h2><span class="n">${num}</span>${title}</h2><p class="note">${blurb}</p><div class="caps">${S[bank].map((r,i)=>capCard(bank,r,i)).join("")}</div>
+      <div><button class="btn" type="button" data-capadd="${bank}">Add capacitor group</button></div></section>`);
+  }
+  const fl=S.filter;
+  h.push(`<section class="block"><h2><span class="n">07</span>Input filter</h2><div class="panel">
+    <label class="check"><input type="checkbox" data-toggle="filter.on" ${fl.on?"checked":""}>Fit an LC input filter (checks Middlebrook stability and source ripple)</label>
+    ${fl.on?`<div style="margin-top:12px">${grid(["lf","lfTol","lfDcr","rd","cd","srcLim","mbMargin"].map(k=>fld("filter."+k,k,fl[k])))}</div>
+    <div class="confirm" style="margin-top:10px"><button class="btn sm" type="button" id="btn-damp">Use suggested damping</button><span class="note" id="damp-note"></span></div>`:""}
+  </div></section>`);
+  h.push(`<section class="block"><h2><span class="n">08</span>Switch-node snubber</h2><div class="panel">
+    ${ext?`<label class="check"><input type="checkbox" data-toggle="snub.on" ${S.snub.on?"checked":""}>Design an RC snubber across the low-side MOSFET</label>
+    ${S.snub.on?`<div style="margin-top:12px">${grid(["lloop","rsP"].map(k=>fld("snub."+k,k,S.snub[k])))}</div>`:""}`:`<p class="note">Available with external MOSFETs, where the low-side Coss is known.</p>`}
+  </div></section>`);
+  h.push(`<section class="block"><h2><span class="n">09</span>Compensation</h2><div class="panel" id="comp-panel"><div class="empty">Calculating…</div></div></section>`);
+  h.push(`<section class="block"><h2><span class="n">10</span>Design rules</h2><div class="panel"><details class="more" ${S._rulesOpen?"open":""} id="rules-details"><summary>Margins, tolerances and derating</summary>
+    <div class="grid2">${Model.GROUP_RULES.map(g=>`<div class="gtitle">${esc(g.t)}</div>${g.k.map(k=>fld("rules."+k,k,S.rules[k])).join("")}`).join("")}</div>
+    <p class="note" style="margin-top:10px">Derating defaults are typical space-programme values. Set them to your project's derating standard.</p></details></div></section>`);
+  $("#view-design").innerHTML=h.join("");
+  renderCompPanel();
+}
+function renderCompPanel(){
+  const el=$("#comp-panel");if(!el)return;
+  if(!LAST){el.innerHTML=`<div class="empty">Calculating…</div>`;return}
+  const D=LAST.D,op=D.ea==="opamp",t=D.comp.type;
+  const keys=op?["R2","C1","C2"].concat(t===3?["R3","C3"]:[]):["Rc","Cc","Cp"].concat(t===3?["Cff"]:[]);
+  const q=D.comp.chosen;
+  const cur=S.manual||{};
+  const fieldsM=keys.map(k=>{const isR=k[0]==="R";const v=cur[k]!=null?cur[k]:(isR?+(q[k]/1e3).toPrecision(4):+(q[k]*1e12).toPrecision(4));
+    return fld("manual."+k,k,v,{label:k,unit:isR?"kΩ":"pF"})});
+  el.innerHTML=`${Views.compTable(D)}
+    <label class="check" style="margin-top:12px"><input type="checkbox" data-toggle="compManual" ${S.compManual?"checked":""}>Use my own values</label>
+    ${S.compManual?`<div style="margin-top:10px">${grid(fieldsM)}</div><p class="note" style="margin-top:6px">The worst-case analysis uses these values with the compensation tolerances in Design rules.</p>`:`<p class="note" style="margin-top:6px">Values are calculated for the crossover target and rounded to E96 resistors and E12 capacitors.</p>`}`;
+}
+
+/* ---------- input handling ---------- */
+let rerunTimer=null;
+document.addEventListener("input",e=>{
+  const t=e.target,path=t.dataset&&t.dataset.path;if(!path)return;
+  if(path.startsWith("manual.")){S.manual=S.manual||{};const k=path.split(".")[1];S.manual[k]=num(t.value);save();schedule();return}
+  const r=resolve(path);if(!r)return;
+  r.obj[r.key]=t.dataset.text?(t.dataset.pn?t.value.trim().toUpperCase():t.value):num(t.value);
+  if(t.dataset.srcobj&&Model.DATASHEET.has(r.key)){
+    const o=resolve(t.dataset.srcobj+".x").obj;o.src=o.src||{};o.src[r.key]="user";o.verified=false;
+    const dot=t.closest(".fld").querySelector(".src");if(dot)dot.className="src user";
+    const card=t.closest(".part,.capgrp");if(card){const v=card.querySelector("[data-verify]");if(v)v.checked=false;const ls=card.querySelector("[data-libsave]");if(ls)ls.disabled=true;
+      const ch=card.querySelector("[id^=chip-]");if(ch)ch.innerHTML=chipFor(o)}
+  }
+  save();if(!t.dataset.text||path.startsWith("meta."))schedule(path.startsWith("meta.")?1500:350);
+});
+document.addEventListener("change",e=>{
+  const t=e.target,d=t.dataset||{};
+  if(d.verify){const o=target(d.verify);o.verified=t.checked;save();const card=t.closest(".part,.capgrp");const ls=card.querySelector("[data-libsave]");if(ls)ls.disabled=!(t.checked&&o.pn);
+    const ch=card.querySelector("[id^=chip-]");if(ch)ch.innerHTML=chipFor(o);schedule();return}
+  if(d.toggle){const r=resolve(d.toggle);r.obj[r.key]=t.checked;
+    if(d.toggle==="compManual"&&t.checked&&LAST&&!S.manual){const q=LAST.D.comp.chosen;S.manual={};for(const k of ["R2","R3","Rc"])S.manual[k]=+(q[k]/1e3).toPrecision(4);for(const k of ["C1","C2","C3","Cc","Cp","Cff"])S.manual[k]=+(q[k]*1e12).toPrecision(4)}
+    save();if(d.toggle==="compManual")renderCompPanel();else renderDesign();schedule();return}
+  if(d.captype){const r=resolve(d.captype+".x").obj;applyCapType(r,t.value,true);save();renderDesign();schedule();return}
+  if(d.lib&&t.value!==""){useLib("part",d.lib,+t.value);return}
+  if(d.libcap&&t.value!==""){useLib("cap",d.libcap,+t.value);return}
+});
+document.addEventListener("toggle",e=>{if(e.target.id==="rules-details"){S._rulesOpen=e.target.open;save()}},true);
+document.addEventListener("keydown",e=>{const t=e.target;if(e.key==="Enter"&&t.dataset&&t.dataset.pn){const b=t.closest(".pn").querySelector("[data-look]");if(b)b.click()}});
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;const d=b.dataset;
+  if(d.seg){S[d.seg]=d.val;if(d.seg==="ctrl"&&d.val==="pcm")S.feedforward=false;save();renderDesign();schedule();return}
+  if(d.look){lookup(d.look,b);return}
+  if(d.libsave){saveToLib(d.libsave);return}
+  if(d.capadd){const bank=d.capadd;const id=(bank==="cout"?"o":"i")+Date.now().toString(36);const r={id,pn:"",type:"mlcc",verified:false,mouser:null,n:1,c:10,esr:5,esl:0.5,vr:bank==="cout"?10:25,irmsC:2,tol:10,dc:30,temp:15,eol:5,esrLo:0.7,esrHi:1.5,src:{}};
+    Model.CAP_KEYS.forEach(k=>r.src[k]="user");S[bank].push(r);save();renderDesign();schedule();const el=document.getElementById("cap-"+id);if(el&&el.scrollIntoView)el.scrollIntoView({block:"center"});return}
+  if(d.capdel){const seg=d.capdel.split(".");const bank=seg[0],id=seg[1].slice(1);
+    if(S[bank].length<=1){toast("Keep at least one capacitor group.");return}
+    if(b.dataset.arm!=="1"){b.dataset.arm="1";b.textContent="Tap again to remove";setTimeout(()=>{if(b.isConnected){b.dataset.arm="";b.textContent="Remove"}},3000);return}
+    S[bank]=S[bank].filter(x=>x.id!==id);save();renderDesign();schedule();return}
+  if(b.id==="btn-damp"&&LAST&&LAST.R.damp){S.filter.rd=+LAST.R.damp.rd.toPrecision(3);S.filter.cd=+LAST.R.damp.cd.toPrecision(3);save();renderDesign();schedule();toast("Suggested damping applied");return}
+});
+function target(spec){const [kind,ref]=spec.split(/:(.+)/);return kind==="part"?S.parts[ref]:resolve(ref+".x").obj}
+function applyCapType(r,type,force){
+  const p=Core.CAP_TYPES[type];if(!p)return;r.type=type;r.src=r.src||{};
+  for(const k of ["esl","tol","temp","eol","esrLo","esrHi"]){if(force||r.src[k]!=="user"){r[k]=p[k]}}
+}
+
+/* ---------- Mouser lookup ---------- */
+function parseDesc(kind,d){
+  const vals={},hints=[];
+  const all=(re,sc)=>[...d.matchAll(re)].map(m=>parseFloat(m[1])*(sc||1));
+  const volts=all(/(\d+(?:\.\d+)?)\s*V(?:DC)?\b/g),amps=all(/(\d+(?:\.\d+)?)\s*A\b/g),mOhm=all(/(\d+(?:\.\d+)?)\s*m\s?Ohms?\b/gi);
+  const uH=[...all(/(\d+(?:\.\d+)?)\s*[uµ]H\b/gi),...all(/(\d+(?:\.\d+)?)\s*nH\b/gi,1e-3)];
+  const uF=[...all(/(\d+(?:\.\d+)?)\s*[uµ]F\b/gi),...all(/(\d+(?:\.\d+)?)\s*nF\b/gi,1e-3),...all(/(\d+(?:\.\d+)?)\s*pF\b/gi,1e-6)];
+  const pct=all(/(\d+(?:\.\d+)?)\s*%/g);
+  if(kind==="fet"){if(volts.length)vals.vds=volts[0];if(amps.length)vals.id=amps[0];
+    if(/P-?Ch/i.test(d))hints.push("This is a P-channel part. The loss model assumes N-channel MOSFETs.");
+    if(mOhm.length)hints.push(`Description quotes ${mOhm[0]} mΩ. Use the maximum Rds(on) at your gate drive voltage from the datasheet.`);
+    hints.push("Description current is usually a Tc = 25 °C rating. Check the derated Id in the datasheet.")}
+  else if(kind==="ind"){if(uH.length)vals.L=uH[0];if(pct.length)vals.ltol=pct[0];
+    if(mOhm.length){vals.dcr=mOhm[0];hints.push(`DCR ${mOhm[0]} mΩ from the description may be typical. Use the maximum from the datasheet.`)}
+    if(amps.length)hints.push(`Description gives ${amps.join(" A, ")} A. Check whether that is Isat or Irms before entering it.`)}
+  else if(kind==="cap"){if(uF.length)vals.c=uF[0];if(volts.length)vals.vr=volts[0];if(pct.length)vals.tol=pct[0];
+    let type=null;if(/polymer/i.test(d))type="poly";else if(/tantalum/i.test(d))type="tant";else if(/alumin(i)?um|electrolytic/i.test(d))type="alu";else if(/film/i.test(d))type="film";else if(/ceramic|mlcc|X5R|X7R|X6S|X7S|C0G|NP0/i.test(d))type="mlcc";
+    vals._type=type;
+    const diel=(d.match(/\b(X5R|X7R|X6S|X7S|X7T|X8R|C0G|NP0|Y5V)\b/i)||[])[1];
+    if(diel&&!/C0G|NP0/i.test(diel))hints.push(`${diel.toUpperCase()} ceramic: set DC-bias loss from the manufacturer's curve at your voltage. ESR and ESL are rarely in the PDF.`);
+    if(type==="poly"||type==="alu"||type==="tant")hints.push("Take ESR and ripple current from the datasheet at your frequency and temperature.")}
+  else{if(volts.length)hints.push(`Voltages in description: ${volts.join(" V, ")} V. Take the maximum input voltage from the datasheet.`);
+    if(amps.length)hints.push(`Current in description: ${amps[0]} A. Check the current limit in the datasheet.`)}
+  return {vals,hints};
+}
+const busy={};
+async function lookup(spec,btn){
+  const o=target(spec),kind=spec.startsWith("cap:")?"cap":LIBTYPE[spec.split(":")[1]];
+  const stId=spec.startsWith("cap:")?"st-"+o.id:"st-"+spec.split(":")[1];
+  const st=()=>document.getElementById(stId);
+  const pn=(o.pn||"").trim();
+  if(!pn){const s=st();s.className="status err";s.textContent="Enter a part number first.";return}
+  if(busy[spec])return;busy[spec]=true;btn.disabled=true;btn.textContent="Searching…";
+  const s0=st();s0.className="status";s0.textContent=`Searching Mouser for ${pn}…`;
+  try{
+    let res;
+    try{res=await fetch(MOUSER_API+encodeURIComponent(pn))}
+    catch(e){throw {msg:IN_CLAUDE?"Mouser lookup works on the mxdesign.uk version of this tool. Here, enter values from the datasheet.":"Couldn't reach the lookup service. Check your connection and try again."}}
+    const r=await res.json().catch(()=>({}));
+    if(!res.ok)throw {msg:r.error?`Lookup failed: ${r.error}`:`Lookup service returned ${res.status}.`};
+    if(!r.found){o.mouser=null;save();renderDesign();const s=st();s.className="status err";s.textContent=`${pn} isn't listed on Mouser. Check the part number, or enter values from the datasheet.`;return}
+    const {vals,hints}=parseDesc(kind,r.description||"");
+    o.src=o.src||{};
+    if(kind==="cap"&&vals._type&&vals._type!==o.type){applyCapType(o,vals._type,true);["esl","tol","temp","eol","esrLo","esrHi"].forEach(k=>o.src[k]="mouser")}
+    delete vals._type;
+    const tgt=kind==="cap"?o:o.vals;let cnt=0;
+    for(const k in vals){if(k in tgt&&isFinite(vals[k])){tgt[k]=vals[k];o.src[k]="mouser";cnt++}}
+    if(r.mpn)o.pn=String(r.mpn).toUpperCase();
+    o.verified=false;
+    o.mouser={mpn:r.mpn||pn,manufacturer:r.manufacturer||"",description:r.description||"",datasheet:r.datasheet||"",productUrl:r.productUrl||"",stock:r.stock,lifecycle:r.lifecycle||"",priceBreaks:Array.isArray(r.priceBreaks)?r.priceBreaks:[],hints};
+    save();renderDesign();schedule();
+    const s=st();s.className="status";s.textContent=(cnt?`Filled ${cnt} value${cnt>1?"s":""} from the description. `:"")+"Enter the rest from the datasheet, then tick it as checked."+(r.otherMatches?` Mouser listed ${r.otherMatches} similar part${r.otherMatches>1?"s":""}; confirm the suffix.`:"");
+  }catch(e){const s=st();if(s){s.className="status err";s.textContent=(e&&e.msg)||"Lookup failed. Try again."}}
+  finally{busy[spec]=false;const b2=document.querySelector(`[data-look="${spec}"]`);if(b2){b2.disabled=false;b2.textContent="Look up"}}
+}
+
+/* ---------- parts library ---------- */
+function saveToLib(spec){
+  const o=target(spec),isCap=spec.startsWith("cap:"),t=isCap?"cap":LIBTYPE[spec.split(":")[1]];
+  const vals={};
+  if(isCap){for(const k of ["c","esr","esl","vr","irmsC","tol","temp","eol","esrLo","esrHi"])vals[k]=o[k]}
+  else for(const k in o.vals)vals[k]=o.vals[k];
+  const m=o.mouser||{};
+  const e={pn:o.pn,manufacturer:m.manufacturer||"",description:m.description||"",datasheet:m.datasheet||"",type:isCap?o.type:undefined,vals,saved:new Date().toISOString().slice(0,10)};
+  LIB[t]=(LIB[t]||[]).filter(x=>x.pn!==o.pn);LIB[t].push(e);LIB[t].sort((a,b)=>a.pn.localeCompare(b.pn));
+  saveLib();renderDesign();toast(`${o.pn} saved to your library`);
+}
+function useLib(kind,ref,i){
+  const t=kind==="cap"?"cap":LIBTYPE[ref];const e=(LIB[t]||[])[i];if(!e)return;
+  const o=kind==="cap"?resolve(ref+".x").obj:S.parts[ref];
+  o.pn=e.pn;o.src=o.src||{};
+  if(kind==="cap"){if(e.type)o.type=e.type;for(const k in e.vals){o[k]=e.vals[k];o.src[k]="lib"}}
+  else for(const k in e.vals){if(k in o.vals){o.vals[k]=e.vals[k];o.src[k]="lib"}}
+  o.verified=true;
+  o.mouser=e.datasheet||e.manufacturer?{mpn:e.pn,manufacturer:e.manufacturer,description:e.description,datasheet:e.datasheet,productUrl:"",lifecycle:"",priceBreaks:[],hints:["Loaded from your library. Look up again for current price, stock and lifecycle."]}:null;
+  save();renderDesign();schedule();
+}
+
+/* ---------- files ---------- */
+let downloads=null;
+async function saveFile(name,text,type){
+  if(IN_CLAUDE){
+    if(!downloads){toast("Saving files isn't available in this view.");return}
+    try{await downloads.save({filename:name,data:text})}catch(e){if(e&&e.code!=="declined"&&e.code!=="cancelled")toast("The file was not saved.")}
+    return;
+  }
+  const url=URL.createObjectURL(new Blob([text],{type:type||"text/plain"}));
+  const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+const slug=()=>(S.meta.project||"buck-design").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48)||"buck-design";
+$("#btn-proj-save").onclick=()=>saveFile(`${slug()}.buck.json`,JSON.stringify({format:"buck-designer-project",version:2,state:S},null,2),"application/json");
+$("#btn-proj-open").onclick=()=>$("#file-proj").click();
+$("#file-proj").onchange=async e=>{const f=e.target.files[0];if(!f)return;
+  try{const j=JSON.parse(await f.text());if(!j||j.format!=="buck-designer-project"||!j.state)throw 0;S=merge(Model.example(),j.state);S.v=2;save();renderDesign();schedule(0);toast(`Opened ${S.meta.project||f.name}`)}
+  catch(err){toast("That file isn't a Buck Designer project.")}e.target.value=""};
+$("#btn-lib-x").onclick=()=>{const n=Object.values(LIB).reduce((s,a)=>s+a.length,0);if(!n){toast("Your library is empty. Check a part and save it first.");return}
+  saveFile("buck-parts-library.json",JSON.stringify({format:"buck-designer-library",version:2,parts:LIB},null,2),"application/json")};
+$("#btn-lib-i").onclick=()=>$("#file-lib").click();
+$("#file-lib").onchange=async e=>{const f=e.target.files[0];if(!f)return;
+  try{const j=JSON.parse(await f.text());const parts=j&&j.parts;if(!parts||typeof parts!=="object")throw 0;let c=0;
+    for(const t in parts){if(!Array.isArray(parts[t]))continue;LIB[t]=LIB[t]||[];parts[t].forEach(x=>{if(x&&x.pn&&x.vals){LIB[t]=LIB[t].filter(y=>y.pn!==x.pn);LIB[t].push(x);c++}});LIB[t].sort((a,b)=>a.pn.localeCompare(b.pn))}
+    saveLib();renderDesign();toast(`Imported ${c} part${c===1?"":"s"}`)}
+  catch(err){toast("That file isn't a Buck Designer library.")}e.target.value=""};
+$("#btn-reset").onclick=e=>{const b=e.currentTarget;
+  if(b.dataset.arm==="1"){S=Model.example();for(const id in S.parts){S.parts[id].src={};for(const k in S.parts[id].vals)S.parts[id].src[k]="ex"}for(const bk of ["cout","cin"])S[bk].forEach(r=>{r.src={};Model.CAP_KEYS.forEach(k=>r.src[k]="ex")});
+    save();b.dataset.arm="";b.textContent="New from example";renderDesign();schedule(0);toast("Loaded the example design");return}
+  b.dataset.arm="1";b.textContent="Tap again to replace";setTimeout(()=>{b.dataset.arm="";b.textContent="New from example"},3000)};
+
+/* ---------- analysis worker ---------- */
+let LAST=null,ERRS=[],runId=0,worker=null,timer=null,running=false;
+try{
+  const src=document.getElementById("engine").textContent+`
+self.onmessage=function(e){try{const S=e.data.S;const D=Model.prepare(S);const R=WCA.run(D);self.postMessage({id:e.data.id,D,R})}catch(err){self.postMessage({id:e.data.id,error:String(err&&err.message||err)})}};`;
+  worker=new Worker(URL.createObjectURL(new Blob([src],{type:"text/javascript"})));
+  worker.onmessage=e=>done(e.data);
+  worker.onerror=()=>{worker=null;schedule(0)};
+}catch(e){worker=null}
+function setRun(txt,busyOn){const r=$("#run");if(r)r.innerHTML=`<span class="dot${busyOn?" busy":""}"></span><span>${esc(txt)}</span>`}
+function schedule(delay){
+  clearTimeout(timer);
+  timer=setTimeout(()=>{
+    ERRS=Model.validate(S);
+    if(ERRS.length){setRun("Fix inputs to analyse",false);renderActive();return}
+    const id=++runId;running=true;setRun("Analysing worst-case corners…",true);
+    const payload=JSON.parse(JSON.stringify(S));
+    if(worker)worker.postMessage({id,S:payload});
+    else setTimeout(()=>{try{const D=Model.prepare(payload);done({id,D,R:WCA.run(D)})}catch(err){done({id,error:String(err&&err.message||err)})}},20);
+  },delay==null?350:delay);
+}
+function done(msg){
+  if(msg.id!==runId)return;running=false;
+  if(msg.error){setRun("Analysis failed",false);ERRS=["The analysis could not run: "+msg.error+". Check for unusual input values."];renderActive();return}
+  LAST={D:msg.D,R:msg.R};ERRS=[];
+  const c={ok:0,warn:0,bad:0};LAST.R.rows.forEach(r=>{if(c[r.status]!=null)c[r.status]++});LAST.R.stress.forEach(r=>{if(c[r.status]!=null)c[r.status]++});
+  setRun(`${LAST.R.corners.toLocaleString()} corners · ${c.bad} fail · ${c.warn} check`,false);
+  renderCompPanel();renderActive();
+}
+
+/* ---------- results view ---------- */
+function issuesList(R,D){
+  const L=[];
+  R.rows.filter(r=>r.status==="bad"||r.status==="warn").forEach(r=>L.push({st:r.status,t:r.label,d:`${r.limitText}; worst ${Views.val(r,r.dir==="min"?r.eva.min:r.eva.max)} ${r.unit} at ${r.corner||"—"}`}));
+  R.stress.filter(s=>s.status==="bad"||s.status==="warn").forEach(s=>L.push({st:s.status,t:`${s.part}: ${s.param}`,d:`${n(s.applied)} ${s.unit} applied vs ${n(s.lim)} ${s.unit} derated limit`}));
+  R.notes.forEach(x=>L.push({st:"warn",t:"Loop",d:x}));
+  Report.partsList(S,D).forEach(p=>{
+    if(p.life&&/obsolete|end of life|eol|discontinu/i.test(p.life))L.push({st:"bad",t:`${p.ref} lifecycle`,d:`${p.pn}: ${p.life}`});
+    if(!p.verified)L.push({st:"warn",t:`${p.ref} not checked`,d:p.example?"Using example values, not a real part":"Values not yet checked against the datasheet"});
+  });
+  const o={bad:0,warn:1};L.sort((a,b)=>o[a.st]-o[b.st]);
+  return L;
+}
+function renderResults(){
+  const el=$("#view-results");
+  if(ERRS.length){el.innerHTML=`<div class="panel"><h3>Fix these inputs to run the analysis</h3><ul class="checks" style="margin-top:8px">${ERRS.map(e=>`<li><span class="chip bad">Input</span><div class="t1">${esc(e)}</div></li>`).join("")}</ul></div>`;return}
+  if(!LAST){el.innerHTML=`<div class="panel empty">Running the worst-case analysis…</div>`;return}
+  const {D,R}=LAST,sp=D.specs,row=id=>R.rows.find(r=>r.id===id);
+  const iss=issuesList(R,D);
+  const tj=D.mode==="ext"?Math.max(row("tjHs").eva.max,row("tjLs").eva.max):row("tjIc").eva.max;
+  const sum=[["Phase margin",`${fx(row("pm").eva.min,0)}°`,`worst · ${fx(row("pm").nom,0)}° nominal`],["Crossover",`${si(row("fc").nom,"Hz")}`,`${si(row("fc").eva.min,"Hz",2)} – ${si(row("fc").eva.max,"Hz",2)}`],
+    ["Output ripple",`${fx(row("vrip").eva.max*1e3,1)} mV`,`worst · limit ${sp.vrip} mV`],["Load step",`${fx(row("tran").eva.max*1e3,0)} mV`,`worst · limit ${fx(sp.vout*sp.dvTran*10,0)} mV`],
+    ["Efficiency",`${fx(row("eff").nom*100,1)} %`,`${fx(row("eff").eva.min*100,1)} % hot, EOL`],["Hottest junction",`${fx(tj,0)} °C`,`at ${sp.tMax} °C ambient`]];
+  el.innerHTML=`
+    <div class="summary">${sum.map(s=>`<div><span class="lbl">${s[0]}</span><b>${s[1]}</b><span class="sub">${s[2]}</span></div>`).join("")}</div>
+    <section class="block"><h2>Items needing attention</h2><div class="panel">${iss.length?`<ul class="checks">${iss.map(i=>`<li><span class="chip ${i.st}">${{bad:"Fail",warn:"Check"}[i.st]}</span><div><div class="t1">${esc(i.t)}</div><div class="t2">${esc(i.d)}</div></div></li>`).join("")}</ul>`:`<p>No failures or marginal results.</p>`}</div></section>
+    <section class="block"><h2>Worst-case analysis</h2><p class="note">EVA: every combination of operating condition and tolerance extreme. RSS: tolerances combined as root-sum-square at the worst operating point. ${R.corners.toLocaleString()} corners.</p><div class="panel">${Views.wcaTable(R)}</div></section>
+    <div class="cols">
+      <section class="block"><h2>Loop gain</h2><div class="panel">${Views.bode(R,D,{parts:true})}</div></section>
+      <section class="block"><h2>Compensation</h2><div class="panel">${Views.compTable(D)}<h4 style="margin:14px 0 6px">Poles and zeros</h4>${Views.polesZeros(D)}</div></section>
+      <section class="block"><h2>Output capacitor bank</h2><div class="panel">${Views.zout(R,D)}</div></section>
+      <section class="block"><h2>Output ripple</h2><div class="panel">${Views.ripple(R,D)}</div></section>
+      <section class="block"><h2>Load step</h2><div class="panel">${Views.tran(R,D)}<dl class="kv" style="margin-top:10px"><dt>Slew-limited bound, release</dt><dd>${si(R.slewBound.release,"V")}</dd><dt>Slew-limited bound, apply</dt><dd>${si(R.slewBound.apply,"V")}</dd></dl></div></section>
+      ${D.filter.on?`<section class="block"><h2>Input filter stability</h2><div class="panel">${Views.mb(R,D)}</div></section>`:""}
+      <section class="block"><h2>Efficiency</h2><div class="panel">${Views.eff(R,D)}</div></section>
+      <section class="block"><h2>Supporting circuits</h2><div class="panel">${Views.circuits(R,D)}</div></section>
+    </div>
+    <section class="block"><h2>Losses</h2><div class="panel">${Views.lossTable(R,D)}</div></section>
+    <section class="block"><h2>Stress and derating</h2><div class="panel">${Views.stressTable(R)}</div></section>`;
+}
+function renderReport(){
+  const el=$("#view-report");
+  if(ERRS.length||!LAST){el.innerHTML=`<div class="panel empty">${ERRS.length?"Fix the inputs listed on the Results tab to produce the report.":"Preparing the report…"}</div>`;return}
+  el.innerHTML=`<div class="rp-tools tools" style="justify-content:flex-end">${IN_CLAUDE?"":`<button class="btn pri" type="button" id="btn-print">Print or save as PDF</button>`}<button class="btn${IN_CLAUDE?" pri":""}" type="button" id="btn-rep-html" ${IN_CLAUDE&&!downloads?"hidden":""}>Save report (HTML)</button></div>`+Report.build(S,LAST.D,LAST.R);
+  const p=$("#btn-print");if(p)p.onclick=()=>window.print();
+  $("#btn-rep-html").onclick=()=>{const css=document.getElementById("app-css").textContent;saveFile(`${slug()}-design-report-rev-${(S.meta.rev||"A").replace(/\W+/g,"")}.html`,Report.standalone(el.querySelector(".report").outerHTML,`${S.meta.project} design report`,css),"text/html")};
+}
+
+/* ---------- routing ---------- */
+const VIEWS=["design","results","report"];
+function route(){const h=(location.hash||"").slice(1);return VIEWS.includes(h)?h:"design"}
+function renderActive(){
+  const v=route();
+  VIEWS.forEach(x=>{$("#view-"+x).hidden=x!==v;const a=document.querySelector(`nav.tabs a[href="#${x}"]`);if(a){if(x===v)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")}});
+  if(v==="results")renderResults();
+  if(v==="report")renderReport();
+}
+window.addEventListener("hashchange",()=>{renderActive();window.scrollTo(0,0)});
+
+/* ---------- boot ---------- */
+renderDesign();renderActive();schedule(0);
+if(IN_CLAUDE&&window.claude.use){window.claude.use("downloads").then(d=>{downloads=d;if(route()==="report")renderReport()}).catch(()=>{})}
+})();
+</script>
+
+</body>
+</html>
