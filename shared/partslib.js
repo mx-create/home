@@ -81,6 +81,19 @@ async function mouserFetch(pn){
   }
   return res;
 }
+/* Google search link with a ready-made question; Google's AI answer can draft the values, which stay unverified until checked */
+const ASK={
+ cap:"capacitance (µF), ESR (mΩ) and the frequency it is specified at, ESL (nH), rated voltage (V), rated ripple current (A rms), tolerance (%), loss tangent tanδ, dielectric or technology",
+ fet:"Vds (V), continuous Id (A), maximum Rds(on) at 25 °C (mΩ), Qg, Qgs, Qgd (nC), Miller plateau voltage (V), Coss (pF), Qrr (nC), body diode Vf (V), RθJA (°C/W), maximum junction temperature (°C)",
+ ind:"inductance (µH), tolerance (%), saturation current Isat (A), rated RMS current Irms (A), maximum DCR (mΩ), temperature rise at rated current (°C)",
+ ctrl:"maximum input voltage (V), maximum switching frequency (kHz), minimum on-time (ns), current limit (A), reference voltage (V) and tolerance, error amplifier gain-bandwidth, gate drive voltage (V), quiescent current (mA), soft-start current",
+ conv:"maximum input voltage (V), rated output current (A), high-side and low-side Rds(on) (mΩ), switching frequency (kHz), current limit (A), reference voltage (V), quiescent current (mA), RθJA (°C/W)"
+};
+function googleUrl(type,pn){
+  const q=`For part number ${pn}, give me a table with ${ASK[type]||"its key electrical specifications"}. Give the datasheet link and say which datasheet each value comes from.`;
+  return "https://www.google.com/search?q="+encodeURIComponent(q);
+}
+
 /* a verified tick on a library part; the server keeps the existing values */
 async function setVerified(type,e,flag,by){
   return save(type,{pn:e.pn,type:e.type,verified:!!flag,vals:e.vals},by);
@@ -127,5 +140,5 @@ function compToCap(g,mz){
   return e;
 }
 
-root.PartsLib={API,TYPES,all,get,status,onChange,pull,flush,save,remove,history,adopt,getBy,setBy,capToComp,compToCap,capComplete,CAP_REQ,mouserFetch,setVerified,getKey,setKey};
+root.PartsLib={API,TYPES,all,get,status,onChange,pull,flush,save,remove,history,adopt,getBy,setBy,capToComp,compToCap,capComplete,CAP_REQ,mouserFetch,googleUrl,setVerified,getKey,setKey};
 })(typeof window!=="undefined"?window:globalThis);
