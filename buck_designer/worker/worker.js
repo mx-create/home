@@ -9,6 +9,7 @@
 //   1. Cloudflare dashboard → Workers & Pages → Create → Worker → paste this file → Deploy
 //   2. Worker → Settings → Variables and Secrets → add Secret  MOUSER_KEY = <your Mouser Search API key>
 //   2b. Add Secret LOOKUP_PASS = the password that unlocks Mouser lookups (only you should know it)
+//   2c. DigiKey (optional): Secrets DIGIKEY_ID and DIGIKEY_SECRET from developer.digikey.com (Product Information V4 app)
 //   3. Test: https://<your-worker>.workers.dev/part?pn=BSC0902NS
 //
 // Usage from the page:  GET /part?pn=<part number>
@@ -33,12 +34,13 @@ export default {
 
     const url = new URL(request.url);
     if (url.pathname.startsWith("/lib")) return handleLib(request, env, url, cors, origin);
-    if (url.pathname === "/lookup-check" || url.pathname === "/part") {
+    if (url.pathname === "/lookup-check" || url.pathname === "/part" || url.pathname === "/digikey") {
       // Mouser lookups use the shared API key, so only the owner (who knows LOOKUP_PASS) may trigger them
       if (!env.LOOKUP_PASS) return json({ error: "LOOKUP_PASS secret not set" }, 500, cors);
       if (!safeEq(request.headers.get("X-Lookup-Key") || "", env.LOOKUP_PASS)) return json({ error: "Lookup password needed" }, 401, cors);
       if (url.pathname === "/lookup-check") return json({ ok: true }, 200, cors);
     }
+    if (url.pathname === "/digikey") return handleDigikey(url, env, cors);
     if (url.pathname !== "/part") return json({ error: "Use /part?pn=... or /lib" }, 404, cors);
 
     const pn = (url.searchParams.get("pn") || "").trim();
@@ -207,7 +209,7 @@ function cleanEntry(type, pn, e, by, old) {
     if (t) { if (!["mlcc", "poly", "tant", "alu", "film"].includes(t)) return "Unknown capacitor type"; out.type = t; }
   }
   if (typeof e.verified === "boolean") {
-    if (e.verified !== (old && old.verified === true)) out.verifiedAt = new Date().toISOString();
+    if (e.verified !== !!(old && old.verified === true)) out.verifiedAt = new Date().toISOString();
     out.verified = e.verified;
   } else if (typeof out.verified !== "boolean") out.verified = false;
   const vals = Object.assign({}, (old && old.vals) || {});
@@ -255,4 +257,67 @@ async function listAll(env) {
   }
   for (const t of LIB_TYPES) types[t].sort((a, b) => a.pn.localeCompare(b.pn));
   return { types, count };
+}
+
+
+/* ===================== DigiKey lookup (structured parameters) =====================
+   GET /digikey?pn=<part number>[&raw=1]   needs the X-Lookup-Key password, like /part.
+   Returns the first exact manufacturer-part-number match with its parameter list (name -> value text). */
+let dkToken = null, dkExp = 0;
+async function dkAuth(env) {
+  if (dkToken && Date.now() < dkExp) return dkToken;
+  const r = await fetch("https://api.digikey.com/v1/oauth2/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ client_id: env.DIGIKEY_ID, client_secret: env.DIGIKEY_SECRET, grant_type: "client_credentials" }),
+  });
+  if (!r.ok) throw new Error(`DigiKey sign-in failed (${r.status}). Check DIGIKEY_ID and DIGIKEY_SECRET.`);
+  const j = await r.json();
+  dkToken = j.access_token;
+  dkExp = Date.now() + Math.max(60, (j.expires_in || 600) - 60) * 1000;
+  return dkToken;
+}
+
+async function handleDigikey(url, env, cors) {
+  const pn = (url.searchParams.get("pn") || "").trim();
+  if (!PN_RE.test(pn)) return json({ error: "Invalid part number" }, 400, cors);
+  if (!env.DIGIKEY_ID || !env.DIGIKEY_SECRET) return json({ error: "DIGIKEY_ID and DIGIKEY_SECRET secrets not set" }, 500, cors);
+  try {
+    const token = await dkAuth(env);
+    const res = await fetch("https://api.digikey.com/products/v4/search/keyword", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`, "X-DIGIKEY-Client-Id": env.DIGIKEY_ID,
+        "Content-Type": "application/json", Accept: "application/json",
+        "X-DIGIKEY-Locale-Site": "UK", "X-DIGIKEY-Locale-Language": "en", "X-DIGIKEY-Locale-Currency": "GBP",
+      },
+      body: JSON.stringify({ Keywords: pn, Limit: 10, Offset: 0 }),
+    });
+    if (res.status === 401) dkToken = null;
+    if (!res.ok) return json({ error: `DigiKey returned ${res.status}` }, 502, cors);
+    const data = await res.json();
+    const prods = data.Products || [];
+    const up = pn.toUpperCase();
+    const p = prods.find(x => (x.ManufacturerProductNumber || "").toUpperCase() === up) ||
+      prods.find(x => (x.ManufacturerProductNumber || "").toUpperCase().startsWith(up)) || prods[0];
+    if (!p) return json({ found: false, query: pn }, 200, cors);
+    const params = {};
+    for (const a of p.Parameters || []) if (a.ParameterText) params[a.ParameterText] = a.ValueText || "";
+    const cat = (p.Category && p.Category.Name) || "";
+    const out = {
+      found: true, query: pn,
+      mpn: p.ManufacturerProductNumber,
+      exact: (p.ManufacturerProductNumber || "").toUpperCase() === up,
+      manufacturer: p.Manufacturer && p.Manufacturer.Name,
+      description: p.Description && (p.Description.ProductDescription || p.Description.DetailedDescription),
+      category: cat,
+      datasheet: p.DatasheetUrl || null,
+      productUrl: p.ProductUrl || null,
+      parameters: params,
+      otherMatches: Math.max(0, prods.length - 1),
+    };
+    return json(out, 200, cors);
+  } catch (e) {
+    return json({ error: String(e.message || "DigiKey lookup failed").slice(0, 200) }, 502, cors);
+  }
 }

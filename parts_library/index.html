@@ -132,7 +132,7 @@ function renderTable(){
      <td class="desc"><input type="text" data-f="description" maxlength="300" value="${esc(e.description)}" aria-label="Description"></td>
      ${cols.map(c=>`<td><input type="number" step="any" data-v="${c.k}" value="${v[c.k]!=null?esc(v[c.k]):""}" aria-label="${esc(c.h)}"></td>`).join("")}
      <td class="txt"><input type="text" data-f="datasheet" maxlength="400" value="${esc(e.datasheet)}" placeholder="https://" aria-label="Datasheet link">${/^https?:\/\//i.test(e.datasheet||"")?` <a href="${esc(e.datasheet)}" target="_blank" rel="noopener">open</a>`:""}</td>
-     <td><a class="btn" href="${esc(PL.googleUrl(tab,e.pn))}" target="_blank" rel="noopener" title="Opens Google with a ready-made question that answers as one line to paste above. AI answers can be wrong: check values against the datasheet before ticking Verified.">Google</a> <button class="btn" type="button" data-act="mouser">Mouser</button> <button class="btn" type="button" data-act="del" aria-label="Delete ${esc(e.pn)}">✕</button> <span class="rowst" data-rs></span></td></tr>`}).join("")+`</tbody></table>`;
+     <td><a class="btn" href="${esc(PL.googleUrl(tab,e.pn))}" target="_blank" rel="noopener" title="Opens Google with a ready-made question that answers as one line to paste above. AI answers can be wrong: check values against the datasheet before ticking Verified.">Google</a> <button class="btn" type="button" data-act="digikey" title="Fills parameters from DigiKey. Needs the lookup password.">DigiKey</button> <button class="btn" type="button" data-act="mouser">Mouser</button> <button class="btn" type="button" data-act="del" aria-label="Delete ${esc(e.pn)}">✕</button> <span class="rowst" data-rs></span></td></tr>`}).join("")+`</tbody></table>`;
   $("count").textContent=`${rows.length} of ${PL.get(tab).length} shown`;
 }
 function renderStatus(){
@@ -168,6 +168,26 @@ $("tbl").addEventListener("click",async ev=>{
   if(b.dataset.act==="del"){
     if(!confirm(`Delete ${pn} from the shared library for everyone? The previous version is kept for 90 days.`))return;
     try{await PL.remove(tab,pn);renderAll()}catch(err){say(`Not deleted: ${err.message}`,true)}
+    return}
+  if(b.dataset.act==="digikey"){b.disabled=true;rs.textContent="searching…";
+    try{
+      const res=await PL.digikeyFetch(pn),r=await res.json().catch(()=>({}));
+      if(!res.ok)throw new Error(r.error||`Lookup returned ${res.status}`);
+      if(!r.found){rs.textContent="not on DigiKey";return}
+      const cur=find(pn),m=PL.dkMap(tab,r),patch={vals:{}};
+      if(!cur.manufacturer&&m.manufacturer)patch.manufacturer=m.manufacturer;
+      if(!cur.description&&m.description)patch.description=m.description;
+      if(!cur.datasheet&&m.datasheet&&/^https?:\/\//i.test(m.datasheet))patch.datasheet=m.datasheet;
+      if(tab==="cap"){if(m.type&&!cur.type)patch.type=m.type;if(m.dielectric&&!cur.dielectric)patch.dielectric=m.dielectric}
+      const filled=[],kept=[];
+      for(const k in m.vals){if(cur.vals[k]==null){patch.vals[k]=m.vals[k];filled.push(k)}else kept.push(k)}
+      const nt=Object.keys(patch).length-1;
+      if(!filled.length&&!nt){rs.textContent="nothing new";say(`DigiKey found ${r.mpn} but nothing new to add. It returned ${Object.keys(r.parameters||{}).length} parameters.`);return}
+      if(!filled.length)delete patch.vals;
+      await saveEntry(pn,patch,tr);renderTable();
+      say(`DigiKey ${r.exact?"matched ":"closest match "}${r.mpn}${r.exact?"":" (check it is the part you meant)"}. Filled ${filled.length?filled.join(", "):"no values"}${nt?` and ${nt} text field${nt>1?"s":""}`:""}${kept.length?`; kept your existing ${kept.join(", ")}`:""}. Check against the datasheet, then tick Verified.`);
+    }catch(err){rs.textContent="";say(`DigiKey lookup failed: ${err.message||"could not reach the service"}`,true)}
+    finally{b.disabled=false}
     return}
   if(b.dataset.act==="mouser"){b.disabled=true;rs.textContent="searching…";
     try{
