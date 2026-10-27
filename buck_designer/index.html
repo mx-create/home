@@ -49,13 +49,14 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 header.top p{margin:4px 0 0;color:var(--muted);max-width:70ch}
 .tools{display:flex;gap:6px;flex-wrap:wrap}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+header.top .libstatus{flex-basis:100%;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
 nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;flex-wrap:wrap;gap:4px;align-items:center;border-bottom:2px solid var(--ink);margin-bottom:18px;padding-top:4px}
 nav.tabs a{font:600 15px var(--f-display);color:var(--muted);text-decoration:none;padding:9px 14px;border-radius:6px 6px 0 0;letter-spacing:.02em}
 nav.tabs a[aria-current="page"]{background:var(--ink);color:var(--bg)}
 nav.tabs .run{margin-left:auto;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;padding-right:2px;min-width:0}
 @media (max-width:540px){nav.tabs .run{order:3;width:100%;margin-left:0;padding:2px 2px 6px}}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
-.dot.busy{background:var(--warn)}
+.dot.busy,.dot.warn{background:var(--warn)}
 @media (prefers-reduced-motion:no-preference){.dot.busy{animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.3}}}
 
 .view{display:flex;flex-direction:column;gap:22px}
@@ -270,6 +271,7 @@ ol.rank{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;ma
       <input type="file" id="file-proj" accept=".json,application/json" hidden>
       <input type="file" id="file-lib" accept=".json,application/json" hidden>
     </div>
+    <div class="libstatus" id="lib-status" role="status"></div>
   </header>
   <nav class="tabs" aria-label="Sections">
     <a href="#design">Design</a><a href="#results">Results</a><a href="#report">Report</a>
@@ -318,11 +320,11 @@ function snap(x,ser,dir){
 
 /* ---------- capacitor type presets ---------- */
 const CAP_TYPES={
-  mlcc:{label:"Ceramic (MLCC)",esl:0.5,tol:10,temp:15,eol:5,esrLo:0.7,esrHi:1.5,derate:"drCapMlcc"},
-  poly:{label:"Polymer (Al/Ta)",esl:1.5,tol:20,temp:10,eol:10,esrLo:0.8,esrHi:2,derate:"drCapPoly"},
-  tant:{label:"Tantalum (MnO₂)",esl:2,tol:20,temp:10,eol:10,esrLo:0.8,esrHi:2.5,derate:"drCapTant"},
-  alu:{label:"Aluminium electrolytic",esl:5,tol:20,temp:20,eol:20,esrLo:0.8,esrHi:3,derate:"drCapAlu"},
-  film:{label:"Film",esl:3,tol:5,temp:3,eol:3,esrLo:0.8,esrHi:1.3,derate:"drCapFilm"}
+  mlcc:{label:"Ceramic (MLCC)",df:0.025,fs:1000,esl:0.5,tol:10,temp:15,eol:5,esrLo:0.7,esrHi:1.5,derate:"drCapMlcc"},
+  poly:{label:"Polymer (Al/Ta)",df:0.1,fs:100,esl:1.5,tol:20,temp:10,eol:10,esrLo:0.8,esrHi:2,derate:"drCapPoly"},
+  tant:{label:"Tantalum (MnO₂)",df:0.08,fs:100,esl:2,tol:20,temp:10,eol:10,esrLo:0.8,esrHi:2.5,derate:"drCapTant"},
+  alu:{label:"Aluminium electrolytic",df:0.16,fs:100,esl:5,tol:20,temp:20,eol:20,esrLo:0.8,esrHi:3,derate:"drCapAlu"},
+  film:{label:"Film",df:0.001,fs:1000,esl:3,tol:5,temp:3,eol:3,esrLo:0.8,esrHi:1.3,derate:"drCapFilm"}
 };
 
 /* ---------- impedance of a bank of capacitor rows ---------- */
@@ -695,7 +697,7 @@ const F={
   dcr:["DCR max","mΩ"],dcrTc:["DCR tempco","%/°C"],pcore:["Core loss estimate","mW"],
   /* capacitor row */
   n:["Qty","pcs"],c:["Capacitance","µF"],esr:["ESR","mΩ"],esl:["ESL","nH"],vr:["Voltage rating","V"],irmsC:["Ripple current","A rms"],
-  tol:["Tolerance","± %"],dc:["DC-bias loss","%"],temp:["Temp drift","%"],eol:["EOL drift","%"],esrLo:["ESR low","×"],esrHi:["ESR high","×"],
+  tol:["Tolerance","± %"],dc:["DC-bias loss","%"],temp:["Temp drift","%"],eol:["EOL drift","%"],esrLo:["ESR low","×"],df:["tanδ (compensation tool)",""],fs:["ESR spec frequency","kHz"],esrHi:["ESR high","×"],
   /* filter / snubber */
   lf:["Filter inductance","µH"],lfTol:["Filter L tolerance","± %"],lfDcr:["Filter DCR","mΩ"],rd:["Damping R","Ω"],cd:["Damping C","µF"],
   srcLim:["Source ripple limit","mA pk"],mbMargin:["Middlebrook margin","dB"],lloop:["Power loop inductance","nH"],rsP:["Snubber R rating","W"]
@@ -721,7 +723,7 @@ const CTRL_GROUPS=[
 ];
 const FET_KEYS=["vds","id","rds","rdsAlpha","rdsEol","qg","qgs","qgd","vpl","coss","qrr","vf","rth","tjmax"];
 const IND_KEYS=["L","ltol","ltemp","lsat","isat","isatHot","irms","dTr","dcr","dcrTc","pcore"];
-const CAP_KEYS=["n","c","esr","esl","vr","irmsC","tol","dc","temp","eol","esrLo","esrHi"];
+const CAP_KEYS=["n","c","esr","esl","vr","irmsC","tol","dc","temp","eol","esrLo","esrHi","df","fs"];
 /* values that come from a datasheet (others are design choices or tolerances) */
 const DATASHEET=new Set(["vinMaxIc","vref","fswMax","tonMin","ilim","vdrv","rdrv","tdead","iq","ibst","eaAol","eaGbw","eaGm","vramp","ri","se","iss","venR","ihys","ioutMaxIc","rdsHs","rdsLs","tsw","rthIc","tjmaxIc",
   "vds","id","rds","qg","qgs","qgd","vpl","coss","qrr","vf","rth","tjmax","L","isat","irms","dcr","c","esr","esl","vr","irmsC"]);
@@ -746,12 +748,12 @@ function example(){
       ind:{pn:"",verified:false,mouser:null,src:{},vals:{L:2.2,ltol:20,ltemp:5,lsat:10,isat:18,isatHot:10,irms:14,dTr:40,dcr:4,dcrTc:0.39,pcore:150}}
     },
     cout:[
-      {id:"o1",pn:"",type:"mlcc",verified:false,mouser:null,n:4,c:47,esr:3,esl:0.5,vr:10,irmsC:3,tol:10,dc:40,temp:15,eol:5,esrLo:0.7,esrHi:1.5},
-      {id:"o2",pn:"",type:"poly",verified:false,mouser:null,n:1,c:330,esr:9,esl:1.5,vr:6.3,irmsC:4,tol:20,dc:0,temp:10,eol:10,esrLo:0.8,esrHi:2}
+      {id:"o1",pn:"",type:"mlcc",verified:false,mouser:null,n:4,c:47,esr:3,esl:0.5,vr:10,irmsC:3,tol:10,dc:40,temp:15,eol:5,esrLo:0.7,esrHi:1.5,df:0.025,fs:1000},
+      {id:"o2",pn:"",type:"poly",verified:false,mouser:null,n:1,c:330,esr:9,esl:1.5,vr:6.3,irmsC:4,tol:20,dc:0,temp:10,eol:10,esrLo:0.8,esrHi:2,df:0.1,fs:100}
     ],
     cin:[
-      {id:"i1",pn:"",type:"mlcc",verified:false,mouser:null,n:3,c:22,esr:3,esl:0.5,vr:25,irmsC:3,tol:10,dc:50,temp:15,eol:5,esrLo:0.7,esrHi:1.5},
-      {id:"i2",pn:"",type:"alu",verified:false,mouser:null,n:1,c:100,esr:80,esl:5,vr:25,irmsC:1.5,tol:20,dc:0,temp:20,eol:20,esrLo:0.8,esrHi:3}
+      {id:"i1",pn:"",type:"mlcc",verified:false,mouser:null,n:3,c:22,esr:3,esl:0.5,vr:25,irmsC:3,tol:10,dc:50,temp:15,eol:5,esrLo:0.7,esrHi:1.5,df:0.025,fs:1000},
+      {id:"i2",pn:"",type:"alu",verified:false,mouser:null,n:1,c:100,esr:80,esl:5,vr:25,irmsC:1.5,tol:20,dc:0,temp:20,eol:20,esrLo:0.8,esrHi:3,df:0.16,fs:100}
     ],
     filter:{on:true,lf:2.2,lfTol:20,lfDcr:10,rd:0.15,cd:220,srcLim:50,mbMargin:6},
     snub:{on:false,lloop:1.5,rsP:0.25}
@@ -1178,6 +1180,7 @@ return {run,cornerText,PARAM_LABEL,snubberDesign};
 })();
 if(typeof module!=="undefined")module.exports=WCA;
 </script>
+<script src="../shared/partslib.js"></script>
 <script>/* ===================== Formatting and SVG plots ===================== */
 "use strict";
 const Fmt=(function(){
@@ -2055,14 +2058,24 @@ function load(){
   const ex=Model.example();
   const st=s&&s.v===2?merge(ex,s):ex;
   for(const id in st.parts){const p=st.parts[id];if(!p.src||!Object.keys(p.src).length){p.src={};for(const k in p.vals)p.src[k]="ex"}}
-  for(const b of ["cout","cin"])st[b].forEach(r=>{if(!r.src){r.src={};Model.CAP_KEYS.forEach(k=>r.src[k]="ex")}});
+  for(const b of ["cout","cin"])st[b].forEach(r=>{if(!r.src){r.src={};Model.CAP_KEYS.forEach(k=>r.src[k]="ex")}
+    const p=Core.CAP_TYPES[r.type]||Core.CAP_TYPES.mlcc;if(!(r.df>=0))r.df=p.df;if(!(r.fs>0))r.fs=p.fs});
   return st;
 }
 let S=load();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
-let LIB={};try{LIB=JSON.parse(localStorage.getItem(LIBKEY)||"{}")||{}}catch(e){LIB={}}
-if(LIB.ctrl)LIB.ctrl.forEach(x=>{if(x.vals&&x.vals.vinMax!=null&&x.vals.vinMaxIc==null)x.vals.vinMaxIc=x.vals.vinMax});
-function saveLib(){try{localStorage.setItem(LIBKEY,JSON.stringify(LIB))}catch(e){}}
+/* parts library: shared on the server (PartsLib), with this device's earlier local copy adopted once */
+const PL=window.PartsLib;
+let OLD_LIB={};try{OLD_LIB=JSON.parse(localStorage.getItem(LIBKEY)||"{}")||{}}catch(e){OLD_LIB={}}
+if(OLD_LIB.ctrl)OLD_LIB.ctrl.forEach(x=>{if(x.vals&&x.vals.vinMax!=null&&x.vals.vinMaxIc==null)x.vals.vinMaxIc=x.vals.vinMax});
+let LIB=PL.all();
+const refreshLib=()=>{LIB=PL.all()};
+function libStatusHTML(){
+  const s=PL.status();
+  const txt={ok:`Shared library: ${s.count} part${s.count===1?"":"s"}`,loading:"Shared library: loading…",offline:`Shared library unreachable, using this device's copy (${s.count})`,nosetup:"Shared library isn't set up on the server yet; parts stay on this device",idle:"Shared library"}[s.state]||"";
+  return `<span class="dot ${s.state==="ok"?"":"warn"}"></span><span>${esc(txt)}${s.pending?` · ${s.pending} waiting to share`:""}</span><button class="btn sm ghost" id="btn-lib-r" type="button">Refresh</button>`;
+}
+function renderLibStatus(){const el=document.getElementById("lib-status");if(el)el.innerHTML=libStatusHTML()}
 
 /* path helpers: "parts.hs.vals.rds", "cout.#o1.c" */
 function resolve(path){
@@ -2114,7 +2127,7 @@ function partCard(slot,title,groups,more){
   if(more)body+=`<details class="more"><summary>Tolerances and drift</summary>${grid(more.map(f))}</details>`;
   return `<div class="panel part" id="card-${slot}">
     <div class="part-h"><h3>${esc(title)}</h3><span id="chip-${slot}">${chipFor(p)}</span></div>
-    ${items.length?`<div class="libbar"><select data-lib="${slot}" aria-label="Use a part from your library"><option value="">Use a part from your library…</option>${items.map((x,i)=>`<option value="${i}">${esc(x.pn)}${x.manufacturer?" · "+esc(x.manufacturer):""}</option>`).join("")}</select></div>`:""}
+    ${items.length?`<div class="libbar"><select data-lib="${slot}" aria-label="Use a part from the shared library"><option value="">Use a part from the shared library…</option>${items.map((x,i)=>`<option value="${esc(x.pn)}">${esc(x.pn)}${x.manufacturer?" · "+esc(x.manufacturer):""}</option>`).join("")}</select></div>`:""}
     <div class="pn"><span class="fi"><input id="pn-${slot}" data-path="parts.${slot}.pn" data-text="1" data-pn="1" placeholder="Manufacturer part number" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc(p.pn)}"></span>
       <button class="btn pri" type="button" data-look="part:${slot}">Look up</button></div>
     <div class="meta">${mouserHTML(p.mouser)}<div class="status" id="st-${slot}" role="status"></div></div>
@@ -2131,12 +2144,12 @@ function capCard(bank,r,i){
       <span class="fi" style="flex:1 1 180px"><select data-captype="${path}" aria-label="Capacitor type">${Object.entries(Core.CAP_TYPES).map(([k,v])=>`<option value="${k}" ${r.type===k?"selected":""}>${esc(v.label)}</option>`).join("")}</select></span>
       <span id="chip-${r.id}">${chipFor(r)}</span>
       <button class="btn sm ghost" type="button" data-capdel="${path}" aria-label="Remove group C${i+1}">Remove</button></div>
-    ${items.length?`<div class="libbar"><select data-libcap="${path}" aria-label="Use a capacitor from your library"><option value="">Use a capacitor from your library…</option>${items.map((x,j)=>`<option value="${j}">${esc(x.pn)}${x.description?" · "+esc(x.description.slice(0,40)):""}</option>`).join("")}</select></div>`:""}
+    ${items.length?`<div class="libbar"><select data-libcap="${path}" aria-label="Use a capacitor from the shared library"><option value="">Use a capacitor from the shared library…</option>${items.map((x,j)=>`<option value="${esc(x.pn)}">${esc(x.pn)}${x.description?" · "+esc(x.description.slice(0,40)):""}</option>`).join("")}</select></div>`:""}
     <div class="pn"><span class="fi"><input id="pn-${r.id}" data-path="${path}.pn" data-text="1" data-pn="1" placeholder="Manufacturer part number" autocomplete="off" spellcheck="false" value="${esc(r.pn||"")}"></span>
       <button class="btn pri" type="button" data-look="cap:${path}">Look up</button></div>
     <div class="meta">${mouserHTML(r.mouser)}<div class="status" id="st-${r.id}" role="status"></div></div>
     ${grid(["n","c","esr","esl","vr","irmsC","dc"].map(f))}
-    <details class="more"><summary>Tolerance, drift and ESR spread</summary>${grid(["tol","temp","eol","esrLo","esrHi"].map(f))}</details>
+    <details class="more"><summary>Tolerance, drift and ESR spread</summary>${grid(["tol","temp","eol","esrLo","esrHi","fs","df"].map(f))}</details>
     <div class="verify"><label class="check"><input type="checkbox" data-verify="cap:${path}" ${r.verified?"checked":""}>Checked against the datasheet</label>
       <button class="btn sm" type="button" data-libsave="cap:${path}" ${r.verified&&r.pn?"":"disabled"}>Save to library</button></div>
   </div>`;
@@ -2157,7 +2170,7 @@ function renderDesign(){
     </div>${S.ctrl==="vm"?`<label class="check" style="margin-top:12px"><input type="checkbox" data-toggle="feedforward" ${S.feedforward?"checked":""}>Input-voltage feed-forward (ramp proportional to Vin)</label>`:""}</div></section>`);
   h.push(`<section class="block"><h2><span class="n">04</span>Parts</h2>
     <div class="legend"><span><i class="src ex"></i>Example</span><span><i class="src mouser"></i>From Mouser</span><span><i class="src lib"></i>From library</span><span><i class="src user"></i>Entered</span></div>
-    <p class="note">Look up finds the part on Mouser: datasheet, price, stock and lifecycle, plus any values in its description. Enter the rest from the datasheet, tick it as checked, then save it to your library.</p>
+    <p class="note">Look up finds the part on Mouser: datasheet, price, stock and lifecycle, plus any values in its description. Enter the rest from the datasheet, tick it as checked, then save it to the shared library, where everyone using these tools can pick it.</p>
     <div class="cols"><div class="view" style="gap:14px">
       ${partCard(ext?"ctrl":"conv",ext?"Controller":"Converter IC",Model.CTRL_GROUPS.filter(g=>!(g.ext&&!ext)&&!(g.int&&ext)))}
       ${partCard("ind","Inductor",[{t:"Datasheet",k:["L","isat","irms","dcr","pcore"]}],["ltol","ltemp","lsat","isatHot","dTr","dcrTc"])}
@@ -2224,8 +2237,8 @@ document.addEventListener("change",e=>{
     if(d.toggle==="compManual"&&t.checked&&LAST&&!S.manual){const q=LAST.D.comp.chosen;S.manual={};for(const k of ["R2","R3","Rc"])S.manual[k]=+(q[k]/1e3).toPrecision(4);for(const k of ["C1","C2","C3","Cc","Cp","Cff"])S.manual[k]=+(q[k]*1e12).toPrecision(4)}
     save();if(d.toggle==="compManual")renderCompPanel();else renderDesign();schedule();return}
   if(d.captype){const r=resolve(d.captype+".x").obj;applyCapType(r,t.value,true);save();renderDesign();schedule();return}
-  if(d.lib&&t.value!==""){useLib("part",d.lib,+t.value);return}
-  if(d.libcap&&t.value!==""){useLib("cap",d.libcap,+t.value);return}
+  if(d.lib&&t.value!==""){useLib("part",d.lib,t.value);return}
+  if(d.libcap&&t.value!==""){useLib("cap",d.libcap,t.value);return}
 });
 document.addEventListener("toggle",e=>{if(e.target.id==="rules-details"){S._rulesOpen=e.target.open;save()}},true);
 document.addEventListener("keydown",e=>{const t=e.target;if(e.key==="Enter"&&t.dataset&&t.dataset.pn){const b=t.closest(".pn").querySelector("[data-look]");if(b)b.click()}});
@@ -2234,7 +2247,7 @@ document.addEventListener("click",e=>{
   if(d.seg){S[d.seg]=d.val;if(d.seg==="ctrl"&&d.val==="pcm")S.feedforward=false;save();renderDesign();schedule();return}
   if(d.look){lookup(d.look,b);return}
   if(d.libsave){saveToLib(d.libsave);return}
-  if(d.capadd){const bank=d.capadd;const id=(bank==="cout"?"o":"i")+Date.now().toString(36);const r={id,pn:"",type:"mlcc",verified:false,mouser:null,n:1,c:10,esr:5,esl:0.5,vr:bank==="cout"?10:25,irmsC:2,tol:10,dc:30,temp:15,eol:5,esrLo:0.7,esrHi:1.5,src:{}};
+  if(d.capadd){const bank=d.capadd;const id=(bank==="cout"?"o":"i")+Date.now().toString(36);const r={id,pn:"",type:"mlcc",verified:false,mouser:null,n:1,c:10,esr:5,esl:0.5,vr:bank==="cout"?10:25,irmsC:2,tol:10,dc:30,temp:15,eol:5,esrLo:0.7,esrHi:1.5,df:0.025,fs:1000,src:{}};
     Model.CAP_KEYS.forEach(k=>r.src[k]="user");S[bank].push(r);save();renderDesign();schedule();const el=document.getElementById("cap-"+id);if(el&&el.scrollIntoView)el.scrollIntoView({block:"center"});return}
   if(d.capdel){const seg=d.capdel.split(".");const bank=seg[0],id=seg[1].slice(1);
     if(S[bank].length<=1){toast("Keep at least one capacitor group.");return}
@@ -2245,7 +2258,7 @@ document.addEventListener("click",e=>{
 function target(spec){const [kind,ref]=spec.split(/:(.+)/);return kind==="part"?S.parts[ref]:resolve(ref+".x").obj}
 function applyCapType(r,type,force){
   const p=Core.CAP_TYPES[type];if(!p)return;r.type=type;r.src=r.src||{};
-  for(const k of ["esl","tol","temp","eol","esrLo","esrHi"]){if(force||r.src[k]!=="user"){r[k]=p[k]}}
+  for(const k of ["esl","tol","temp","eol","esrLo","esrHi","df","fs"]){if(force||r.src[k]!=="user"){r[k]=p[k]}}
 }
 
 /* ---------- Mouser lookup ---------- */
@@ -2308,21 +2321,23 @@ async function lookup(spec,btn){
 function saveToLib(spec){
   const o=target(spec),isCap=spec.startsWith("cap:"),t=isCap?"cap":LIBTYPE[spec.split(":")[1]];
   const vals={};
-  if(isCap){for(const k of ["c","esr","esl","vr","irmsC","tol","temp","eol","esrLo","esrHi"])vals[k]=o[k]}
+  if(isCap){for(const k of ["c","esr","esl","vr","irmsC","tol","temp","eol","esrLo","esrHi","df","fs"])if(isFinite(o[k]))vals[k]=o[k]}
   else for(const k in o.vals)vals[k]=o.vals[k];
   const m=o.mouser||{};
-  const e={pn:o.pn,manufacturer:m.manufacturer||"",description:m.description||"",datasheet:m.datasheet||"",type:isCap?o.type:undefined,vals,saved:new Date().toISOString().slice(0,10)};
-  LIB[t]=(LIB[t]||[]).filter(x=>x.pn!==o.pn);LIB[t].push(e);LIB[t].sort((a,b)=>a.pn.localeCompare(b.pn));
-  saveLib();renderDesign();toast(`${o.pn} saved to your library`);
+  const e={pn:o.pn,manufacturer:m.manufacturer||"",description:m.description||"",datasheet:m.datasheet||"",type:isCap?o.type:undefined,vals};
+  const by=S.meta.designer||PL.getBy();if(S.meta.designer)PL.setBy(S.meta.designer);
+  PL.save(t,e,by).then(r=>{refreshLib();renderLibStatus();renderDesign();toast(r.shared?`${o.pn} saved to the shared library`:`${o.pn} saved on this device and will be shared when the library is reachable`)})
+    .catch(err=>toast("The shared library didn't accept it: "+(err&&err.message||"error")));
 }
-function useLib(kind,ref,i){
-  const t=kind==="cap"?"cap":LIBTYPE[ref];const e=(LIB[t]||[])[i];if(!e)return;
+function useLib(kind,ref,pn){
+  const t=kind==="cap"?"cap":LIBTYPE[ref];const e=(LIB[t]||[]).find(x=>x.pn===pn);if(!e)return;
   const o=kind==="cap"?resolve(ref+".x").obj:S.parts[ref];
   o.pn=e.pn;o.src=o.src||{};
-  if(kind==="cap"){if(e.type)o.type=e.type;for(const k in e.vals){o[k]=e.vals[k];o.src[k]="lib"}}
-  else for(const k in e.vals){if(k in o.vals){o.vals[k]=e.vals[k];o.src[k]="lib"}}
-  o.verified=true;
-  o.mouser=e.datasheet||e.manufacturer?{mpn:e.pn,manufacturer:e.manufacturer,description:e.description,datasheet:e.datasheet,productUrl:"",lifecycle:"",priceBreaks:[],hints:["Loaded from your library. Look up again for current price, stock and lifecycle."]}:null;
+  if(kind==="cap"){if(e.type)o.type=e.type;for(const k in e.vals){if(Model.CAP_KEYS.includes(k)&&k!=="n"&&k!=="dc"){o[k]=e.vals[k];o.src[k]="lib"}}
+    const p=Core.CAP_TYPES[o.type]||{};if(e.vals.df==null)o.df=p.df;if(!(e.vals.fs>0))o.fs=p.fs;
+    o.verified=PL.capComplete(e)}
+  else{for(const k in e.vals){if(k in o.vals){o.vals[k]=e.vals[k];o.src[k]="lib"}}o.verified=true}
+  o.mouser=e.datasheet||e.manufacturer?{mpn:e.pn,manufacturer:e.manufacturer,description:e.description,datasheet:e.datasheet,productUrl:"",lifecycle:"",priceBreaks:[],hints:["Loaded from the shared library. Look up again for current price, stock and lifecycle."].concat(kind==="cap"&&!PL.capComplete(e)?["This entry was saved from the compensation calculator and has no voltage or ripple-current rating yet. Enter them from the datasheet and save again."]:[])}:null;
   save();renderDesign();schedule();
 }
 
@@ -2343,13 +2358,15 @@ $("#btn-proj-open").onclick=()=>$("#file-proj").click();
 $("#file-proj").onchange=async e=>{const f=e.target.files[0];if(!f)return;
   try{const j=JSON.parse(await f.text());if(!j||j.format!=="buck-designer-project"||!j.state)throw 0;S=merge(Model.example(),j.state);S.v=2;save();renderDesign();schedule(0);toast(`Opened ${S.meta.project||f.name}`)}
   catch(err){toast("That file isn't a Buck Designer project.")}e.target.value=""};
-$("#btn-lib-x").onclick=()=>{const n=Object.values(LIB).reduce((s,a)=>s+a.length,0);if(!n){toast("Your library is empty. Check a part and save it first.");return}
+$("#btn-lib-x").onclick=()=>{const n=Object.values(LIB).reduce((s,a)=>s+a.length,0);if(!n){toast("The library is empty. Check a part and save it first.");return}
   saveFile("buck-parts-library.json",JSON.stringify({format:"buck-designer-library",version:2,parts:LIB},null,2),"application/json")};
 $("#btn-lib-i").onclick=()=>$("#file-lib").click();
 $("#file-lib").onchange=async e=>{const f=e.target.files[0];if(!f)return;
-  try{const j=JSON.parse(await f.text());const parts=j&&j.parts;if(!parts||typeof parts!=="object")throw 0;let c=0;
-    for(const t in parts){if(!Array.isArray(parts[t]))continue;LIB[t]=LIB[t]||[];parts[t].forEach(x=>{if(x&&x.pn&&x.vals){LIB[t]=LIB[t].filter(y=>y.pn!==x.pn);LIB[t].push(x);c++}});LIB[t].sort((a,b)=>a.pn.localeCompare(b.pn))}
-    saveLib();renderDesign();toast(`Imported ${c} part${c===1?"":"s"}`)}
+  try{const j=JSON.parse(await f.text());const parts=j&&j.parts;if(!parts||typeof parts!=="object")throw 0;let c=0,skipped=0;
+    for(const t of PL.TYPES){if(!Array.isArray(parts[t]))continue;
+      for(const x of parts[t]){if(!(x&&x.pn&&x.vals))continue;
+        try{await PL.save(t,{pn:x.pn,type:x.type,manufacturer:x.manufacturer,description:x.description,datasheet:x.datasheet,vals:x.vals});c++}catch(err){skipped++}}}
+    refreshLib();renderLibStatus();renderDesign();toast(`Imported ${c} part${c===1?"":"s"} into the shared library${skipped?`, ${skipped} skipped`:""}`)}
   catch(err){toast("That file isn't a Buck Designer library.")}e.target.value=""};
 $("#btn-reset").onclick=e=>{const b=e.currentTarget;
   if(b.dataset.arm==="1"){S=Model.example();for(const id in S.parts){S.parts[id].src={};for(const k in S.parts[id].vals)S.parts[id].src[k]="ex"}for(const bk of ["cout","cin"])S[bk].forEach(r=>{r.src={};Model.CAP_KEYS.forEach(k=>r.src[k]="ex")});
@@ -2448,6 +2465,9 @@ window.addEventListener("hashchange",()=>{renderActive();window.scrollTo(0,0)});
 
 /* ---------- boot ---------- */
 renderDesign();renderActive();schedule(0);
+renderLibStatus();PL.onChange(()=>{refreshLib();renderLibStatus()});
+document.addEventListener("click",e=>{if(e.target&&e.target.id==="btn-lib-r")PL.pull().then(()=>{refreshLib();renderLibStatus();renderDesign()})});
+PL.pull().then(()=>{PL.adopt(OLD_LIB);refreshLib();renderLibStatus();const a=document.activeElement;if(!(a&&a.id!=="gate-pw"&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))renderDesign()});
 if(IN_CLAUDE&&window.claude.use){window.claude.use("downloads").then(d=>{downloads=d;if(route()==="report")renderReport()}).catch(()=>{})}
 })();
 </script>
