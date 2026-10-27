@@ -169,12 +169,12 @@ const setBy=v=>ls.set(BYK,String(v||"").slice(0,40));
    DC-bias loss is not stored: it depends on the voltage the part runs at, so each design sets it. */
 const COMP_DEF={x7r:{df:0.025,fs:1000},c0g:{df:0.001,fs:1000},poly:{df:0.1,fs:100},tant:{df:0.08,fs:100},alu:{df:0.16,fs:100}};
 const CAP_REQ=["c","esr","esl","vr","irmsC"];
-const capComplete=e=>!!e&&!!e.vals&&CAP_REQ.every(k=>isFinite(e.vals[k]));
+const capComplete=e=>!!e&&!!e.vals&&CAP_REQ.every(k=>isFinite(e.vals[k]))&&e.vals.c>0;
 function capToComp(e){
   const v=e.vals||{};
   const type=e.type==="mlcc"?(e.dielectric==="c0g"?"c0g":"x7r"):e.type==="film"?"c0g":(COMP_DEF[e.type]?e.type:"x7r");
   const d=COMP_DEF[type];
-  return {pn:e.pn,type,c:v.c,esr:v.esr,esl:v.esl,fs:v.fs>0?v.fs:d.fs,df:v.df!=null?v.df:d.df,
+  return {pn:e.pn,type,c:v.c>0?v.c:undefined,esr:v.esr,esl:v.esl,fs:v.fs>0?v.fs:d.fs,df:v.df!=null?v.df:d.df,
     fromPreset:{fs:!(v.fs>0),df:v.df==null},mz:{manufacturer:e.manufacturer||"",description:e.description||"",datasheet:e.datasheet||""}};
 }
 function compToCap(g,mz){

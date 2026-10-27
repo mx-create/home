@@ -1180,7 +1180,7 @@ return {run,cornerText,PARAM_LABEL,snubberDesign};
 })();
 if(typeof module!=="undefined")module.exports=WCA;
 </script>
-<script src="../shared/partslib.js?v=20261027b"></script>
+<script src="../shared/partslib.js?v=20261027c"></script>
 <script>/* ===================== Formatting and SVG plots ===================== */
 "use strict";
 const Fmt=(function(){
@@ -2333,7 +2333,7 @@ function useLib(kind,ref,pn){
   const t=kind==="cap"?"cap":LIBTYPE[ref];const e=(LIB[t]||[]).find(x=>x.pn===pn);if(!e)return;
   const o=kind==="cap"?resolve(ref+".x").obj:S.parts[ref];
   o.pn=e.pn;o.src=o.src||{};
-  if(kind==="cap"){if(e.type)o.type=e.type;for(const k in e.vals){if(Model.CAP_KEYS.includes(k)&&k!=="n"&&k!=="dc"){o[k]=e.vals[k];o.src[k]="lib"}}
+  if(kind==="cap"){if(e.type)o.type=e.type;for(const k in e.vals){if(Model.CAP_KEYS.includes(k)&&k!=="n"&&k!=="dc"&&!(k==="c"&&!(e.vals[k]>0))){o[k]=e.vals[k];o.src[k]="lib"}}
     const p=Core.CAP_TYPES[o.type]||{};if(e.vals.df==null)o.df=p.df;if(!(e.vals.fs>0))o.fs=p.fs;
     o.verified=e.verified===true&&PL.capComplete(e)}
   else{for(const k in e.vals){if(k in o.vals){o.vals[k]=e.vals[k];o.src[k]="lib"}}o.verified=e.verified===true}
