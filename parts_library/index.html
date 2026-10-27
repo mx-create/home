@@ -49,13 +49,14 @@ td.desc input{width:300px}
 .rowst{font-size:12px;color:var(--muted);min-width:60px}
 .add{display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin:10px 0;padding:10px;border:1px dashed var(--rule);border-radius:8px}
 .add label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:2px}
+.paste{margin:8px 0;padding:8px 12px;border:1px solid var(--rule);border-radius:8px;background:var(--sheet)}.paste summary{cursor:pointer;font-weight:600}
 .empty{padding:24px;color:var(--muted)}
 </style>
 </head>
 <body>
 <header>
   <h1>Parts Library</h1>
-  <p class="sub">One shared library for <a href="../buck_designer/">Buck Designer</a> and <a href="../buck_compensation/">Buck Compensation</a>. Edit any cell and it saves for everyone. Tick <b>Verified</b> once you have checked a part against its datasheet. The <b>Google</b> button opens a search asking for the part's values as a table; AI answers can be wrong, so treat them as a starting point only.</p>
+  <p class="sub">One shared library for <a href="../buck_designer/">Buck Designer</a> and <a href="../buck_compensation/">Buck Compensation</a>. Edit any cell and it saves for everyone. Tick <b>Verified</b> once you have checked a part against its datasheet. The <b>Google</b> button opens a search asking for the part's values as one line you can paste in; AI answers can be wrong, so treat them as a starting point only.</p>
   <div class="bar"><span id="st" class="status" role="status"></span><label class="status">Your name for edits <input type="text" id="by" maxlength="40" placeholder="optional" autocomplete="name"></label></div>
 </header>
 <main>
@@ -69,6 +70,10 @@ td.desc input{width:300px}
     <button class="btn" id="refresh" type="button">Refresh</button>
   </div>
   <div id="msg" role="status"></div>
+  <details class="paste" id="paste"><summary>Paste Google's one-line answer</summary>
+    <p class="status">Press <b>Google</b> on a row, copy the single line it answers with, and paste it here. The part is added or updated in the tab you are on, as not verified.</p>
+    <div class="bar"><input type="text" id="pl" class="grow" placeholder="GRM32ER71A476ME15L,mlcc,47,,,10,,20,0.1,0.12" autocomplete="off" spellcheck="false"><button class="btn pri" type="button" id="pl-go">Apply</button></div>
+  </details>
   <div class="add" id="add"></div>
   <div class="wrap" id="tbl"></div>
   <p class="status" id="count"></p>
@@ -127,7 +132,7 @@ function renderTable(){
      <td class="desc"><input type="text" data-f="description" maxlength="300" value="${esc(e.description)}" aria-label="Description"></td>
      ${cols.map(c=>`<td><input type="number" step="any" data-v="${c.k}" value="${v[c.k]!=null?esc(v[c.k]):""}" aria-label="${esc(c.h)}"></td>`).join("")}
      <td class="txt"><input type="text" data-f="datasheet" maxlength="400" value="${esc(e.datasheet)}" placeholder="https://" aria-label="Datasheet link">${/^https?:\/\//i.test(e.datasheet||"")?` <a href="${esc(e.datasheet)}" target="_blank" rel="noopener">open</a>`:""}</td>
-     <td><a class="btn" href="${esc(PL.googleUrl(tab,e.pn))}" target="_blank" rel="noopener" title="Opens Google with a ready-made question. AI answers can be wrong: check values against the datasheet before ticking Verified.">Google</a> <button class="btn" type="button" data-act="mouser">Mouser</button> <button class="btn" type="button" data-act="del" aria-label="Delete ${esc(e.pn)}">✕</button> <span class="rowst" data-rs></span></td></tr>`}).join("")+`</tbody></table>`;
+     <td><a class="btn" href="${esc(PL.googleUrl(tab,e.pn))}" target="_blank" rel="noopener" title="Opens Google with a ready-made question that answers as one line to paste above. AI answers can be wrong: check values against the datasheet before ticking Verified.">Google</a> <button class="btn" type="button" data-act="mouser">Mouser</button> <button class="btn" type="button" data-act="del" aria-label="Delete ${esc(e.pn)}">✕</button> <span class="rowst" data-rs></span></td></tr>`}).join("")+`</tbody></table>`;
   $("count").textContent=`${rows.length} of ${PL.get(tab).length} shown`;
 }
 function renderStatus(){
@@ -199,6 +204,27 @@ function parse(kind,d){
   else if(volts.length)vals.vinMaxIc=Math.max.apply(null,volts);
   return {vals,type};
 }
+
+/* ---------- paste Google's one-line answer ---------- */
+$("pl-go").addEventListener("click",async()=>{
+  const keys=PL.askKeys(tab);
+  const lines=$("pl").value.replace(/```[a-z]*/gi,"").split(/\r?\n/).map(x=>x.trim().replace(/^[`"'\s]+|[`"'\s]+$/g,"")).filter(x=>x.includes(","));
+  if(!lines.length){say("Paste the single comma-separated line Google gave you.",true);return}
+  const r=parseCSV(lines[0])[0]||[];
+  const pn=(r[0]||"").trim().toUpperCase();
+  if(!/^[A-Za-z0-9.\-\/#+_ ]{2,60}$/.test(pn)){say("The line should start with the part number.",true);return}
+  const e={pn,vals:{},verified:false},got=[],miss=[];
+  keys.forEach((k,i)=>{
+    const raw=(r[i+1]||"").trim();
+    if(k==="subtype"){const s=raw.toLowerCase();if(CAPTYPES.includes(s)){e.type=s;got.push(k)}else miss.push(k);return}
+    const m=raw.replace(/,/g,"").match(/-?\d+(?:\.\d+)?(?:e-?\d+)?/i);
+    if(m&&isFinite(Number(m[0]))){e.vals[k]=Number(m[0]);got.push(k)}else miss.push(k)});
+  if(tab==="cap"&&!e.type)e.type="mlcc";
+  if(!Object.keys(e.vals).length){say("No numbers found in that line. Check you copied the whole line.",true);return}
+  try{const res=await PL.save(tab,e,by());renderAll();$("pl").value="";
+    say(`${res.shared?"Saved":"Saved on this device:"} ${pn} as not verified. Filled ${got.length} field${got.length===1?"":"s"}${miss.length?`; left blank: ${miss.join(", ")}`:""}. Check the numbers against the datasheet, then tick Verified.`)}
+  catch(err){say(`Not saved: ${err.message}`,true)}
+});
 
 /* ---------- add ---------- */
 $("add").addEventListener("click",async ev=>{
