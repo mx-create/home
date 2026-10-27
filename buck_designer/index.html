@@ -1,15 +1,18 @@
 <!doctype html>
-<html lang="en-GB">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Buck converter design with worst-case analysis, compensation, Mouser part lookup and a formatted design report.">
+<meta name="robots" content="noindex,nofollow">
+<style>html.locked .wrap{display:none!important}#gate{display:none}html.locked #gate{display:flex}#gate{position:fixed;inset:0;z-index:50;align-items:center;justify-content:center;background:var(--bg);padding:16px}#gate form{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:12px;width:min(340px,100%)}#gate h1{font-size:22px;margin:0}#gate p{margin:0;color:var(--muted);font-size:13px}#gate input{font:16px var(--f-mono);padding:9px 10px;border:1px solid var(--line);border-radius:5px;background:var(--sunk);color:var(--ink)}#gate button{font:600 14px var(--f-body);padding:9px 12px;border:0;border-radius:5px;background:var(--copper);color:#fff;cursor:pointer}#gate .err{color:var(--bad);min-height:1.2em;font-size:13px}</style>
+<script>(function(){var ok=false;try{ok=sessionStorage.getItem("bd-unlock")==="1"}catch(e){}if(!ok)document.documentElement.classList.add("locked")})()</script>
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>Buck Designer | MX Tools</title>
-<meta property="og:title" content="Buck Designer">
-<meta property="og:description" content="Buck converter design with worst-case analysis, compensation, Mouser part lookup and a formatted design report.">
+<title>Buck Designer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<script src="vendor/katex/katex.min.js"></script>
 <style id="app-css">/* Layout: engineering workbench. Sticky tab bar (Design / Results / Report); design inputs as part cards; results as dense tables and plots; report as a typeset document. Copper accent = PCB trace. */
 :root{
   --bg:#eef1f4; --panel:#ffffff; --sunk:#f5f7f9; --ink:#17202a; --muted:#5b6672; --line:#d3d9e0;
@@ -204,6 +207,38 @@ ul.issues li{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .callout{background:var(--warn-soft);border-radius:5px;padding:10px 12px}
 .rp-foot{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
 body.standalone{padding:24px 16px;background:var(--bg)}
+/* ---------- sensitivity ---------- */
+.senses{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.sens{border:1px solid var(--line);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--panel);min-width:0;break-inside:avoid}
+.sens.st-bad{box-shadow:inset 3px 0 0 var(--bad)}.sens.st-warn{box-shadow:inset 3px 0 0 var(--warn)}
+.sens .sh{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.sens .sm{font-size:12px;color:var(--muted)}.sens .sm b{color:var(--ink);font-weight:500;font-family:var(--f-mono)}
+.sens .sb{display:flex;flex-direction:column;gap:5px}
+.sr{display:grid;grid-template-columns:minmax(78px,30%) minmax(0,1fr) 46px 36px;gap:8px;align-items:center;font-size:12px}
+.sr .sl{display:flex;flex-direction:column;line-height:1.2;min-width:0}.sr .sl small{font-size:10px;color:var(--muted);overflow-wrap:anywhere}
+.sr .st{height:9px;background:var(--sunk);border-radius:2px;overflow:hidden}.sr .st i{display:block;height:100%;background:var(--copper);border-radius:2px}
+.sr .sv{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}.sr .sp{font-family:var(--f-mono);text-align:right;color:var(--muted)}
+.sr.more{color:var(--muted)}
+.sens .sw{font-size:12px;color:var(--muted);margin:0}.sens .sw b{color:var(--ink);font-weight:500}
+table.smx th{white-space:normal;min-width:64px;text-align:center;vertical-align:bottom}
+table.smx td{text-align:center;font-family:var(--f-mono);font-size:12px;padding:5px 6px;background:color-mix(in srgb,var(--copper) calc(var(--s,0)*70%),transparent)}
+table.smx td.z{color:var(--muted)}table.smx td:first-child{text-align:left;background:none}
+/* ---------- equations ---------- */
+.eqb{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;background:var(--sunk);border-left:3px solid var(--copper);padding:6px 12px;border-radius:0 4px 4px 0}
+.eqm{overflow-x:auto;overflow-y:hidden;min-width:0}
+.eqm .katex-display{margin:.35em 0;text-align:left}.eqm .katex-display>.katex{text-align:left}
+.eqno{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.eqw{grid-column:1/-1;margin:0;font-size:12px;color:var(--muted);max-width:none}.eqw b{color:var(--ink);font-weight:500}
+.report .katex{font-size:1.02em}
+.tex-fallback{font-family:var(--f-mono);font-size:12px;white-space:pre-wrap}
+.vdefs{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.vdef{border:1px solid var(--line);border-radius:6px;padding:6px 10px;display:flex;flex-direction:column;gap:2px;overflow-x:auto}
+.vdef .katex-display{margin:.3em 0;text-align:left}.vdef small{font-size:11px;color:var(--muted)}
+p.pair{font-size:12px;color:var(--muted);margin:-6px 0 4px 15px;line-height:1.6}p.pair b{color:var(--ink);font-weight:500}
+table.dec th{text-align:left}table.dec td.ch{font-family:var(--f-body);text-align:left;font-weight:500;min-width:140px}table.dec td.lim,table.parts td.why{text-align:left;font-size:12px;color:var(--muted)}
+table.dec td,table.parts td{vertical-align:top}table.parts td.why{min-width:200px}
+table.wvec td.vv{text-align:left;white-space:nowrap}table.wvec td.vv .katex{font-size:.95em}
+ol.rank{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;max-width:80ch}
 @media print{
   :root{--bg:#fff;--panel:#fff;--sunk:#f4f6f8;--plot-bg:#fff}
   body{background:#fff}
@@ -218,6 +253,8 @@ body.standalone{padding:24px 16px;background:var(--bg)}
 </style>
 </head>
 <body>
+<div id="gate"><form id="gate-form" autocomplete="off"><h1>Buck Designer</h1><p>Enter the password to continue.</p><input id="gate-pw" type="password" aria-label="Password" autofocus><div class="err" id="gate-err" role="alert"></div><button type="submit">Unlock</button></form></div>
+<script>(function(){function h(s){var a=0xdeadbeef,b=0x41c6ce57;for(var i=0;i<s.length;i++){var c=s.charCodeAt(i);a=Math.imul(a^c,2654435761);b=Math.imul(b^c,1597334677)}a=Math.imul(a^(a>>>16),2246822507)^Math.imul(b^(b>>>13),3266489909);b=Math.imul(b^(b>>>16),2246822507)^Math.imul(a^(a>>>13),3266489909);return 4294967296*(2097151&b)+(a>>>0)}var f=document.getElementById("gate-form");if(!f)return;f.addEventListener("submit",function(e){e.preventDefault();var v=document.getElementById("gate-pw").value.trim().toUpperCase();if(h(v)===7944224282528566){try{sessionStorage.setItem("bd-unlock","1")}catch(x){}document.documentElement.classList.remove("locked")}else{document.getElementById("gate-err").textContent="Wrong password.";document.getElementById("gate-pw").select()}})})()</script>
 <div class="wrap">
   <header class="top">
     <div>
@@ -811,7 +848,7 @@ function group(ops,params,fn,keys){
 function rss(fn,op,params,key){
   const base=fn(Object.assign({},op,{k:{}}))[key];let up=0,dn=0;const contrib=[];
   for(const p of params){
-    const a=fn(Object.assign({},op,{k:{[p]:1}}))[key]-base,b=fn(Object.assign({},op,{k:{[p]:-1}}))[key]-base;
+    const a=(fn(Object.assign({},op,{k:{[p]:1}}))[key]-base)||0,b=(fn(Object.assign({},op,{k:{[p]:-1}}))[key]-base)||0;
     const u=Math.max(0,a,b),d=Math.max(0,-a,-b);up+=u*u;dn+=d*d;contrib.push({p,u,d});
   }
   return {base,hi:base+Math.sqrt(up),lo:base-Math.sqrt(dn),contrib};
@@ -823,12 +860,35 @@ function status(row){
   return "info";
 }
 
+/* tolerance text for the sensitivity charts */
+function paramTol(D,p){
+  const ic=D.ic,ind=D.ind,ru=D.rules,x=v=>+v.toFixed(2);
+  const capTxt=rows=>rows.length?rows.map(r=>`±${r.tol} % tol, −${r.temp} % temp, −${r.eol} % EOL`).filter((v,i,a)=>a.indexOf(v)===i).join("; "):"";
+  return {L:`+${ind.ltol} % / −${x(100*(1-(1-ind.ltol/100)*(1-ind.ltemp/100)*(1-ind.lsat/100)))} %`,fsw:`± ${ic.fswTol} %`,vref:`± ${ic.vrefTol} %`,
+    rt:`± ${x(Core.rtotPct(D,true))} %`,rb:`± ${x(Core.rtotPct(D,true))} %`,mod:`± ${ic.modTol} %`,ea:`± ${ic.eaTol} %`,compR:`± ${ru.rTol} %`,compC:`± ${ru.cTolComp} %`,
+    lf:`± ${D.filter.lfTol} %`,cout:"see tolerance budget",esr:"ESR ×"+D.cout.map(r=>`${r.esrLo}–${r.esrHi}`).filter((v,i,a)=>a.indexOf(v)===i).join(", "),
+    cin:"see tolerance budget",cinEsr:"ESR ×"+D.cin.map(r=>`${r.esrLo}–${r.esrHi}`).filter((v,i,a)=>a.indexOf(v)===i).join(", ")}[p]||"";
+}
+/* sensitivity ranking from the one-at-a-time swings computed for RSS.
+   side: which direction matters for the requirement ('hi' for upper limits, 'lo' for lower limits, 'both' for a two-sided band) */
+function sensEntry(D,o){
+  const items=o.r.contrib.map(c=>({p:c.p,label:PARAM_LABEL[c.p]||c.p,tol:paramTol(D,c.p),u:c.u,d:c.d,m:o.side==="hi"?c.u:o.side==="lo"?c.d:Math.max(c.u,c.d)})).filter(i=>i.m>0);
+  const tot=items.reduce((a,b)=>a+b.m*b.m,0);
+  items.forEach(i=>i.share=tot>0?i.m*i.m/tot:0);
+  items.sort((a,b)=>b.m-a.m);
+  const spread=Math.sqrt(tot),top=items[0];
+  const half=top?Math.sqrt(Math.max(0,tot-0.75*top.m*top.m)):spread;
+  return {id:o.id,label:o.label,unit:o.unit,scale:o.scale||1,dig:o.dig||3,side:o.side,base:o.r.base,spread,items,
+    whatIf:top?{p:top.p,label:top.label,newSpread:half,gain:spread>0?1-half/spread:0}:null,status:o.status,cond:o.cond||""};
+}
+
 function run(D){
   const sp=D.specs,ru=D.rules,ic=D.ic,ind=D.ind,ext=D.mode==="ext";
   const VIN=[sp.vinMin,sp.vinNom,sp.vinMax];
   const opsVin=(io,extra)=>VIN.map(v=>Object.assign({vin:v,io},extra||{}));
   const nomOp={vin:sp.vinNom,io:sp.ioutMax,T:"nom",life:"bol"};
-  const R={rows:[],plots:{},circuits:{},stress:[],checks:[],corners:0,notes:[]};
+  const R={rows:[],plots:{},circuits:{},stress:[],checks:[],corners:0,notes:[],sens:[]};
+  const addSens=(id,label,unit,scale,dig,side,r,cond)=>{const row=rows.find(x=>x.id===id);R.sens.push(sensEntry(D,{id,label,unit,scale,dig,side,r,cond,status:row&&row.status}))};
   const rows=R.rows;
   const addRow=o=>{o.status=o.status||status(o);rows.push(o);return o};
 
@@ -846,6 +906,7 @@ function run(D){
       limitText:`${sp.vout} V ± ${sp.voutAcc} %`,status:worst<=lim?"ok":worstR<=lim?"warn":"bad",corner:cornerText(Math.abs(g.vo.max-sp.vout)>Math.abs(sp.vout-g.vo.min)?g.vo.cMax:g.vo.cMin),
       basis:"Vref tolerance; each divider resistor at its tolerance + tempco over the range + EOL drift",dig:4});
     R.vo={min:g.vo.min,max:g.vo.max,nom};
+    addSens("vo","Output DC set-point","V",1,4,"both",r,"Nominal Vin and full load, hot, EOL");
   }
 
   /* ---- 2. Inductor currents ---- */
@@ -859,6 +920,8 @@ function run(D){
     const isatHot=ind.isat*(1-ind.isatHot/100);
     addRow({id:"ipk",label:"Inductor peak current",unit:"A",dir:"max",limit:isatHot/(1+ru.isatMargin/100),nom:nom.ipk,rss:rP,eva:{min:gi.ipk.min,max:gi.ipk.max},limitText:`Isat hot ÷ ${1+ru.isatMargin/100} = ${(isatHot/(1+ru.isatMargin/100)).toFixed(2)} A`,corner:cornerText(gi.ipk.cMax),basis:"Full load plus half the worst-case ripple"});
     addRow({id:"irmsL",label:"Inductor RMS current",unit:"A",dir:"max",limit:ind.irms*ru.drIndI/100,nom:nom.irms,rss:rR,eva:{min:gi.irms.min,max:gi.irms.max},limitText:`${ru.drIndI} % of ${ind.irms} A`,corner:cornerText(gi.irms.cMax)});
+    addSens("ipk","Inductor peak current","A",1,3,"hi",rP,cornerText(gi.ipk.cMax).split(", ").slice(0,2).join(", "));
+    addSens("dI","Inductor ripple current","A",1,3,"hi",rI,cornerText(gi.dI.cMax).split(", ").slice(0,2).join(", "));
   }
 
   /* ---- 3. Output ripple and output cap currents ---- */
@@ -871,6 +934,7 @@ function run(D){
     nomOut=outRipple(realize(D,Object.assign({},nomOp,{k:{}})));
     const r=rss(fn,goR.vpp.cMax,P,"vpp");
     addRow({id:"vrip",label:"Output ripple",unit:"mV",scale:1e3,dir:"max",limit:sp.vrip*1e-3,nom:nomOut.vpp,rss:r,eva:{min:goR.vpp.min,max:goR.vpp.max},limitText:`${sp.vrip} mV pk-pk`,corner:cornerText(goR.vpp.cMax),basis:`Harmonic sum (40 harmonics) of the inductor ripple into the complex impedance of ${D.cout.length} capacitor group${D.cout.length>1?"s":""} (C, ESR, ESL)`});
+    addSens("vrip","Output ripple","mV",1e3,3,"hi",r,cornerText(goR.vpp.cMax).split(", ").slice(0,2).join(", "));
     const worstM=realize(D,goR.vpp.cMax);R.plots.rippleOut={nom:nomOut.wave,worst:outRipple(worstM).wave,fsw:sp.fsw*1e3};
     R.capOut=D.cout.map((row,i)=>({max:goR["ic"+i].max,nom:nomOut.irms[i]}));
   }
@@ -887,8 +951,10 @@ function run(D){
     addRow({id:"vinrip",label:"Input ripple at converter",unit:"mV",scale:1e3,dir:"max",limit:null,nom:nomIn.vpp,rss:r,eva:{min:gin.vpp.min,max:gin.vpp.max},limitText:"—",corner:cornerText(gin.vpp.cMax),basis:"Pulsed input current harmonics into the input capacitor groups"+(D.filter.on?" in parallel with the filter":"")});
     if(D.filter.on){
       const rs=rss(fn,gin.src.cMax,P,"src");
+      addSens("src","Source ripple current","mA",1e3,3,"hi",rs,cornerText(gin.src.cMax).split(", ").slice(0,2).join(", "));
       addRow({id:"src",label:"Source ripple current (fundamental)",unit:"mA",scale:1e3,dir:"max",limit:D.filter.srcLim*1e-3,nom:nomIn.srcPk1,rss:rs,eva:{min:gin.src.min,max:gin.src.max},limitText:`${D.filter.srcLim} mA pk`,corner:cornerText(gin.src.cMax),basis:"Current through the filter inductor at fsw"});
     }
+    addSens("vinrip","Input ripple at converter","mV",1e3,3,"hi",r,cornerText(gin.vpp.cMax).split(", ").slice(0,2).join(", "));
     R.capIn=D.cin.map((row,i)=>({max:gin["ic"+i].max,nom:nomIn.irms[i]}));
     R.plots.rippleIn={nom:nomIn.wave,fsw:sp.fsw*1e3};
   }
@@ -914,6 +980,9 @@ function run(D){
   addRow({id:"fc",label:"Crossover frequency",unit:"kHz",scale:1e-3,dir:"max",limit:fsw/5,nom:nomLm.fc,rss:{lo:rFcLo.lo,hi:rFcHi.hi},eva:{min:gl.fc.min,max:gl.fc.max},limitText:`≤ fsw/5 = ${(fsw/5e3).toFixed(0)} kHz`,corner:cornerText(gl.fc.cMax),basis:"Highest crossover across all corners"});
   addRow({id:"pm",label:"Phase margin",unit:"°",dir:"min",limit:sp.pmMin,nom:nomLm.pm,rss:rPm,eva:{min:gl.pm.min,max:gl.pm.max},limitText:`≥ ${sp.pmMin}°`,corner:cornerText(gl.pm.cMin),basis:"Loop gain T = Gc·Gp swept 10 Hz to fsw/2 at every corner"});
   addRow({id:"gm",label:"Gain margin",unit:"dB",dir:"min",limit:sp.gmMin,nom:isFinite(nomLm.gm)?nomLm.gm:99,rss:rGm,eva:{min:gl.gm.min,max:gl.gm.max},limitText:`≥ ${sp.gmMin} dB`,corner:cornerText(gl.gm.cMin),basis:"99 dB means the phase never reaches −180° below fsw/2"});
+  addSens("fc","Crossover frequency","kHz",1e-3,3,"hi",rFcHi,cornerText(gl.fc.cMax).split(", ").slice(0,2).join(", "));
+  addSens("pm","Phase margin","°",1,3,"lo",rPm,cornerText(gl.pm.cMin).split(", ").slice(0,2).join(", "));
+  addSens("gm","Gain margin","dB",1,3,"lo",rGm,cornerText(gl.gm.cMin).split(", ").slice(0,2).join(", "));
   if(gl.cond.max>0)R.notes.push("Some corners cross 0 dB more than once (conditional stability). Review the Bode plot at the listed corner.");
 
   /* ---- 6. Load-step transient ---- */
@@ -927,6 +996,8 @@ function run(D){
     addRow({id:"tran",label:"Load-step deviation",unit:"mV",scale:1e3,dir:"max",limit:lim,nom:tNom.dev,rss:null,eva:{min:tNom.dev,max:worst.dev},limitText:`± ${sp.dvTran} % = ${(lim*1e3).toFixed(0)} mV`,corner:cornerText(wc),
       basis:`${dIs.toFixed(2)} A step at ${sp.slew} A/µs; closed-loop output impedance Zout/(1+T), inverse FFT. EVA checks the corners with highest |Zcl|, lowest PM and lowest fc.`});
     R.plots.tran={nom:tNom,worst,corner:cornerText(wc)};
+    try{const trFn=c=>{const m=realize(D,c);const lm=loopMetrics(sweep(m,gridC));return {dev:isFinite(lm.fc)?transient(m,dIs,sp.slew,lm.fc).dev:NaN}};
+      addSens("tran","Load-step deviation","mV",1e3,3,"hi",rss(trFn,{vin:wc.vin,io:wc.io},P,"dev"),cornerText(wc).split(", ").slice(0,2).join(", "))}catch(e){}
     /* large-signal bounds when the loop saturates */
     const Lmax=ind.L*1e-6*(1+ind.ltol/100);
     const mMin=realize(D,{vin:sp.vinMin,io:sp.ioutMax,k:{cout:-1}});const Cmin=mMin.cout.reduce((a,b)=>a+b.n*b.C,0);
@@ -939,6 +1010,7 @@ function run(D){
     const g=group(opsVin(sp.ioutMax),["L","mod","fsw"],fn,["qp","mcd"]);R.corners+=g._n;
     const nom=fn(Object.assign({},nomOp,{k:{}}));
     const r=rss(fn,g.qp.cMax,["L","mod","fsw"],"qp");
+    addSens("qp","Sampling-gain Q","",1,3,"hi",r,cornerText(g.qp.cMax).split(", ").slice(0,2).join(", "));
     addRow({id:"qp",label:"Sampling-gain Q (sub-harmonic)",unit:"",dir:"max",limit:1.5,nom:nom.qp,rss:r,eva:{min:g.qp.min,max:g.qp.max},limitText:"≤ 1.5 (≈ 0.64 ideal)",corner:cornerText(g.qp.cMax),basis:"Qp = 1/(π(mc·D′ − 0.5)), mc = 1 + Se/Sn",dig:3});
   }
 
@@ -1019,6 +1091,7 @@ function run(D){
   /* ---- 13. Stress and derating ---- */
   R.stress=stressTable(D,R,gi);
   R.nomOut=nomOut;R.nomIn=nomIn;
+  R.sens.forEach(e=>{const r=R.rows.find(x=>x.id===e.id);e.status=r?r.status:"info"});
   return R;
 }
 
@@ -1296,17 +1369,91 @@ function circuits(R,D){
   if(D.filter.on&&R.damp)out.push(`<div class="circ"><h4>Input filter</h4><dl class="kv"><dt>Filter resonance</dt><dd>${si(R.damp.f0,"Hz")}</dd><dt>Characteristic impedance</dt><dd>${si(R.damp.R0,"Ω")}</dd><dt>Suggested damping</dt><dd>${si(R.damp.rd,"Ω")} + ${si(R.damp.cd*1e-6,"F")}</dd><dt>In use</dt><dd><b>${si(D.filter.rd,"Ω")} + ${si(D.filter.cd*1e-6,"F")}</b></dd></dl></div>`);
   return `<div class="circs">${out.join("")}</div>`;
 }
-return {wcaTable,stressTable,bode,zout,ripple,tran,mb,eff,lossTable,compTable,polesZeros,circuits,chip,val};
+/* ---------- sensitivity ranking ---------- */
+const SIDE={hi:"Increase caused by each tolerance",lo:"Decrease caused by each tolerance",both:"Largest swing caused by each tolerance"};
+function sensList(R){return (R.sens||[]).filter(e=>e.items.length&&e.spread>0)}
+function sensCard(e){
+  const fm=x=>(+(x*e.scale).toPrecision(e.dig)).toString(),max=e.items[0].m,top=e.items.slice(0,6),rest=e.items.slice(6);
+  const restShare=rest.reduce((a,b)=>a+b.share,0);
+  return `<div class="sens ${e.status?"st-"+e.status:""}"><div class="sh"><b>${esc(e.label)}</b>${e.status&&e.status!=="info"?chip(e.status):""}</div>
+    <div class="sm">Nominal <b>${fm(e.base)}</b>${e.unit?" "+esc(e.unit):""} · RSS spread <b>${e.side==="lo"?"−":e.side==="hi"?"+":"±"}${fm(e.spread)}</b>${e.unit?" "+esc(e.unit):""}${e.cond?` · at ${esc(e.cond)}`:""}</div>
+    <div class="sb">${top.map(i=>`<div class="sr"><span class="sl">${esc(i.label)}${i.tol?`<small>${esc(i.tol)}</small>`:""}</span><span class="st"><i style="width:${(i.m/max*100).toFixed(1)}%"></i></span><span class="sv">${fm(i.m)}</span><span class="sp">${fx(i.share*100,0)} %</span></div>`).join("")}${rest.length?`<div class="sr more"><span class="sl">${rest.length} other${rest.length>1?"s":""}</span><span class="st"></span><span class="sv"></span><span class="sp">${fx(restShare*100,0)} %</span></div>`:""}</div>
+    <p class="sw">${esc(SIDE[e.side])}, in ${e.unit?esc(e.unit):"units of the result"}; percentage is the share of the RSS variance.${e.whatIf?` Halving the <b>${esc(e.whatIf.label)}</b> tolerance would cut the spread by about <b>${fx(e.whatIf.gain*100,0)} %</b>.`:""}</p></div>`;
+}
+function sensCards(R){const L=sensList(R);return L.length?`<div class="senses">${L.map(sensCard).join("")}</div>`:"<p class='note'>No tolerance sensitivities to rank.</p>"}
+function sensMatrix(R){
+  const L=sensList(R);if(!L.length)return "";
+  const ps=[];L.forEach(e=>e.items.forEach(i=>{if(!ps.find(x=>x.p===i.p))ps.push({p:i.p,label:i.label,tot:0})}));
+  ps.forEach(p=>L.forEach(e=>{const i=e.items.find(x=>x.p===p.p);if(i)p.tot+=i.share*((e.status==="bad"||e.status==="warn")?3:1)}));
+  ps.sort((a,b)=>b.tot-a.tot);
+  return `<div class="scroll"><table class="t smx"><thead><tr><th>Tolerance</th>${L.map(e=>`<th>${esc(e.label)}</th>`).join("")}</tr></thead><tbody>${ps.map(p=>`<tr><td>${esc(p.label)}</td>${L.map(e=>{const i=e.items.find(x=>x.p===p.p);return i?`<td style="--s:${Math.min(1,i.share*1.15).toFixed(2)}"><span>${fx(i.share*100,0)}</span></td>`:`<td class="z">·</td>`}).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function sensSummary(R){
+  const L=sensList(R),ps={};
+  L.forEach(e=>e.items.forEach((i,k)=>{const o=ps[i.p]||(ps[i.p]={p:i.p,label:i.label,lead:[],sum:0,n:0});o.sum+=i.share;o.n++;if(k===0)o.lead.push(e)}));
+  return Object.values(ps).sort((a,b)=>b.lead.length-a.lead.length||b.sum-a.sum);
+}
+return {sensCards,sensMatrix,sensSummary,sensList,wcaTable,stressTable,bode,zout,ripple,tran,mb,eff,lossTable,compTable,polesZeros,circuits,chip,val};
 })();
 
 /* ===================== Formatted design report ===================== */
 "use strict";
 const Report=(function(){
 const {si,n,fx,esc}=Fmt;
-const eq=(lhs,expr,res)=>`<div class="eq"><span class="lhs">${lhs}</span><span class="op">=</span><span class="ex">${expr}</span>${res!=null?`<span class="op">=</span><b>${res}</b>`:""}</div>`;
-const V=(s,sub)=>`${s}<sub>${sub}</sub>`;
+const tr=String.raw;
+
+/* ---------- typesetting ---------- */
+function tex(s,disp){
+  if(typeof katex==="undefined")return `<code class="tex-fallback">${esc(s)}</code>`;
+  try{return katex.renderToString(s,{displayMode:!!disp,throwOnError:false,strict:"ignore",output:(typeof window!=="undefined"&&window.KATEX_OUT)||"htmlAndMathml"})}
+  catch(e){return `<code class="tex-fallback">${esc(s)}</code>`}
+}
+const ti=s=>tex(s,false);
+const sci=s=>/e/.test(s)?s.replace(/^(-?[\d.]+)e([+-]?\d+)$/,(m,a,b)=>`${a}\\times10^{${+b}}`):s;
+const N=(x,d)=>x==null||!isFinite(x)?tr`\text{—}`:sci((+x.toPrecision(d||3)).toString());
+function uTex(u){
+  if(!u)return "";
+  if(u==="°")return tr`{}^{\circ}`;
+  if(u==="°C")return tr`{}^{\circ}\mathrm{C}`;
+  if(u==="%")return tr`\%`;
+  if(u==="dB")return tr`\mathrm{dB}`;
+  const m=u.match(/^([GMk\u006d\u00b5\u03bcnp])?(Hz|H|F|A|V|W|\u03a9|\u2126|s|C)$/);
+  const pre=m&&m[1]?m[1]:"",base=m?m[2]:u;
+  const pt=pre===""?"":(pre==="\u00b5"||pre==="\u03bc")?tr`\mu `:tr`\mathrm{${pre}}`;
+  const bt=(base==="\u03a9"||base==="\u2126")?tr`\Omega`:tr`\mathrm{${base}}`;
+  return pt+bt;
+}
+/* a quantity with SI prefix, from a value in base units */
+function Q(v,unit,d){
+  if(v==null||!isFinite(v))return tr`\text{—}`;
+  const s=si(v,unit,d||3),i=s.indexOf(" ");
+  return sci(s.slice(0,i))+tr`\,`+uTex(s.slice(i+1));
+}
+/* a number already in the given unit */
+const Qn=(x,unit,d)=>N(x,d)+(unit?(unit==="°"||unit==="%"?"":tr`\,`)+uTex(unit):"");
+const vecCol=(a,d)=>tr`\begin{bmatrix}${a.map(x=>N(x,d)).join(tr` \\ `)}\end{bmatrix}`;
+const vecM=(a,d)=>tr`\begin{bmatrix}${a.map(x=>N(x,d)).join(tr` & `)}\end{bmatrix}`;
+const vecRow=(a,d)=>tr`\left[\,${a.map(x=>N(x,d)).join(tr`,\;`)}\,\right]`;
+
+let eqN=0;
+/* equation block: symbolic form, then values substituted, then result; `why` says what it is for */
+function EQ(lhs,sym,sub,res,why){
+  const no=++eqN;
+  const lines=[`${lhs} &= ${sym}`];
+  if(sub)lines.push(`&= ${sub}`);
+  if(res!=null)lines.push(`&= ${res}`);
+  const body=tr`\begin{aligned}`+lines.join(tr` \\[4pt] `)+tr`\end{aligned}`;
+  return `<div class="eqb"><div class="eqm">${tex(body,true)}</div><span class="eqno">(${no})</span>${why?`<p class="eqw"><b>Purpose.</b> ${why}</p>`:""}</div>`;
+}
+/* symbolic-only block (several lines, no substitution) */
+function EQS(lines,why){
+  const no=++eqN;
+  const body=tr`\begin{aligned}`+lines.join(tr` \\[6pt] `)+tr`\end{aligned}`;
+  return `<div class="eqb"><div class="eqm">${tex(body,true)}</div><span class="eqno">(${no})</span>${why?`<p class="eqw"><b>Purpose.</b> ${why}</p>`:""}</div>`;
+}
 
 function build(S,D,R){
+  eqN=0;
   const sp=D.specs,ru=D.rules,ic=D.ic,ind=D.ind,ext=D.mode==="ext",fsw=sp.fsw*1e3;
   const cnt={ok:0,warn:0,bad:0};R.rows.forEach(r=>{if(cnt[r.status]!=null)cnt[r.status]++});R.stress.forEach(r=>{if(cnt[r.status]!=null)cnt[r.status]++});
   const verdict=cnt.bad?"bad":cnt.warn?"warn":"ok";
@@ -1316,10 +1463,30 @@ function build(S,D,R){
   const rv=(id,which)=>{const r=row(id);if(!r)return "—";const x=which==="nom"?r.nom:which==="min"?r.eva.min:r.eva.max;return Views.val(r,x)+(r.unit?" "+r.unit:"")};
   const ctrlName={vm:"voltage mode",pcm:"peak current mode"}[D.ctrl];
   const eaName={opamp:"voltage op-amp",gm:"transconductance (gm)"}[D.ea];
-  const partsAll=partsList(S,D);
+  const partsAll=partsList(S,D,R);
   const unverified=partsAll.filter(p=>!p.verified);
-  let sec=0;const H=t=>`<h2 id="r${++sec}"><span class="n">${sec}</span>${esc(t)}</h2>`;
+  const heads=[];let sec=0;
+  const H=t=>{heads.push(t);return `<h2 id="r${++sec}"><span class="n">${sec}</span>${esc(t)}</h2>`};
   const out=[];
+  const stress=(part,param)=>R.stress.find(s=>s.part.indexOf(part)===0&&(!param||s.param===param));
+  const capName=r=>(Core.CAP_TYPES[r.type]||{}).label||r.type;
+
+  /* ---- shared numbers ---- */
+  const Dmin=sp.vout/sp.vinMax,Dnom=sp.vout/sp.vinNom,Dmax=sp.vout/sp.vinMin;
+  const Lreq=(sp.vinMax-sp.vout)*Dmin/(fsw*sp.ripple/100*sp.ioutMax);
+  const dIhi=(sp.vinMax-sp.vout)*Dmin/(fsw*ind.L*1e-6);          /* nominal L, Vin max */
+  const dIn=(sp.vinNom-sp.vout)*Dnom/(fsw*ind.L*1e-6);           /* nominal L, Vin nominal */
+  const rActual=dIhi/sp.ioutMax*100;
+  const Ct=D.cout.reduce((a,r)=>a+r.n*r.c*(1-r.dc/100),0);       /* µF, after DC bias */
+  const Cit=D.cin.reduce((a,r)=>a+r.n*r.c*(1-r.dc/100),0);
+  const esrEq=rows=>{const g=rows.reduce((a,r)=>a+(r.n>0&&r.esr>0?r.n/r.esr:0),0);return g>0?1/g:0};  /* mΩ */
+  const isatHot=ind.isat*(1-ind.isatHot/100);
+  const tjMax=ext?Math.max(row("tjHs").eva.max,row("tjLs").eva.max):row("tjIc").eva.max;
+  const swLossKeys=["HS switching","Reverse recovery","Coss","Dead time","Gate drive"];
+  const swLoss=swLossKeys.reduce((a,k)=>a+(R.lossNom.o[k]||0),0);
+  const hrPct=(R.ilim.min/row("ipk").eva.max-1)*100;
+  const hrTxt=hrPct>=2?`${fx(hrPct,0)} % above`:hrPct>=0?`only ${fx(hrPct,1)} % above (very little margin)`:`${fx(-hrPct,1)} % below`;
+  const ptsOf=l=>l.map(p=>`<b>${esc(p.ref)}</b>`).join(", ");
 
   /* ---------- title block ---------- */
   out.push(`<header class="rp-head">
@@ -1330,14 +1497,13 @@ function build(S,D,R){
       <div class="vc"><span class="chip bad">${cnt.bad} fail</span><span class="chip warn">${cnt.warn} check</span><span class="chip ok">${cnt.ok} pass</span></div></div>
     ${S.meta.notes?`<p class="rp-notes">${esc(S.meta.notes)}</p>`:""}
   </header>`);
-  const toc=["Summary","Requirements","Architecture","Method and assumptions","Parts","Power stage","Control loop","Load transient","Losses and thermal",...(D.filter.on?["Input filter and stability"]:[]),"Supporting circuits","Stress and derating","Worst-case results","Open items"];
-  out.push(`<nav class="toc"><b>Contents</b><ol>${toc.map((t,i)=>`<li><a href="#r${i+1}">${t}</a></li>`).join("")}</ol></nav>`);
+  const tocAt=out.length;out.push("");
 
   /* ---------- 1 summary ---------- */
   const key=[["Efficiency, full load",`${rv("eff","nom")} nominal, ${rv("eff","min")} worst`],["Output set-point",`${rv("vo","min")} to ${rv("vo","max")}`],
     ["Output ripple, worst",rv("vrip","max")],["Load-step deviation, worst",rv("tran","max")],["Crossover",`${rv("fc","min")} to ${rv("fc","max")}`],
     ["Phase margin, worst",rv("pm","min")],["Gain margin, worst",rv("gm","min")],["Inductor peak, worst",rv("ipk","max")],
-    [ext?"Hottest MOSFET":"Converter IC",ext?Math.max(row("tjHs").eva.max,row("tjLs").eva.max).toFixed(0)+" °C":rv("tjIc","max")]];
+    [ext?"Hottest MOSFET":"Converter IC",ext?tjMax.toFixed(0)+" °C":rv("tjIc","max")]];
   if(D.filter.on)key.push(["Middlebrook margin, worst",rv("mb","min")]);
   const issues=R.rows.filter(r=>r.status==="bad"||r.status==="warn").concat(R.stress.filter(s=>s.status!=="ok"&&s.status!=="info").map(s=>({label:`${s.part}: ${s.param}`,status:s.status,limitText:`${n(s.applied)} ${s.unit} applied, ${n(s.lim)} ${s.unit} allowed`})));
   out.push(`<section>${H("Summary")}
@@ -1347,7 +1513,20 @@ function build(S,D,R){
     ${unverified.length?`<p class="callout">${unverified.length} part${unverified.length>1?"s have":" has"} not been checked against a datasheet: ${unverified.map(p=>esc(p.ref)).join(", ")}. Results that depend on them are provisional.</p>`:""}
   </section>`);
 
-  /* ---------- 2 requirements ---------- */
+  /* ---------- 2 design narrative ---------- */
+  {
+    const bulk=D.cout.filter(r=>r.n>0&&r.type!=="mlcc"),cer=D.cout.filter(r=>r.n>0&&r.type==="mlcc");
+    const okAll=!cnt.bad&&!cnt.warn;
+    const p1=`The converter takes ${sp.vinMin} to ${sp.vinMax} V (${sp.vinNom} V nominal) and regulates ${sp.vout} V to within ± ${sp.voutAcc} % at up to ${sp.ioutMax} A, switching at ${sp.fsw} kHz. It must hold output ripple under ${sp.vrip} mV peak to peak and keep a ${sp.step} % load step (${fx(sp.ioutMax*sp.step/100,1)} A at ${sp.slew} A/µs) within ± ${sp.dvTran} % of the output, across ${sp.tMin} to ${sp.tMax} °C and for the whole mission life. Because those limits must hold with every part at its worst tolerance at the same time, the design is checked as a worst-case analysis and not only at the nominal point.`;
+    const p2=`The power stage is a synchronous buck ${ext?`with external MOSFETs (${esc(S.parts.hs.pn||"high side")}, ${esc(S.parts.ls.pn||"low side")}), chosen so Rds(on), gate charge and thermal resistance can be matched to the loss budget`:`built on an integrated converter (${esc(S.parts.conv.pn||"converter IC")}), which keeps the parts count and switch-node loop small`}. The inductor was sized for ${sp.ripple} % ripple current at the highest input voltage, which asks for ${si(Lreq,"H")}. The selected ${ind.L} µH gives ${fx(rActual,0)} % in practice. Its hot saturation current of ${fx(isatHot,1)} A leaves ${fx((isatHot/R.rows.find(r=>r.id==="ipk").eva.max-1)*100,0)} % above the worst-case peak of ${rv("ipk","max")}, and the minimum current limit sits ${hrTxt} that peak${hrPct>=2?", so it does not trip in normal operation":", so it may trip at the worst corner"}.`;
+    const p3=`The output bank has ${D.cout.filter(r=>r.n>0).length} capacitor group${D.cout.filter(r=>r.n>0).length>1?"s":""}${cer.length&&bulk.length?`: ceramic parts hold the switching-frequency ripple down with low ESR and ESL, and the ${bulk.map(capName).join(" / ")} bulk supplies charge during a load step and damps the output`:""}. After DC-bias loss the bank is ${fx(Ct,0)} µF nominal, which gives ${rv("vrip","max")} of worst-case ripple against the ${sp.vrip} mV limit and a worst-case load-step deviation of ${rv("tran","max")}. The input side uses ${D.cin.filter(r=>r.n>0).length} group${D.cin.filter(r=>r.n>0).length>1?"s":""} sized for the ${si(R.nomIn.irmsTotal,"A")} RMS ripple current${D.filter.on?`, followed by a ${D.filter.lf} µH filter that limits source ripple to ${rv("src","max")} and is checked against the Middlebrook criterion (worst margin ${rv("mb","min")})`:""}.`;
+    const p4=`The loop is ${ctrlName} with a ${eaName} error amplifier and Type ${D.comp.type} compensation. Crossover is targeted at fsw/${sp.fcRatio}, ${si(fsw/sp.fcRatio,"Hz")}, high enough for a fast transient response and low enough to stay well clear of the switching frequency and the modulator's delay. At the nominal point the loop crosses at ${si(R.loop.nom.fc,"Hz")} with ${fx(R.loop.nom.pm,0)}° of phase margin; across all corners crossover moves between ${rv("fc","min")} and ${rv("fc","max")} and phase margin falls to ${rv("pm","min")}, against the ${sp.pmMin}° requirement.`;
+    const p5=okAll?`<b>Result.</b> Every requirement and every derated stress limit is met at worst case. The tightest results are listed in the sensitivity ranking, which shows which tolerances dominate them.`
+      :`<b>Result.</b> The design does not yet meet every requirement: ${cnt.bad} item${cnt.bad===1?"":"s"} fail${cnt.bad===1?"s":""} and ${cnt.warn} need${cnt.warn===1?"s":""} review (see the Summary and Open items). The sensitivity ranking shows which tolerance to tighten first.`;
+    out.push(`<section>${H("Design narrative")}<p>${p1}</p><p>${p2}</p><p>${p3}</p><p>${p4}</p><p>${p5}</p></section>`);
+  }
+
+  /* ---------- 3 requirements ---------- */
   const reqRows=[["Input voltage",`${sp.vinMin} / ${sp.vinNom} / ${sp.vinMax} V (min / nom / max)`],["Output",`${sp.vout} V, ${sp.ioutMin} – ${sp.ioutMax} A`],["Switching frequency",`${sp.fsw} kHz ± ${ic.fswTol} %`],
     ["DC accuracy",`± ${sp.voutAcc} %`],["Output ripple",`≤ ${sp.vrip} mV pk-pk`],["Load step",`${sp.step} % of Iout (${fx(sp.ioutMax*sp.step/100,2)} A) at ${sp.slew} A/µs, deviation ≤ ± ${sp.dvTran} %`],
     ["Loop stability",`Phase margin ≥ ${sp.pmMin}°, gain margin ≥ ${sp.gmMin} dB, crossover target fsw/${sp.fcRatio} = ${si(fsw/sp.fcRatio,"Hz")}`],["Ambient temperature",`${sp.tMin} to ${sp.tMax} °C`],
@@ -1355,14 +1534,58 @@ function build(S,D,R){
   if(D.filter.on)reqRows.push(["Input filter",`source ripple ≤ ${D.filter.srcLim} mA pk at fsw, Middlebrook margin ≥ ${D.filter.mbMargin} dB`]);
   out.push(`<section>${H("Requirements")}<table class="t kvt"><tbody>${reqRows.map(r=>`<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join("")}</tbody></table></section>`);
 
-  /* ---------- 3 architecture ---------- */
+  /* ---------- 4 design decisions ---------- */
+  {
+    const dec=[];
+    const add=(topic,choice,why)=>dec.push([topic,choice,why]);
+    add("Topology",ext?"Synchronous buck, external MOSFETs":"Synchronous buck, integrated switches",
+      `${ext?`External devices let Rds(on), gate charge and package be matched to the ${fx(R.lossNom.tot,1)} W loss budget and the thermal path.`:`Integrated switches keep the switch-node loop small and the parts count low; the IC dissipates ${fx(R.lossNom.o["HS conduction"]+R.lossNom.o["LS conduction"],2)} W of conduction loss at full load.`} A synchronous rectifier replaces the diode drop with I²·Rds(on), which matters at ${fx(Dnom*100,0)} % duty because the low side carries current for ${fx((1-Dnom)*100,0)} % of each cycle.`);
+    add("Control mode",ctrlName.charAt(0).toUpperCase()+ctrlName.slice(1),
+      D.ctrl==="vm"?`A single voltage loop with a PWM ramp is simple and noise-tolerant at low duty cycles.${D.feedforward?" The ramp is made proportional to Vin (feed-forward), so the modulator gain Vin/Vramp stays constant and the loop gain does not move with line voltage.":" Without feed-forward the modulator gain changes with Vin, so the loop must be checked at both ends of the range."}`
+        :`The inductor current is sensed every cycle, so the plant behaves as a single pole plus the sampling double pole. This gives simple compensation, inherent cycle-by-cycle current limiting and good line rejection. It needs slope compensation for stability above 50 % duty: sampling Q is ${rv("qp","max")} at worst case (limit 1.5).`);
+    add("Switching frequency",`${sp.fsw} kHz`,
+      `A compromise between size and loss. Inductance and capacitance scale with 1/fsw, but frequency-dependent loss (switching, gate drive, Coss, reverse recovery, dead time) grows with it: ${fx(swLoss,2)} W here, ${fx(swLoss/R.lossNom.tot*100,0)} % of ${fx(R.lossNom.tot,2)} W total. The shortest on-time, ${rv("ton","min")} at Vin max, is ${fx(row("ton").eva.min/(ic.tonMin*1e-9),1)} × the controller minimum of ${ic.tonMin} ns.`);
+    add("Inductor ripple ratio",`${fx(rActual,0)} % of Iout at Vin max`,
+      `Target ${sp.ripple} %. A ratio around 20 to 40 % balances ripple current (which sets output ripple, core loss and peak current) against inductor size and the large-signal slew rate. A smaller ripple needs a larger L, which slows the current slew in a load step: the apply-bound is ${si(R.slewBound.apply,"V")} and the release-bound ${si(R.slewBound.release,"V")}.`);
+    add("Inductor",`${ind.L} µH, Isat ${ind.isat} A`,
+      `Hot saturation current ${fx(isatHot,1)} A is ${fx((isatHot/row("ipk").eva.max-1)*100,0)} % above the worst-case peak (rule: ${ru.isatMargin} % margin) and above the maximum current limit of ${fx(R.ilim.max,1)} A, so the inductor stays linear during overload. RMS current uses ${fx(row("irmsL").eva.max/ind.irms*100,0)} % of the rating (derated limit ${ru.drIndI} %). DCR ${ind.dcr} mΩ dissipates ${si(R.lossNom.o["Inductor DCR"],"W",2)}.`);
+    add("Output capacitors",D.cout.filter(r=>r.n>0).map(r=>`${r.n} × ${r.c} µF ${capName(r)}`).join(" + "),
+      `The mix is chosen so ceramic parts set the ripple at fsw (very low ESR and ESL) while ${D.cout.some(r=>r.n>0&&r.type!=="mlcc")?"the bulk group supplies energy for load steps and damps the output with its ESR":"enough capacitance remains after DC-bias loss to carry the load step"}. Effective capacitance is ${fx(Ct,0)} µF after DC bias; its ESR zero ${isFinite(D.comp.fesr)?`sits at ${si(D.comp.fesr,"Hz")}`:"lies above fsw"}, ${isFinite(D.comp.fesr)&&D.comp.fesr<D.comp.fc?"below":"above"} the crossover target of ${si(D.comp.fc,"Hz")}, so ${isFinite(D.comp.fesr)&&D.comp.fesr<D.comp.fc?"it adds phase boost near crossover":"the loop cannot rely on it for phase"}.`);
+    add("Input capacitors",D.cin.filter(r=>r.n>0).map(r=>`${r.n} × ${r.c} µF ${capName(r)}`).join(" + "),
+      `The input bank must supply the pulsed input current without excessive ripple. RMS ripple current is up to Iout/2 at 50 % duty (here ${si(R.nomIn.irmsTotal,"A")} at ${sp.vinNom} V), shared by the groups according to their impedance; the limiting part uses ${fx(Math.max(...R.stress.filter(s=>/^Input C/.test(s.part)&&s.param==="Ripple current per cap").map(s=>s.util*100),0),0)} % of its derated ripple rating.`);
+    add("Feedback divider",`${si(D.fb.rtop,"Ω")} / ${si(D.fb.rbot,"Ω")}`,
+      `Best E192 pair for ${sp.vout} V: nominal ${fx(row("vo").nom,4)} V. Divider current ${si(ic.vref/D.fb.rbot,"A")} is large enough to ignore feedback-pin bias current and small enough to cost almost nothing in efficiency. Each resistor is allowed ± ${fx(Core.rtotPct(D,true),2)} % (initial, temperature and end of life); the worst-case set-point is ${rv("vo","min")} to ${rv("vo","max")} against ± ${sp.voutAcc} %.`);
+    add("Crossover frequency",`fsw/${sp.fcRatio} = ${si(fsw/sp.fcRatio,"Hz")}`,
+      `High enough for a fast load-step recovery, low enough (≤ fsw/5) to keep switching ripple out of the loop and to keep the modulator delay from eating phase margin. Nominal phase margin is ${fx(R.loop.nom.pm,0)}°; worst case ${rv("pm","min")} against ${sp.pmMin}°.`);
+    add("Compensation",`Type ${D.comp.type}, ${eaName}`,
+      D.ctrl==="vm"?`The voltage-mode plant has an LC double pole at ${si(D.comp.f0,"Hz")} that drops the phase towards −180°. ${D.comp.type===3?"Two compensator zeros placed near it restore the phase and a high-frequency pole at the ESR zero or fsw/2 cancels the ESR zero and attenuates switching noise.":"One zero near the double pole and a high-frequency pole restore the phase."}`
+        :`The current-mode plant is a single pole (the load pole at ${si(D.comp.fpl,"Hz")}) plus the sampling double pole at fsw/2. ${D.comp.type===3?"A Type III network adds a second zero and pole to flatten gain around crossover.":"A Type II network, with its zero placed near the load pole and one high-frequency pole, gives a clean −20 dB/decade crossing."} Components are rounded to E96 resistors and E12 capacitors; the effect of the rounding is included in the corners.`);
+    add("Soft-start",`${sp.tss} ms, Css ${si(R.circuits.ss.css,"F")}`,
+      `Slow enough that the output-capacitor charging current plus the start-up load, ${si(R.circuits.ss.inrushMax,"A")} at worst case, stays below the minimum current limit of ${si(R.ilim.min,"A")}, so start-up does not hit the limit.`);
+    if(R.circuits.uvlo)add("Input UVLO",`${sp.uvStart} V start${R.circuits.uvlo.model==="current"?`, ${sp.uvStop} V stop`:""}`,
+      `Keeps the converter off until the input can supply full load. The EN divider is ${si(R.circuits.uvlo.Rt,"Ω")} / ${si(R.circuits.uvlo.Rb,"Ω")}; with EN threshold, hysteresis current and resistor tolerances the start threshold lies between ${fx(R.circuits.uvlo.startMin,2)} V and ${fx(R.circuits.uvlo.startMax,2)} V.`);
+    add("Current limit",`${ic.ilim} A (± ${ic.ilimTol} %)`,
+      `At its low tolerance the limit is ${hrTxt} the worst-case peak current${hrPct>=2?", so normal operation never reaches it":"; raise the limit or reduce the ripple current"}. At its high tolerance it ${R.ilim.max<=isatHot?"is still below":"exceeds"} the inductor's hot saturation current.`);
+    add("Derating",`MOSFET ${ru.drMosV} % V / ${ru.drMosI} % I, capacitors by type, inductor ${ru.drIndI} % I, Tj ≤ ${ru.tjLim} °C`,
+      `Project derating values entered in this tool. They are typical for a space programme (compare ECSS-Q-ST-30-11 or the customer's derating standard) and must be confirmed against whichever standard governs the project. Utilisation of each part is in the Stress and derating section.`);
+    if(D.filter.on)add("Input filter",`${D.filter.lf} µH with ${si(D.filter.rd,"Ω")} + ${si(D.filter.cd*1e-6,"F")} damping`,
+      `Limits conducted ripple on the source to ${rv("src","max")} (limit ${D.filter.srcLim} mA). A converter looks like a negative resistance to its source, so the filter's output impedance is kept ${D.filter.mbMargin} dB below the converter's input impedance (worst margin ${rv("mb","min")}). The damping branch removes the filter's resonant peak.`);
+    if(R.circuits.snub)add("Switch-node snubber",`${si(R.circuits.snub.Rs,"Ω")} + ${si(R.circuits.snub.Cs,"F")}`,
+      `Damps the ring between the loop inductance and the low-side Coss at about ${si(R.circuits.snub.fr,"Hz")}, so switch-node overshoot is limited to 5 % of Vin in the stress table. It costs ${si(R.circuits.snub.p,"W",2)} at Vin max.`);
+    add("Thermal",`Hottest junction ${tjMax.toFixed(0)} °C`,
+      `At ${sp.tMax} °C ambient with end-of-life Rds(on) the worst junction is ${tjMax.toFixed(0)} °C against a ${ru.tjLim} °C limit. This depends on the thermal resistance entered for each device, which must represent the real copper area and airflow.`);
+    out.push(`<section>${H("Design decisions")}<p>Each major choice with the reason for it. Numbers are taken from the analysis in this report.</p>
+      <div class="scroll"><table class="t dec"><thead><tr><th>Decision</th><th>Choice</th><th>Why</th></tr></thead><tbody>${dec.map(d=>`<tr><td><b>${esc(d[0])}</b></td><td class="ch">${esc(d[1])}</td><td class="lim">${d[2].replace(/&/g,"&amp;").replace(/</g,"&lt;")}</td></tr>`).join("")}</tbody></table></div></section>`);
+  }
+
+  /* ---------- 5 architecture ---------- */
   out.push(`<section>${H("Architecture")}
     <p>${ext?`The power stage uses an external high-side and low-side N-channel MOSFET pair driven by the controller (${esc(S.parts.ctrl.pn||"controller not yet selected")}).`:`The power stage is integrated in the converter IC (${esc(S.parts.conv.pn||"converter not yet selected")}).`}
     The converter regulates in ${ctrlName}${D.ctrl==="vm"&&D.feedforward?" with input-voltage feed-forward (ramp proportional to Vin)":""}. The error amplifier is a ${eaName} type and the loop is compensated with a Type ${D.comp.type} network${D.compManual?" using values entered by the designer":" designed by the tool and rounded to E96 resistors and E12 capacitors"}.</p>
-    ${schematic(D)}
+    ${schematic(D,R)}
   </section>`);
 
-  /* ---------- 4 method and assumptions ---------- */
+  /* ---------- 6 method and assumptions ---------- */
   const tolRows=[
     ["Reference voltage",`${ic.vref} V`,`± ${ic.vrefTol} %`,"Datasheet, includes temperature"],
     ["Switching frequency",`${sp.fsw} kHz`,`± ${ic.fswTol} %`,"Datasheet"],
@@ -1373,23 +1596,27 @@ function build(S,D,R){
     [D.ctrl==="vm"?"PWM ramp":"Current-sense gain",D.ctrl==="vm"?`${ic.vramp} V`:`${ic.ri} V/A`,`± ${ic.modTol} %`,"Datasheet"],
     ["Error amplifier gain",D.ea==="gm"?`${ic.eaGm} µS`:`${ic.eaGbw} MHz GBW`,`± ${ic.eaTol} %`,"Datasheet"],
     ...(ext?[["MOSFET Rds(on)",`${D.hs.rds} / ${D.ls.rds} mΩ (25 °C max)`,`+${D.hs.rdsAlpha} %/°C, +${D.hs.rdsEol} % EOL`,"Iterated with junction temperature"]]:[["Switch Rds(on)",`${ic.rdsHs} / ${ic.rdsLs} mΩ`,`+${ic.rdsAlpha} %/°C`,"Iterated with junction temperature"]]),
-    ...D.cout.map((r,i)=>[`Output C${i+1} (${(Core.CAP_TYPES[r.type]||{}).label||r.type})`,`${r.n} × ${r.c} µF, ${r.esr} mΩ`,`C ±${r.tol} %, −${r.temp} % temp, −${r.eol} % EOL; ESR ×${r.esrLo}–×${r.esrHi}`,`DC-bias loss ${r.dc} % applied to nominal`]),
-    ...D.cin.map((r,i)=>[`Input C${i+1} (${(Core.CAP_TYPES[r.type]||{}).label||r.type})`,`${r.n} × ${r.c} µF, ${r.esr} mΩ`,`C ±${r.tol} %, −${r.temp} % temp, −${r.eol} % EOL; ESR ×${r.esrLo}–×${r.esrHi}`,`DC-bias loss ${r.dc} % applied to nominal`])
+    ...D.cout.map((r,i)=>[`Output C${i+1} (${capName(r)})`,`${r.n} × ${r.c} µF, ${r.esr} mΩ`,`C ±${r.tol} %, −${r.temp} % temp, −${r.eol} % EOL; ESR ×${r.esrLo}–×${r.esrHi}`,`DC-bias loss ${r.dc} % applied to nominal`]),
+    ...D.cin.map((r,i)=>[`Input C${i+1} (${capName(r)})`,`${r.n} × ${r.c} µF, ${r.esr} mΩ`,`C ±${r.tol} %, −${r.temp} % temp, −${r.eol} % EOL; ESR ×${r.esrLo}–×${r.esrHi}`,`DC-bias loss ${r.dc} % applied to nominal`])
   ];
   out.push(`<section>${H("Method and assumptions")}
     <h3>Worst-case method</h3>
     <ul class="assume">
       <li><b>Extreme value analysis (EVA).</b> Each result is evaluated at every combination of its operating conditions (Vin min, nominal and max; minimum and full load; ${sp.tMin} °C and ${sp.tMax} °C; beginning and end of life) and of each relevant tolerance at its upper and lower limit. ${R.corners.toLocaleString()} corners were evaluated in total. Pass/fail is judged on EVA.</li>
-      <li><b>Root-sum-square (RSS).</b> At the operating point where EVA found the worst case, each tolerance is moved alone to its extreme and the changes are combined as √Σ Δ². Tolerance limits are treated as ±3σ of independent distributions. A result that fails EVA but passes RSS is marked <i>Check</i>.</li>
+      <li><b>Root-sum-square (RSS).</b> At the operating point where EVA found the worst case, each tolerance is moved alone to its extreme and the changes are combined as the square root of the sum of squares. Tolerance limits are treated as ±3σ of independent distributions. A result that fails EVA but passes RSS is marked <i>Check</i>.</li>
       <li><b>Temperature and life.</b> Capacitor temperature drift and end-of-life loss are applied together with the lower tolerance; ESR uses the stated low and high multipliers. MOSFET Rds(on) is iterated with junction temperature and increased by the end-of-life drift.</li>
     </ul>
+    ${EQS([tr`y_{\max}^{\mathrm{EVA}} = \max_{c\,\in\,\mathcal{C}} f(c) \qquad y_{\min}^{\mathrm{EVA}} = \min_{c\,\in\,\mathcal{C}} f(c)`,
+      tr`\Delta y_i^{\pm} = f\!\left(\mathbf{x}_{\mathrm{nom}}\ \text{with}\ x_i \to x_i^{\pm}\right) - f(\mathbf{x}_{\mathrm{nom}})`,
+      tr`y^{\mathrm{RSS}}_{\max} = y_{\mathrm{nom}} + \sqrt{\textstyle\sum_i \left(\Delta y_i^{+}\right)^{2}} \qquad y^{\mathrm{RSS}}_{\min} = y_{\mathrm{nom}} - \sqrt{\textstyle\sum_i \left(\Delta y_i^{-}\right)^{2}}`],
+      `$\\mathcal{C}$ is the set of all ${R.corners.toLocaleString()} corners (operating condition and tolerance combinations). EVA is the guaranteed bound, RSS is the statistical estimate; the gap between them shows how conservative the stack-up is.`.replace(/\$\\mathcal\{C\}\$/,ti(tr`\mathcal{C}`)))}
     <h3>Tolerance budget</h3>
     <div class="scroll"><table class="t"><thead><tr><th>Parameter</th><th>Nominal</th><th>Variation</th><th>Basis</th></tr></thead><tbody>${tolRows.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td class="lim">${esc(r[3])}</td></tr>`).join("")}</tbody></table></div>
     <h3>Models</h3>
     <ul class="assume">
       <li>Continuous conduction (forced PWM) at every load; light-load pulse skipping or diode emulation is not modelled.</li>
       <li>Each capacitor group is modelled as ESR + ESL + C per part, n parts in parallel; groups are combined as complex impedances. Ripple uses a 40-harmonic sum of the actual inductor and input current waveforms.</li>
-      <li>${D.ctrl==="vm"?`Voltage mode plant: G<sub>vd</sub>(s) = (Vin/V<sub>ramp</sub>) · Z<sub>C</sub>∥R / (sL + R<sub>dc</sub> + Z<sub>C</sub>∥R), with R<sub>dc</sub> = DCR + D·R<sub>HS</sub> + (1−D)·R<sub>LS</sub>.`:`Current mode plant (Ridley): G<sub>vc</sub>(s) = (Z<sub>C</sub>∥R∥R<sub>p</sub>)/R<sub>i</sub> · F<sub>h</sub>(s), with R<sub>p</sub> = L·fsw/(m<sub>c</sub>D′ − 0.5) and a sampling double pole at fsw/2 with Q<sub>p</sub> = 1/(π(m<sub>c</sub>D′ − 0.5)).`}</li>
+      <li>${D.ctrl==="vm"?"Voltage-mode plant with the output LC filter and the PWM modulator gain (equation in the Control loop section).":"Current-mode plant (Ridley model) with the sampling double pole at fsw/2 (equation in the Control loop section)."}</li>
       <li>The error amplifier includes finite ${D.ea==="gm"?"output resistance (Ro = A<sub>0</sub>/gm)":"open-loop gain and gain-bandwidth"}.</li>
       <li>Switching loss uses gate charge (Qgs/2 + Qgd) and driver current; Coss, reverse recovery, dead-time and gate drive losses are included. Thermal results use T<sub>j</sub> = T<sub>a</sub> + P·RθJA, so RθJA must represent the real board copper and airflow.</li>
       <li>Load-step results are small-signal (closed-loop output impedance, inverse FFT). Large-signal, slew-limited bounds are reported separately.</li>
@@ -1397,94 +1624,195 @@ function build(S,D,R){
     </ul>
   </section>`);
 
-  /* ---------- 5 parts ---------- */
-  out.push(`<section>${H("Parts")}<div class="scroll"><table class="t"><thead><tr><th>Ref</th><th>Part</th><th>Key values</th><th>Status</th></tr></thead><tbody>${
-    partsAll.map(p=>`<tr><td><b>${esc(p.ref)}</b></td><td>${p.pn?`<span class="mono">${esc(p.pn)}</span>`:"<i>not selected</i>"}${p.mfr?`<div class="sub">${esc(p.mfr)}</div>`:""}${p.ds?`<div class="sub"><a href="${esc(p.ds)}" target="_blank" rel="noopener">Datasheet</a></div>`:""}${p.life?`<div class="sub">${esc(p.life)}</div>`:""}</td><td class="lim">${esc(p.key)}</td><td>${p.verified?'<span class="chip ok">Checked</span>':p.example?'<span class="chip ex">Example values</span>':'<span class="chip warn">Not checked</span>'}</td></tr>`).join("")}</tbody></table></div></section>`);
+  /* ---------- 7 parts ---------- */
+  out.push(`<section>${H("Parts")}<div class="scroll"><table class="t parts"><thead><tr><th>Ref</th><th>Part</th><th>Key values</th><th>Why this part</th><th>Status</th></tr></thead><tbody>${
+    partsAll.map(p=>`<tr><td><b>${esc(p.ref)}</b></td><td>${p.pn?`<span class="mono">${esc(p.pn)}</span>`:"<i>not selected</i>"}${p.mfr?`<div class="sub">${esc(p.mfr)}</div>`:""}${p.ds?`<div class="sub"><a href="${esc(p.ds)}" target="_blank" rel="noopener">Datasheet</a></div>`:""}${p.life?`<div class="sub">${esc(p.life)}</div>`:""}</td><td class="lim">${esc(p.key)}</td><td class="lim why">${esc(p.why||"")}</td><td>${p.verified?'<span class="chip ok">Checked</span>':p.example?'<span class="chip ex">Example values</span>':'<span class="chip warn">Not checked</span>'}</td></tr>`).join("")}</tbody></table></div></section>`);
 
-  /* ---------- 6 power stage ---------- */
-  const Dmin=sp.vout/sp.vinMax,Dnom=sp.vout/sp.vinNom,Dmax=sp.vout/sp.vinMin;
-  const Lreq=(sp.vinMax-sp.vout)*Dmin/(fsw*sp.ripple/100*sp.ioutMax);
-  const dInom=(sp.vinMax-sp.vout)*Dmin/(fsw*ind.L*1e-6);
-  const Ct=R.nomOut?D.cout.reduce((a,r)=>a+r.n*r.c*(1-r.dc/100),0):0;
-  out.push(`<section>${H("Power stage")}
+  /* ---------- 8 power stage ---------- */
+  {
+    const ESRo=esrEq(D.cout),ESRi=esrEq(D.cin);
+    const dVfo=dIn/(8*fsw*Ct*1e-6)+dIn*ESRo*1e-3;
+    out.push(`<section>${H("Power stage")}
     <h3>Duty cycle</h3>
-    ${eq("D","V<sub>out</sub> / V<sub>in</sub>",`${fx(Dmin*100,1)} % at ${sp.vinMax} V, ${fx(Dnom*100,1)} % nominal, ${fx(Dmax*100,1)} % at ${sp.vinMin} V`)}
+    ${EQ("D",tr`\frac{V_{out}}{V_{in}}`,tr`\frac{${Qn(sp.vout,"V")}}{${Qn(sp.vinNom,"V")}}`,tr`${N(Dnom*100,3)}\,\%\quad\bigl(${N(Dmin*100,3)}\,\%\ \text{at}\ V_{in,max},\ ${N(Dmax*100,3)}\,\%\ \text{at}\ V_{in,min}\bigr)`,
+      "Fixes the on-time of the high-side switch and, with it, every conduction-loss split and the minimum on-time check. An ideal (lossless) duty is used.")}
     <h3>Inductor</h3>
-    ${eq("L<sub>req</sub>",`(V<sub>in,max</sub> − V<sub>out</sub>)·D<sub>min</sub> / (f<sub>sw</sub>·r·I<sub>out</sub>) = (${sp.vinMax} − ${sp.vout})·${fx(Dmin,3)} / (${si(fsw,"Hz")}·${sp.ripple/100}·${sp.ioutMax} A)`,si(Lreq,"H"))}
-    <p>Selected ${S.parts.ind.pn?`<span class="mono">${esc(S.parts.ind.pn)}</span>, `:""}<b>${ind.L} µH</b>, Isat ${ind.isat} A (${fx(ind.isat*(1-ind.isatHot/100),1)} A hot), ${ind.irms} A rms, DCR ${ind.dcr} mΩ.</p>
-    ${eq("ΔI<sub>L</sub>",`(V<sub>in</sub> − V<sub>out</sub>)·D / (L·f<sub>sw</sub>)`,`${fx(dInom,2)} A nominal L at ${sp.vinMax} V; ${rv("dI","max")} worst case`)}
-    ${eq("I<sub>pk</sub>",`I<sub>out</sub> + ΔI<sub>L</sub>/2`,`${rv("ipk","max")} worst case`)}
-    ${eq("I<sub>L,rms</sub>",`√(I<sub>out</sub>² + ΔI<sub>L</sub>²/12)`,`${rv("irmsL","max")} worst case`)}
+    ${EQ("L_{req}",tr`\frac{\left(V_{in,max}-V_{out}\right)D_{min}}{f_{sw}\,r\,I_{out}}`,tr`\frac{\left(${N(sp.vinMax)}-${N(sp.vout)}\right)\cdot${N(Dmin,3)}}{${Q(fsw,"Hz")}\cdot${N(sp.ripple/100)}\cdot${Qn(sp.ioutMax,"A")}}`,Q(Lreq,"H"),
+      `Sizes the inductor for the target ripple ratio $r$ at the highest input voltage, where ripple current is largest.`.replace("$r$",ti("r")))}
+    <p>Selected ${S.parts.ind.pn?`<span class="mono">${esc(S.parts.ind.pn)}</span>, `:""}<b>${ind.L} µH</b>, Isat ${ind.isat} A (${fx(isatHot,1)} A hot), ${ind.irms} A rms, DCR ${ind.dcr} mΩ.</p>
+    ${EQ(tr`\Delta I_L`,tr`\frac{\left(V_{in}-V_{out}\right)D}{L\,f_{sw}}`,tr`\frac{\left(${N(sp.vinMax)}-${N(sp.vout)}\right)\cdot${N(Dmin,3)}}{${Q(ind.L*1e-6,"H")}\cdot${Q(fsw,"Hz")}}`,tr`${Q(dIhi,"A")}\ \text{(nominal L, }V_{in,max}\text{); worst case }${Qn(row("dI").eva.max,"A",3)}`,
+      "Peak-to-peak inductor ripple current. It drives output ripple, core loss, the peak current the switches and inductor see, and the sub-harmonic margin in current mode.")}
+    ${EQ(tr`I_{pk}`,tr`I_{out}+\frac{\Delta I_L}{2}`,tr`${Qn(sp.ioutMax,"A")}+\frac{${Q(row("dI").eva.max,"A")}}{2}`,tr`${Qn(row("ipk").eva.max,"A",3)}\ \text{(worst case)}`,
+      "The current the inductor must carry without saturating and the switches must carry without exceeding their rating.")}
+    ${EQ(tr`I_{L,rms}`,tr`\sqrt{I_{out}^{2}+\frac{\Delta I_L^{2}}{12}}`,tr`\sqrt{${N(sp.ioutMax)}^{2}+\frac{${N(row("dI").eva.max)}^{2}}{12}}`,tr`${Qn(row("irmsL").eva.max,"A",3)}\ \text{(worst case)}`,
+      "Heating current for the inductor winding and the conduction loss in the switches.")}
     <h3>Output capacitors</h3>
-    <p>${D.cout.map((r,i)=>`C${i+1}: ${r.n} × ${r.c} µF ${(Core.CAP_TYPES[r.type]||{}).label||""}${r.pn?` (<span class="mono">${esc(r.pn)}</span>)`:""}`).join("; ")}. Effective capacitance after DC bias ${fx(Ct,0)} µF nominal.</p>
+    <p>${D.cout.map((r,i)=>`C${i+1}: ${r.n} × ${r.c} µF ${capName(r)}${r.pn?` (<span class="mono">${esc(r.pn)}</span>)`:""}`).join("; ")}.</p>
+    ${EQ(tr`C_{eff}`,tr`\sum_i n_i\,C_i\left(1-\delta_{DC,i}\right)`,D.cout.map(r=>tr`${r.n}\cdot${N(r.c)}\left(1-${N(r.dc/100)}\right)`).join("+"),Qn(Ct,"µF",3),
+      "Capacitance actually available after DC-bias loss, which is large for high-permittivity ceramics at a high fraction of their rated voltage.")}
+    ${EQ(tr`\Delta V_{out}`,tr`\frac{\Delta I_L}{8\,f_{sw}\,C_{eff}}+\Delta I_L\,ESR_{eq}`,tr`\frac{${Q(dIn,"A")}}{8\cdot${Q(fsw,"Hz")}\cdot${Qn(Ct,"µF")}}+${Q(dIn,"A")}\cdot${Qn(ESRo,"mΩ")}`,tr`${Q(dVfo,"V")}\ \text{at}\ V_{in,nom}`,
+      `First-order hand check of output ripple (capacitive plus ESR term). The analysis itself uses the 40-harmonic model with ESL included and reports ${rv("vrip","nom")} nominal, ${rv("vrip","max")} worst case.`)}
     <figure>${Views.zout(R,D)}<figcaption>Impedance of each output capacitor group and of the combined bank. The shaded band covers capacitance and ESR tolerance, temperature and end of life.</figcaption></figure>
     <figure>${Views.ripple(R,D)}<figcaption>Output ripple over one switching period at full load, nominal and worst-case corner (${esc(row("vrip").corner)}).</figcaption></figure>
     <table class="t"><thead><tr><th>Group</th><th>Ripple current per part, nominal</th><th>Worst case</th><th>Rating</th></tr></thead><tbody>${D.cout.map((r,i)=>`<tr><td>Output C${i+1}</td><td>${si(R.capOut[i].nom,"A")}</td><td>${si(R.capOut[i].max,"A")}</td><td>${r.irmsC} A</td></tr>`).join("")}</tbody></table>
     <h3>Input capacitors</h3>
-    ${eq("I<sub>Cin,rms</sub>",`I<sub>out</sub>·√(D(1 − D))`,`${si(R.nomIn.irmsTotal,"A")} total at ${sp.vinNom} V`)}
-    <table class="t"><thead><tr><th>Group</th><th>Ripple current per part, nominal</th><th>Worst case</th><th>Rating</th></tr></thead><tbody>${D.cin.map((r,i)=>`<tr><td>Input C${i+1}: ${r.n} × ${r.c} µF ${(Core.CAP_TYPES[r.type]||{}).label||""}</td><td>${si(R.capIn[i].nom,"A")}</td><td>${si(R.capIn[i].max,"A")}</td><td>${r.irmsC} A</td></tr>`).join("")}</tbody></table>
-    <p>Input voltage ripple at the converter: ${rv("vinrip","nom")} nominal, ${rv("vinrip","max")} worst case.</p>
+    ${EQ(tr`I_{Cin,rms}`,tr`I_{out}\sqrt{D\,(1-D)}`,tr`${N(sp.ioutMax)}\sqrt{${N(Dnom,3)}\,(1-${N(Dnom,3)})}`,Q(R.nomIn.irmsTotal,"A")+tr`\ \text{total at}\ V_{in,nom}`,
+      "RMS current the input bank must carry. It peaks at 50 % duty, where it equals half the load current, and is shared between the groups in proportion to their admittance.")}
+    <table class="t"><thead><tr><th>Group</th><th>Ripple current per part, nominal</th><th>Worst case</th><th>Rating</th></tr></thead><tbody>${D.cin.map((r,i)=>`<tr><td>Input C${i+1}: ${r.n} × ${r.c} µF ${capName(r)}</td><td>${si(R.capIn[i].nom,"A")}</td><td>${si(R.capIn[i].max,"A")}</td><td>${r.irmsC} A</td></tr>`).join("")}</tbody></table>
+    <p>Input voltage ripple at the converter: ${rv("vinrip","nom")} nominal, ${rv("vinrip","max")} worst case. Effective input capacitance ${fx(Cit,0)} µF after DC bias, equivalent ESR ${fx(ESRi,2)} mΩ.</p>
   </section>`);
+  }
 
-  /* ---------- 7 control loop ---------- */
-  out.push(`<section>${H("Control loop")}
+  /* ---------- 9 control loop ---------- */
+  {
+    const q=D.comp.chosen,pl=D.comp.pl;
+    const lines=[];
+    const f2=(x)=>Q(x,"Hz");
+    if(D.ea==="opamp"){
+      lines.push(EQS([tr`G_c(s) = -\frac{Z_f(s)}{Z_i(s)}`,
+        tr`Z_f = \left(R_2+\frac{1}{sC_1}\right)\Big\|\ \frac{1}{sC_2}`,
+        D.comp.type===3?tr`Z_i = R_1\ \Big\|\ \left(R_3+\frac{1}{sC_3}\right)`:tr`Z_i = R_1`],
+        `Compensator transfer function. Its zeros cancel the plant's poles and its poles roll the gain off before the switching frequency.`));
+      lines.push(EQS([tr`f_{z1}=\frac{1}{2\pi R_2 C_1}=\frac{1}{2\pi\cdot${Q(q.R2,"Ω")}\cdot${Q(q.C1,"F")}}=${Q(1/(2*Math.PI*q.R2*q.C1),"Hz")}`,
+        tr`f_{p2}=\frac{1}{2\pi R_2\,\frac{C_1C_2}{C_1+C_2}}=${Q(1/(2*Math.PI*q.R2*q.C1*q.C2/(q.C1+q.C2)),"Hz")}`].concat(D.comp.type===3?[
+        tr`f_{p1}=\frac{1}{2\pi R_3C_3}=${Q(1/(2*Math.PI*q.R3*q.C3),"Hz")}\qquad f_{z2}=\frac{1}{2\pi(R_1+R_3)C_3}=${Q(1/(2*Math.PI*(D.fb.rtop+q.R3)*q.C3),"Hz")}`]:[]),
+        `Pole and zero frequencies of the chosen network, calculated from the preferred values that are actually used. The ideal placement is listed in the table below.`));
+    }else{
+      lines.push(EQS([tr`G_c(s) = -g_m\,H(s)\,Z_c(s)\qquad H = \frac{R_{bot}}{R_{bot}+Z_{top}}`,
+        tr`Z_c = \left(R_c+\frac{1}{sC_c}\right)\Big\|\ \frac{1}{sC_p}\Big\|\ \frac{A_0}{g_m}`,
+        D.comp.type===3?tr`Z_{top} = R_{top}\ \Big\|\ \frac{1}{sC_{ff}}`:tr`Z_{top} = R_{top}`],
+        `Compensator transfer function for a transconductance amplifier. The divider $H$ feeds back the output, and $Z_c$ on the COMP pin sets the gain and phase shaping.`.replace(/\$H\$/,ti("H")).replace(/\$Z_c\$/,ti("Z_c"))));
+      lines.push(EQS([tr`f_{z}=\frac{1}{2\pi R_c C_c}=${f2(1/(2*Math.PI*q.Rc*q.Cc))}\qquad f_{p}=\frac{1}{2\pi R_c C_p}=${q.Cp>0?f2(1/(2*Math.PI*q.Rc*q.Cp)):tr`\text{—}`}`].concat(D.comp.type===3&&q.Cff>0?[tr`f_{z,ff}=\frac{1}{2\pi R_{top}C_{ff}}=${f2(1/(2*Math.PI*D.fb.rtop*q.Cff))}`]:[]),
+        `Pole and zero frequencies of the chosen network, calculated from the preferred values that are actually used.`));
+    }
+    const plant=D.ctrl==="vm"
+      ? EQS([tr`G_{vd}(s)=\frac{V_{in}}{V_{ramp}}\cdot\frac{Z_C\parallel R}{sL+R_{dc}+Z_C\parallel R}`,tr`R_{dc}=DCR+D\,R_{HS}+(1-D)\,R_{LS}`,tr`Z_C(s)=\left[\sum_i\frac{n_i}{ESR_i+sESL_i+\dfrac{1}{sC_i}}\right]^{-1}`],
+          `Small-signal control-to-output transfer function of the voltage-mode power stage. It has the LC double pole, the ESR zero and the modulator gain $V_{in}/V_{ramp}$.`.replace(/\$V_\{in\}\/V_\{ramp\}\$/,ti(tr`V_{in}/V_{ramp}`)))
+      : EQS([tr`G_{vc}(s)=\frac{Z_C\parallel R\parallel R_p}{R_i}\,F_h(s)\qquad R_p=\frac{L f_{sw}}{m_cD'-0.5}`,tr`F_h(s)=\frac{1}{1+\dfrac{s}{\omega_nQ_p}+\dfrac{s^2}{\omega_n^2}}\qquad\omega_n=\pi f_{sw}\qquad Q_p=\frac{1}{\pi\left(m_cD'-0.5\right)}`,tr`m_c=1+\frac{S_e}{S_n}\qquad S_n=\frac{V_{in}-V_{out}}{L}`,tr`Z_C(s)=\left[\sum_i\frac{n_i}{ESR_i+sESL_i+\dfrac{1}{sC_i}}\right]^{-1}`],
+          `Ridley model of the peak-current-mode power stage: a single low-frequency pole set by the load and the output capacitance, and a sampling double pole at half the switching frequency whose damping is set by the slope compensation.`);
+    out.push(`<section>${H("Control loop")}
     <h3>Output voltage set-point</h3>
-    ${eq("V<sub>out</sub>",`V<sub>ref</sub>·(1 + R<sub>top</sub>/R<sub>bot</sub>) = ${ic.vref} V·(1 + ${si(D.fb.rtop,"Ω")}/${si(D.fb.rbot,"Ω")})`,`${fx(row("vo").nom,4)} V`)}
+    ${EQ(tr`V_{out}`,tr`V_{ref}\left(1+\frac{R_{top}}{R_{bot}}\right)`,tr`${Qn(ic.vref,"V")}\left(1+\frac{${Q(D.fb.rtop,"Ω")}}{${Q(D.fb.rbot,"Ω")}}\right)`,Qn(row("vo").nom,"V",4),
+      "Sets the regulated output. The divider pair is the best E192 combination for the requested voltage.")}
     <p>Worst case ${rv("vo","min")} to ${rv("vo","max")} (EVA), ${Views.val(row("vo"),row("vo").rss.lo)} to ${Views.val(row("vo"),row("vo").rss.hi)} V (RSS), against a ± ${sp.voutAcc} % requirement.</p>
-    <h3>Plant</h3>${Views.polesZeros(D)}
-    ${D.ctrl==="pcm"?eq("m<sub>c</sub>",`1 + S<sub>e</sub>/S<sub>n</sub> = 1 + ${ic.se} A/µs / ${fx((sp.vinNom-sp.vout)/(ind.L),2)} A/µs`,fx(1+ic.se/((sp.vinNom-sp.vout)/ind.L),3))+`<p>Sampling-gain Q is ${rv("qp","nom")} nominal and ${rv("qp","max")} worst case (target below 1.5; 0.64 gives critical damping).</p>`:""}
+    <h3>Plant</h3>
+    ${plant}
+    ${EQS([tr`f_0=\frac{1}{2\pi\sqrt{L\,C_{eff}}}=\frac{1}{2\pi\sqrt{${Q(ind.L*1e-6,"H")}\cdot${Qn(Ct,"µF")}}}=${f2(D.comp.f0)}`,
+      tr`f_{ESR}=\text{frequency where the capacitor bank turns resistive}=${isFinite(D.comp.fesr)?f2(D.comp.fesr):tr`>f_{sw}`}`].concat(D.ctrl==="pcm"?[tr`f_{pl}=\frac{1}{2\pi\,(R_{load}\parallel R_p)\,C_{eff}}=${f2(D.comp.fpl)}`]:[]),
+      `Key plant frequencies that decide where the compensator places its poles and zeros.`)}
+    ${Views.polesZeros(D)}
+    ${D.ctrl==="pcm"?EQ("m_c",tr`1+\frac{S_e}{S_n}`,tr`1+\frac{${Q(ic.se*1e6,"A/s").replace(tr`\,\mathrm{A/s}`,tr`\,\mathrm{A/\mu s}`).replace(/^[^\\]*/,N(ic.se))}}{${N((sp.vinNom-sp.vout)/ind.L,3)}\,\mathrm{A/\mu s}}`,N(1+ic.se/((sp.vinNom-sp.vout)/ind.L),3),
+      `Slope-compensation ratio. A larger $m_c$ damps the sampling double pole but reduces the effective current-loop gain.`.replace("$m_c$",ti("m_c")))+`<p>Sampling-gain Q is ${rv("qp","nom")} nominal and ${rv("qp","max")} worst case (target below 1.5; 0.64 gives critical damping).</p>`:""}
     <h3>Compensation network</h3>
     <p>Type ${D.comp.type} with a ${eaName} error amplifier. ${D.ea==="opamp"?"R1 is the upper feedback resistor; R2/C1 give the integrator zero, C2 the high-frequency pole"+(D.comp.type===3?", and R3/C3 across R1 add the second zero and pole.":"."):"Rc/Cc from COMP to ground set the zero and mid-band gain; Cp adds the high-frequency pole"+(D.comp.type===3?"; Cff across R top adds a zero–pole pair centred on the crossover.":".")}</p>
+    ${lines.join("")}
     ${Views.compTable(D)}
+    <h3>Loop gain, margins and crossover</h3>
+    ${EQS([tr`T(s)=G_c(s)\,G_p(s)`,tr`\left|T\!\left(j2\pi f_c\right)\right|=1`,tr`PM=180^{\circ}+\angle T\!\left(j2\pi f_c\right)`,tr`GM=-20\log_{10}\left|T\!\left(j2\pi f_{180}\right)\right|\quad\text{where}\ \angle T\!\left(j2\pi f_{180}\right)=-180^{\circ}`],
+      `Defines the loop gain and the three numbers the stability requirements are written against. Each is found numerically from a frequency sweep at every corner.`)}
     <figure>${Views.bode(R,D,{parts:true})}<figcaption>Loop gain at ${sp.vinNom} V, full load (solid) with power stage and compensator shown dashed. The shaded band spans all ${R.loop.gl._n.toLocaleString()} worst-case loop corners.</figcaption></figure>
     ${Views.wcaTable(R,{filter:r=>["fc","pm","gm","qp"].includes(r.id)})}
   </section>`);
+  }
 
-  /* ---------- 8 transient ---------- */
-  out.push(`<section>${H("Load transient")}
-    <figure>${Views.tran(R,D)}<figcaption>Response to a ${fx(sp.ioutMax*sp.step/100,2)} A load step at ${sp.slew} A/µs. Worst corner: ${esc(R.plots.tran.corner)}.</figcaption></figure>
+  /* ---------- 10 transient ---------- */
+  {
+    const dIs=sp.ioutMax*sp.step/100;
+    out.push(`<section>${H("Load transient")}
+    ${EQS([tr`\Delta V(s)\approx\Delta I_{step}(s)\cdot Z_{cl}(s)\qquad Z_{cl}(s)=\frac{Z_{ol}(s)}{1+T(s)}`,
+      tr`\Delta V_{release}\le\sqrt{V_{out}^{2}+\frac{L_{max}\,\Delta I^{2}}{C_{min}}}-V_{out}\qquad \Delta V_{apply}\le\frac{L_{max}\,\Delta I^{2}}{2\,C_{min}\left(V_{in,min}-V_{out}\right)}`],
+      `The closed-loop output impedance $Z_{cl}$ turns a load-current step into a voltage deviation; an inverse FFT gives the waveform. The second line bounds the response when the step is faster than the loop and the inductor current slews at its maximum rate.`.replace("$Z_{cl}$",ti(tr`Z_{cl}`)))}
+    <figure>${Views.tran(R,D)}<figcaption>Response to a ${fx(dIs,2)} A load step at ${sp.slew} A/µs. Worst corner: ${esc(R.plots.tran.corner)}.</figcaption></figure>
     <dl class="kv"><dt>Deviation, nominal</dt><dd>${rv("tran","nom")}</dd><dt>Deviation, worst corner</dt><dd>${rv("tran","max")}</dd><dt>Recovery to within 10 % of peak, nominal</dt><dd>${si(R.plots.tran.nom.tSettle,"s")}</dd>
     <dt>Slew-limited bound, load release</dt><dd>${si(R.slewBound.release,"V")}</dd><dt>Slew-limited bound, load apply</dt><dd>${si(R.slewBound.apply,"V")}</dd></dl>
     <p class="muted">The slew-limited bounds assume the loop saturates and the inductor current changes at its maximum rate, using maximum L and minimum Cout. They apply when the step is faster than the loop can follow.</p>
   </section>`);
+  }
 
-  /* ---------- 9 losses ---------- */
-  out.push(`<section>${H("Losses and thermal")}
+  /* ---------- 11 losses ---------- */
+  {
+    const L=R.lossNom,pout=sp.vout*sp.ioutMax;
+    out.push(`<section>${H("Losses and thermal")}
+    ${EQS(ext?[tr`P_{cond,HS}=D\,I_{rms}^{2}R_{ds(on),HS}(T_j)\qquad P_{cond,LS}=(1-D)\,I_{rms}^{2}R_{ds(on),LS}(T_j)`,
+      tr`P_{sw,HS}=\tfrac12 V_{in}I_{out}\left(\frac{Q_{sw}}{I_{on}}+\frac{Q_{sw}}{I_{off}}\right)f_{sw}\qquad Q_{sw}=Q_{gd}+\tfrac12Q_{gs}`,
+      tr`P_{rr}=Q_{rr}V_{in}f_{sw}\qquad P_{oss}=\tfrac12\left(C_{oss,H}+C_{oss,L}\right)V_{in}^{2}f_{sw}`,
+      tr`P_{dt}=V_F\,I_{out}\,2\,t_{dead}f_{sw}\qquad P_{gate}=\left(Q_{g,H}+Q_{g,L}\right)V_{drv}f_{sw}`]
+      :[tr`P_{cond}=\left[D\,R_{HS}(T_j)+(1-D)\,R_{LS}(T_j)\right]I_{rms}^{2}\qquad P_{sw}=\tfrac12V_{in}I_{out}\,t_{sw}f_{sw}`,tr`P_{dt}=0.7\,I_{out}\,2\,t_{dead}f_{sw}\qquad P_{q}=I_q V_{in}`]
+      .concat([]),
+      "The loss terms used by the analysis for the switches. Conduction loss uses the RMS inductor current; switching loss uses the gate charge to the Miller plateau and the driver current.")}
+    ${EQS([tr`R_{ds(on)}(T_j)=R_{25}\left[1+\alpha\,(T_j-25)\right]\left(1+\varepsilon_{EOL}\right)`,tr`T_j=T_a+P\,R_{\theta}`,
+      tr`P_L=I_{rms}^{2}\,DCR(T)+P_{core}\qquad P_{C}=\sum_i n_i\,I_{C,i}^{2}\,ESR_i`],
+      "Temperature feedback: Rds(on) rises with junction temperature and end-of-life drift, and junction temperature rises with loss, so the two are iterated until they agree. Inductor and capacitor losses are added to the total.")}
+    ${EQ(tr`\eta`,tr`\frac{P_{out}}{P_{out}+\sum P_{loss}}`,tr`\frac{${Q(pout,"W")}}{${Q(pout,"W")}+${Q(L.tot,"W")}}`,Qn(L.eff*100,"%",4)+tr`\ \text{(nominal, ${sp.vinNom} V, 25 °C)}`,
+      "Overall efficiency at full load. Worst-case efficiency uses the hottest ambient, end-of-life Rds(on) and the worst input voltage.")}
     ${Views.lossTable(R,D)}
     <figure>${Views.eff(R,D)}<figcaption>Efficiency against load at 25 °C, nominal parts.</figcaption></figure>
     ${Views.wcaTable(R,{filter:r=>["eff","tjHs","tjLs","tjIc","tInd"].includes(r.id)})}
   </section>`);
+  }
 
-  /* ---------- 10 filter ---------- */
+  /* ---------- 12 filter ---------- */
   if(D.filter.on){
     out.push(`<section>${H("Input filter and stability")}
-      <p>A ${D.filter.lf} µH filter inductor (DCR ${D.filter.lfDcr} mΩ) feeds the input capacitors, damped by ${si(D.filter.rd,"Ω")} in series with ${si(D.filter.cd*1e-6,"F")}. The converter has a negative incremental input impedance of magnitude V<sub>in</sub>²·η/P<sub>out</sub>; the filter's output impedance must stay below it by the required margin (Middlebrook criterion).</p>
-      ${eq("|Z<sub>in</sub>|",`V<sub>in,min</sub>²·η / P<sub>out</sub>`,si(R.plots.mb.nom.zinMag,"Ω"))}
+      <p>A ${D.filter.lf} µH filter inductor (DCR ${D.filter.lfDcr} mΩ) feeds the input capacitors, damped by ${si(D.filter.rd,"Ω")} in series with ${si(D.filter.cd*1e-6,"F")}. A regulated converter draws constant power, so its incremental input impedance is negative; the filter's output impedance must stay below it by the required margin (Middlebrook criterion).</p>
+      ${EQ(tr`\left|Z_{in}\right|`,tr`\frac{V_{in,min}^{2}\,\eta}{P_{out}}`,tr`\frac{${Qn(sp.vinMin,"V")}^{2}\cdot${N(R.lossByVin[0].hot.eff,3)}}{${Q(sp.vout*sp.ioutMax,"W")}}`,Q(R.plots.mb.nom.zinMag,"Ω"),
+        "Magnitude of the converter's negative input resistance at the lowest input voltage, where it is smallest and the stability risk is greatest.")}
+      ${EQS([tr`\left|Z_{o,f}(j\omega)\right|\ \le\ \left|Z_{in}\right|-${N(D.filter.mbMargin)}\,\mathrm{dB}\quad\forall\,\omega`,tr`f_f=\frac{1}{2\pi\sqrt{L_fC_{in}}}\qquad R_0=\sqrt{\frac{L_f}{C_{in}}}`],
+        "Stability criterion with margin, and the filter's resonant frequency and characteristic impedance, which set how much damping is needed.")}
       <figure>${Views.mb(R,D)}<figcaption>Filter output impedance against converter input impedance at ${sp.vinMin} V, full load.</figcaption></figure>
       ${Views.wcaTable(R,{filter:r=>["mb","src"].includes(r.id)})}
       ${R.damp?`<p>Optimal parallel damping for this filter (n = 4): ${si(R.damp.rd,"Ω")} with ${si(R.damp.cd*1e-6,"F")}.</p>`:""}
     </section>`);
   }
 
-  /* ---------- 11 supporting ---------- */
+  /* ---------- 13 supporting ---------- */
   const c=R.circuits;
   out.push(`<section>${H("Supporting circuits")}
-    ${c.boot?`<h3>Bootstrap capacitor</h3>${eq("C<sub>boot,min</sub>",`(Q<sub>g,HS</sub> + I<sub>leak</sub>·t<sub>on,max</sub>) / ΔV<sub>boot</sub> = (${si(c.boot.qg,"C")} + ${ic.ibst} µA·${si(c.boot.tonMax,"s")}) / ${ru.dvBoot} V`,si(c.boot.cmin,"F"))}<p>Use <b>${si(c.boot.rec,"F")}</b> X7R rated at least ${Math.ceil(c.boot.vr*2)} V; droop per cycle is then ${si(c.boot.droop,"V")}.</p>`:""}
+    ${c.boot?`<h3>Bootstrap capacitor</h3>${EQ(tr`C_{boot,min}`,tr`\frac{Q_{g,HS}+I_{leak}\,t_{on,max}}{\Delta V_{boot}}`,tr`\frac{${Q(c.boot.qg,"C")}+${Qn(ic.ibst,"µA")}\cdot${Q(c.boot.tonMax,"s")}}{${Qn(ru.dvBoot,"V")}}`,Q(c.boot.cmin,"F"),
+      "Smallest capacitor that supplies the high-side gate charge and leakage for the longest on-time without the boot voltage drooping more than the allowed amount.")}<p>Use <b>${si(c.boot.rec,"F")}</b> X7R rated at least ${Math.ceil(c.boot.vr*2)} V; droop per cycle is then ${si(c.boot.droop,"V")}.</p>`:""}
     <h3>Soft-start</h3>
-    ${eq("C<sub>ss</sub>",`I<sub>ss</sub>·t<sub>ss</sub> / V<sub>ref</sub> = ${ic.iss} µA·${sp.tss} ms / ${ic.vref} V`,si(c.ss.css,"F")+" (E12)")}
+    ${EQ(tr`C_{ss}`,tr`\frac{I_{ss}\,t_{ss}}{V_{ref}}`,tr`\frac{${Qn(ic.iss,"µA")}\cdot${Qn(sp.tss,"ms")}}{${Qn(ic.vref,"V")}}`,Q(c.ss.css,"F")+tr`\ \text{(E12)}`,
+      "Sets the output ramp time so that the charging current of the output capacitors stays below the current limit.")}
     <p>Soft-start time ${si(c.ss.tssMin,"s")} to ${si(c.ss.tssMax,"s")} over Iss, Css and Vref tolerance. Output capacitor charging plus start-up load needs up to ${si(c.ss.inrushMax,"A")}, against a minimum current limit of ${si(R.ilim.min,"A")}.</p>
-    ${c.uvlo?`<h3>Input UVLO (EN divider)</h3>${c.uvlo.model==="current"?eq("R<sub>top</sub>",`(V<sub>start</sub> − V<sub>stop</sub>) / I<sub>hys</sub> = (${sp.uvStart} − ${sp.uvStop}) V / ${ic.ihys} µA`,si(c.uvlo.Rt,"Ω")+" (E96)")+eq("R<sub>bot</sub>",`R<sub>top</sub>·V<sub>EN</sub> / (V<sub>start</sub> − V<sub>EN</sub>)`,si(c.uvlo.Rb,"Ω")+" (E96)"):eq("R<sub>top</sub>/R<sub>bot</sub>",`V<sub>start</sub>/V<sub>EN</sub> − 1`,fx(c.uvlo.Rt/c.uvlo.Rb,3))}
+    ${c.uvlo?`<h3>Input UVLO (EN divider)</h3>${c.uvlo.model==="current"
+      ?EQ(tr`R_{top}`,tr`\frac{V_{start}-V_{stop}}{I_{hys}}`,tr`\frac{${Qn(sp.uvStart,"V")}-${Qn(sp.uvStop,"V")}}{${Qn(ic.ihys,"µA")}}`,Q(c.uvlo.Rt,"Ω")+tr`\ \text{(E96)}`,"Upper divider resistor: the hysteresis current of the EN pin flowing through it sets the gap between start and stop thresholds.")
+        +EQ(tr`R_{bot}`,tr`\frac{R_{top}\,V_{EN}}{V_{start}-V_{EN}}`,tr`\frac{${Q(c.uvlo.Rt,"Ω")}\cdot${Qn(ic.venR,"V")}}{${Qn(sp.uvStart,"V")}-${Qn(ic.venR,"V")}}`,Q(c.uvlo.Rb,"Ω")+tr`\ \text{(E96)}`,"Lower divider resistor: places the start threshold at the requested input voltage.")
+      :EQ(tr`R_{top}/R_{bot}`,tr`\frac{V_{start}}{V_{EN}}-1`,tr`\frac{${Qn(sp.uvStart,"V")}}{${Qn(ic.venR,"V")}}-1`,N(c.uvlo.Rt/c.uvlo.Rb,3),"Divider ratio that places the start threshold at the requested input voltage.")}
       <p>Start threshold ${fx(c.uvlo.startMin,2)} – ${fx(c.uvlo.startMax,2)} V${c.uvlo.model==="current"?`, stop threshold ${fx(c.uvlo.stopMin,2)} – ${fx(c.uvlo.stopMax,2)} V`:""}, including EN threshold, hysteresis current and resistor tolerances.</p>`:""}
-    ${c.snub?`<h3>Switch-node snubber</h3>${eq("f<sub>ring</sub>",`1 / (2π·√(L<sub>loop</sub>·C<sub>oss</sub>)) = 1 / (2π·√(${D.snub.lloop} nH·${D.ls.coss} pF))`,si(c.snub.fr,"Hz"))}${eq("R<sub>s</sub>",`√(L<sub>loop</sub>/C<sub>oss</sub>)`,si(c.snub.Rs,"Ω"))}${eq("C<sub>s</sub>","3·C<sub>oss</sub>",si(c.snub.Cs,"F"))}${eq("P<sub>snub</sub>",`C<sub>s</sub>·V<sub>in,max</sub>²·f<sub>sw</sub>`,si(c.snub.p,"W"))}<p class="muted">Confirm the ring frequency on the bench and adjust: the loop inductance is an estimate.</p>`:""}
+    ${c.snub?`<h3>Switch-node snubber</h3>${EQS([tr`f_{ring}=\frac{1}{2\pi\sqrt{L_{loop}C_{oss}}}=\frac{1}{2\pi\sqrt{${Qn(D.snub.lloop,"nH")}\cdot${Qn(D.ls.coss,"pF")}}}=${Q(c.snub.fr,"Hz")}`,
+      tr`R_s=\sqrt{\frac{L_{loop}}{C_{oss}}}=${Q(c.snub.Rs,"Ω")}\qquad C_s=3\,C_{oss}=${Q(c.snub.Cs,"F")}`,tr`P_{snub}=C_s\,V_{in,max}^{2}\,f_{sw}=${Q(c.snub.p,"W")}`],
+      "Sizes an RC snubber across the low-side MOSFET: the resistor matches the characteristic impedance of the parasitic resonance, and the capacitor is large enough to dominate Coss. The dissipation is paid every cycle.")}<p class="muted">Confirm the ring frequency on the bench and adjust: the loop inductance is an estimate.</p>`:""}
   </section>`);
 
-  /* ---------- 12 stress ---------- */
-  out.push(`<section>${H("Stress and derating")}<p>Applied stress is the worst case from the analysis. Switch-node voltage includes ${D.snub.on&&ext?"5 % residual overshoot with the snubber fitted":ru.swOvershoot+" % overshoot"}.</p>${Views.stressTable(R)}</section>`);
+  /* ---------- 14 stress ---------- */
+  out.push(`<section>${H("Stress and derating")}
+    ${EQ("u",tr`\frac{X_{applied}}{k_{der}\,X_{rated}}\ \le\ 1`,null,null,"Utilisation of each part against its derated limit; $k_{der}$ is the derating factor for that stress type.".replace("$k_{der}$",ti(tr`k_{der}`)))}
+    <p>Applied stress is the worst case from the analysis. Switch-node voltage includes ${D.snub.on&&ext?"5 % residual overshoot with the snubber fitted":ru.swOvershoot+" % overshoot"}.</p>${Views.stressTable(R)}</section>`);
 
-  /* ---------- 13 WCA ---------- */
+  /* ---------- 15 WCCA vector form ---------- */
+  out.push(wccaSection(D,R,H,rv,row,Ct,Cit,ESRfn(D)));
+
+  /* ---------- 16 sensitivity ---------- */
+  {
+    const sum=Views.sensSummary(R).slice(0,5);
+    const bad=Views.sensList(R).filter(e=>e.status==="bad"||e.status==="warn");
+    out.push(`<section>${H("Sensitivity ranking")}
+      <p>The RSS step already moves each tolerance alone from its nominal to its limit. Ranking those swings shows which tolerance a result depends on most, and therefore where a tighter part or a better datasheet limit buys the most margin. A tolerance that appears in no top position can be left alone.</p>
+      ${EQS([tr`s_i=\frac{\left(\Delta y_i\right)^{2}}{\sum_k\left(\Delta y_k\right)^{2}}\qquad \sigma_{y}^{\,\prime}=\sqrt{\sigma_y^{2}-\tfrac34\,\Delta y_{top}^{2}}\quad\text{(top tolerance halved)}`],
+        `The share $s_i$ of a result's RSS variance that comes from tolerance $i$, and the RSS spread that remains if the largest contributor is made twice as tight.`.replace("$s_i$",ti("s_i")).replace("$i$",ti("i")))}
+      ${sum.length?`<h3>Where tightening pays off</h3><ol class="rank">${sum.map(s=>`<li><b>${esc(s.label)}</b>: the largest contributor to ${s.lead.length} of ${Views.sensList(R).length} results${s.lead.length?` (${s.lead.slice(0,4).map(e=>esc(e.label)).join(", ")}${s.lead.length>4?", …":""})`:""}.</li>`).join("")}</ol>`:""}
+      ${bad.length?`<p class="callout">Results needing attention are driven by: ${bad.map(e=>`<b>${esc(e.label)}</b> ← ${esc(e.items[0].label)} (${fx(e.items[0].share*100,0)} %)`).join("; ")}.</p>`:""}
+      <h3>Share of each result's RSS variance, by tolerance (%)</h3>
+      ${Views.sensMatrix(R)}
+      <h3>Per-result detail</h3>
+      ${Views.sensCards(R)}
+    </section>`);
+  }
+
+  /* ---------- 17 WCA table ---------- */
   out.push(`<section>${H("Worst-case results")}<p>All results, with the corner that produced each worst case.</p>${Views.wcaTable(R)}</section>`);
 
-  /* ---------- 14 open items ---------- */
+  /* ---------- 18 open items ---------- */
   const recs=[];
   issues.forEach(i=>recs.push(`<li>${Views.chip(i.status)} <b>${esc(i.label)}</b>: ${esc(i.limitText||"")}</li>`));
   unverified.forEach(p=>recs.push(`<li><span class="chip warn">Check</span> <b>${esc(p.ref)}</b>: confirm parameters against the datasheet.</li>`));
@@ -1497,48 +1825,209 @@ function build(S,D,R){
     <li>Capture load-step response at the specified slew rate and switch-node ringing at Vin max.</li><li>Thermal test at ${sp.tMax} °C ambient with the final layout to confirm RθJA.</li>
     <li>Check start-up into full load and into the maximum output capacitance; confirm the current limit does not trip.</li></ul>
   </section>`);
+
+  /* table of contents from the headings actually produced */
+  out[tocAt]=`<nav class="toc"><b>Contents</b><ol>${heads.map((t,i)=>`<li><a href="#r${i+1}">${esc(t)}</a></li>`).join("")}</ol></nav>`;
   return `<article class="report">${out.join("")}<footer class="rp-foot">Generated by Buck Designer on ${date}. Results are calculations from the models and values stated above and do not replace measurement.</footer></article>`;
 }
 
-function partsList(S,D){
+/* equivalent ESR of a bank in mΩ */
+function ESRfn(D){return rows=>{const g=rows.reduce((a,r)=>a+(r.n>0&&r.esr>0?r.n/r.esr:0),0);return g>0?1/g:0}}
+
+/* ===================== worst-case circuit analysis in min / typ / max vector form ===================== */
+function wccaSection(D,R,H,rv,row,Ct,Cit,esrOf){
+  const sp=D.specs,ic=D.ic,ind=D.ind,ru=D.rules,ext=D.mode==="ext",fsw=sp.fsw*1e3;
+  const rz=k=>Core.realize(D,{vin:sp.vinNom,io:sp.ioutMax,k});
+  const lo=rz({L:-1,fsw:-1,vref:-1,cout:-1,esr:-1,cin:-1,cinEsr:-1,lf:-1}),mid=rz({}),hi=rz({L:1,fsw:1,vref:1,cout:1,esr:1,cin:1,cinEsr:1,lf:1});
+  const trip=(f)=>[f(lo),f(mid),f(hi)];
+  const sumC=(m,which)=>m[which].reduce((a,b)=>a+(b.n>0?b.n*b.C:0),0);
+  const esrG=(m,which)=>{const g=m[which].reduce((a,b)=>a+(b.n>0&&b.esr>0?b.n/b.esr:0),0);return g>0?1/g:0};
+  const Vin=[sp.vinMin,sp.vinNom,sp.vinMax],T=[sp.tMin,25,sp.tMax];
+  const Lv=trip(m=>m.L),Fv=trip(m=>m.fsw),Vr=trip(m=>m.vref),Co=trip(m=>sumC(m,"cout")),Eo=trip(m=>esrG(m,"cout")),Ci=trip(m=>sumC(m,"cin")),Ei=trip(m=>esrG(m,"cin"));
+  const rt=Core.rtotPct(D,true)/100,Rt=[D.fb.rtop*(1-rt),D.fb.rtop,D.fb.rtop*(1+rt)],Rb=[D.fb.rbot*(1-rt),D.fb.rbot,D.fb.rbot*(1+rt)];
+  const Io=sp.ioutMax,Vo=sp.vout;
+  const o=[];
+
+  o.push(`<section>${H("Worst-case circuit analysis, vector form")}
+  <p>This section restates the analysis the way a worst-case circuit analysis is normally written by hand. Every quantity that varies is a three-element vector of its <b>minimum</b>, <b>typical</b> and <b>maximum</b> value, written in bold. Each equation is stated once and evaluated on the vectors, so the spread of the result is visible at a glance and the calculation is easy to audit.</p>
+  <ul class="assume">
+    <li>For a result that changes monotonically with each input, the minimum is found by pairing every input with the extreme that lowers the result, and the maximum with the extreme that raises it. The pairing is printed under each equation.</li>
+    <li>Where the result is not monotonic (a maximum at 50 % duty, a loop margin that peaks at an interior corner) the equation is stated and the vector is filled from the corner sweep in the previous sections, with the worst corner named.</li>
+    <li>A bold symbol is a vector; a plain symbol is a scalar. Vectors are ordered ${ti(tr`\left[\min,\ \mathrm{typ},\ \max\right]`)} by value.</li>
+  </ul>
+  <h3>Input vectors</h3>`);
+  const defs=[
+    [tr`\mathbf{V_{in}}`,Qn(0,"").slice(0,0),Vin,"V",3,"Requirement"],
+    [tr`\mathbf{T_a}`,"",T,"°C",3,"Requirement"],
+    [tr`\mathbf{f_{sw}}`,"",Fv.map(x=>x/1e3),"kHz",4,`± ${ic.fswTol} % tolerance`],
+    [tr`\mathbf{V_{ref}}`,"",Vr,"V",4,`± ${ic.vrefTol} %`],
+    [tr`\mathbf{L}`,"",Lv.map(x=>x*1e6),"µH",3,`+${ind.ltol} % / −${fx(100*(1-(1-ind.ltol/100)*(1-ind.ltemp/100)*(1-ind.lsat/100)),1)} % incl. temperature and saturation`],
+    [tr`\mathbf{R_{top}}`,"",Rt.map(x=>x/1e3),"kΩ",4,`± ${fx(rt*100,2)} % incl. tempco and EOL`],
+    [tr`\mathbf{R_{bot}}`,"",Rb.map(x=>x/1e3),"kΩ",4,`± ${fx(rt*100,2)} %`],
+    [tr`\mathbf{C_{out}}`,"",Co.map(x=>x*1e6),"µF",3,"After DC bias, tolerance, temperature and EOL"],
+    [tr`\mathbf{ESR_{out}}`,"",Eo.map(x=>x*1e3),"mΩ",3,"Equivalent of the parallel groups, low and high multipliers"],
+    [tr`\mathbf{C_{in}}`,"",Ci.map(x=>x*1e6),"µF",3,"After DC bias, tolerance, temperature and EOL"],
+    [tr`\mathbf{ESR_{in}}`,"",Ei.map(x=>x*1e3),"mΩ",3,"Equivalent of the parallel groups"]
+  ];
+  o.push(`<div class="vdefs">${defs.map(d=>`<div class="vdef">${tex(d[0]+tr`=`+vecCol(d[2],d[4])+tr`\,`+uTex(d[3]),true)}<small>${esc(d[5])}</small></div>`).join("")}</div>`);
+
+  /* helper to print a vector equation with pairing */
+  const VE=(lhs,sym,vals,unit,dig,pairMin,pairMax,why,extra)=>EQ(lhs,sym,null,vecM(vals,dig)+tr`\,`+uTex(unit),why)+
+    `<p class="pair"><b>min</b> ← ${pairMin}<br><b>max</b> ← ${pairMax}${extra?`<br>${extra}`:""}</p>`;
+
+  o.push(`<h3>Closed-form results</h3>`);
+  /* Vout */
+  const voV=[Vr[0]*(1+Rt[0]/Rb[2]),Vr[1]*(1+Rt[1]/Rb[1]),Vr[2]*(1+Rt[2]/Rb[0])];
+  o.push(VE(tr`\mathbf{V_{out}}`,tr`\mathbf{V_{ref}}\left(1+\frac{\mathbf{R_{top}}}{\mathbf{R_{bot}}}\right)`,voV,"V",5,tr`V_{ref,min},\ R_{top,min},\ R_{bot,max}`,tr`V_{ref,max},\ R_{top,max},\ R_{bot,min}`,
+    "Output set-point spread from the reference and the feedback divider.",`Requirement: ${ti(tr`${N(sp.vout)}\,\mathrm{V}\pm${N(sp.voutAcc)}\,\%=\left[${N(sp.vout*(1-sp.voutAcc/100),5)},\ ${N(sp.vout*(1+sp.voutAcc/100),5)}\right]\,\mathrm{V}`)}`));
+  /* D */
+  const Dv=[Vo/Vin[2],Vo/Vin[1],Vo/Vin[0]];
+  o.push(VE(tr`\mathbf{D}`,tr`\frac{V_{out}}{\mathbf{V_{in}}}`,Dv.map(x=>x*100),"%",4,tr`V_{in,max}`,tr`V_{in,min}`,"Duty cycle range over the input range."));
+  /* dI */
+  const dI=(vin,L,f)=>(vin-Vo)*(Vo/vin)/(L*f);
+  const dIv=[dI(Vin[0],Lv[2],Fv[2]),dI(Vin[1],Lv[1],Fv[1]),dI(Vin[2],Lv[0],Fv[0])];
+  o.push(VE(tr`\mathbf{\Delta I_L}`,tr`\frac{\left(\mathbf{V_{in}}-V_{out}\right)\mathbf{D}}{\mathbf{L}\,\mathbf{f_{sw}}}`,dIv,"A",4,tr`V_{in,min},\ L_{max},\ f_{sw,max}`,tr`V_{in,max},\ L_{min},\ f_{sw,min}`,
+    "Inductor ripple current: largest at the highest input voltage with the smallest inductance and lowest frequency."));
+  const ipV=dIv.map(x=>Io+x/2),irV=dIv.map(x=>Math.sqrt(Io*Io+x*x/12));
+  o.push(VE(tr`\mathbf{I_{pk}}`,tr`I_{out}+\frac{\mathbf{\Delta I_L}}{2}`,ipV,"A",4,tr`\Delta I_{L,min}`,tr`\Delta I_{L,max}`,"Peak inductor and switch current.",
+    `Limit: ${ti(tr`I_{sat,hot}/(1+${N(ru.isatMargin/100)})=${Qn(row("ipk").limit,"A",3)}`)}`));
+  o.push(VE(tr`\mathbf{I_{L,rms}}`,tr`\sqrt{I_{out}^{2}+\frac{\mathbf{\Delta I_L}^{2}}{12}}`,irV,"A",4,tr`\Delta I_{L,min}`,tr`\Delta I_{L,max}`,"Inductor heating current and the current used for conduction loss.",
+    `Limit: ${ti(Qn(row("irmsL").limit,"A",3))}`));
+  /* output ripple first order */
+  const vrp=[dIv[0]/(8*Fv[2]*Co[2])+dIv[0]*Eo[0],dIv[1]/(8*Fv[1]*Co[1])+dIv[1]*Eo[1],dIv[2]/(8*Fv[0]*Co[0])+dIv[2]*Eo[2]];
+  const vr=row("vrip");
+  o.push(VE(tr`\mathbf{\Delta V_{out}}`,tr`\frac{\mathbf{\Delta I_L}}{8\,\mathbf{f_{sw}}\,\mathbf{C_{out}}}+\mathbf{\Delta I_L}\,\mathbf{ESR_{out}}`,vrp.map(x=>x*1e3),"mV",3,tr`\Delta I_{L,min},\ f_{sw,max},\ C_{out,max},\ ESR_{out,min}`,tr`\Delta I_{L,max},\ f_{sw,min},\ C_{out,min},\ ESR_{out,max}`,
+    "First-order hand check of output ripple (capacitive and ESR terms).",`Full 40-harmonic result with ESL: ${ti(vecRow([vr.eva.min*1e3,vr.nom*1e3,vr.eva.max*1e3],3)+tr`\,\mathrm{mV}`)}. Limit ${ti(Qn(sp.vrip,"mV"))}.`));
+  /* Cin rms: non-monotonic */
+  const Dx=Dv,dxs=[Dx[0],Dx[1],Dx[2]],f=d=>Io*Math.sqrt(d*(1-d));
+  const cmax=(Dx[0]<=0.5&&0.5<=Dx[2])?Io*0.5:Math.max(f(Dx[0]),f(Dx[2])),cmin=Math.min(f(Dx[0]),f(Dx[2]));
+  o.push(VE(tr`\mathbf{I_{Cin,rms}}`,tr`I_{out}\sqrt{\mathbf{D}\left(1-\mathbf{D}\right)}`,[cmin,f(Dx[1]),cmax],"A",3,tr`D\ \text{farthest from }0.5`,
+    (Dx[0]<=0.5&&0.5<=Dx[2])?tr`D=0.5\ \text{(inside the duty range)}`:tr`D\ \text{nearest to }0.5`,"Total RMS input capacitor current. Not monotonic in D: the maximum is at 50 % duty whenever 50 % lies inside the duty range."));
+  /* f0, fesr */
+  const f0v=[1/(2*Math.PI*Math.sqrt(Lv[2]*Co[2])),1/(2*Math.PI*Math.sqrt(Lv[1]*Co[1])),1/(2*Math.PI*Math.sqrt(Lv[0]*Co[0]))];
+  o.push(VE(tr`\mathbf{f_0}`,tr`\frac{1}{2\pi\sqrt{\mathbf{L}\,\mathbf{C_{out}}}}`,f0v.map(x=>x/1e3),"kHz",3,tr`L_{max},\ C_{out,max}`,tr`L_{min},\ C_{out,min}`,"LC double-pole frequency of the power stage. The compensator zeros are placed relative to this."));
+  const fzv=[1/(2*Math.PI*Eo[2]*Co[2]),1/(2*Math.PI*Eo[1]*Co[1]),1/(2*Math.PI*Eo[0]*Co[0])];
+  o.push(VE(tr`\mathbf{f_{ESR}}`,tr`\frac{1}{2\pi\,\mathbf{ESR_{out}}\,\mathbf{C_{out}}}`,fzv.map(x=>x/1e3),"kHz",3,tr`ESR_{out,max},\ C_{out,max}`,tr`ESR_{out,min},\ C_{out,min}`,"Zero of an equivalent single capacitor. The loop sweep uses the full multi-group impedance, so this is an indication only."));
+  /* on time, ilim, ss, uvlo, inrush */
+  const ton=row("ton"),il=R.ilim,ss=R.circuits.ss;
+  o.push(VE(tr`\mathbf{t_{on}}`,tr`\frac{V_{out}}{\mathbf{V_{in}}\,\mathbf{f_{sw}}}`,[ton.eva.min*1e9,ton.nom*1e9,ton.eva.max*1e9],"ns",3,tr`V_{in,max},\ f_{sw,max}`,tr`V_{in,min},\ f_{sw,min}`,"High-side on-time over the whole range.",`Minimum allowed: ${ti(tr`1.25\times${N(ic.tonMin)}\,\mathrm{ns}=${N(ic.tonMin*1.25,3)}\,\mathrm{ns}`)}`));
+  o.push(VE(tr`\mathbf{I_{lim}}`,tr`I_{lim,nom}\left(1\pm tol\right)`,[il.min,ic.ilim,il.max],"A",4,tr`\text{low tolerance}`,tr`\text{high tolerance}`,"Current-limit threshold spread.",`Must exceed the worst-case peak ${ti(Qn(row("ipk").eva.max,"A",4))} at the low end, and stay below the hot Isat ${ti(Qn(ind.isat*(1-ind.isatHot/100),"A",3))} at the high end.`));
+  o.push(VE(tr`\mathbf{t_{ss}}`,tr`\frac{\mathbf{C_{ss}}\,\mathbf{V_{ref}}}{\mathbf{I_{ss}}}`,[ss.tssMin*1e3,ss.tssNom*1e3,ss.tssMax*1e3],"ms",3,tr`C_{ss,min},\ V_{ref,min},\ I_{ss,max}`,tr`C_{ss,max},\ V_{ref,max},\ I_{ss,min}`,"Soft-start time over component and reference tolerance."));
+  const CminOut=Co[0],inrMin=CminOut*Vo/ss.tssMax+sp.ioStart;
+  o.push(VE(tr`\mathbf{I_{start}}`,tr`\frac{\mathbf{C_{out}}\,V_{out}}{\mathbf{t_{ss}}}+I_{start,load}`,[inrMin,ss.inrushNom,ss.inrushMax],"A",3,tr`C_{out,min},\ t_{ss,max}`,tr`C_{out,max}\ \text{(no DC-bias loss)},\ t_{ss,min}`,"Inductor current during start-up, which must stay below the minimum current limit.",`Limit: ${ti(Qn(il.min,"A",3))}`));
+  if(R.circuits.uvlo){const u=R.circuits.uvlo;
+    o.push(VE(tr`\mathbf{V_{start}}`,tr`\mathbf{V_{EN}}\left(1+\frac{\mathbf{R_{t}}}{\mathbf{R_{b}}}\right)`,[u.startMin,u.startNom,u.startMax],"V",4,tr`V_{EN,min},\ R_{t,min},\ R_{b,max}`,tr`V_{EN,max},\ R_{t,max},\ R_{b,min}`,"Undervoltage lockout start threshold.",`Must be at or below ${ti(Qn(sp.vinMin,"V"))} so the converter starts at the lowest input.`))}
+  if(D.filter.on){
+    const hotE=R.lossByVin[0].hot.eff,nomE=R.lossByVin[0].nom.eff;
+    const zi=[Vin[0]*Vin[0]*hotE/(Vo*Io),Vin[1]*Vin[1]*R.lossByVin[1].nom.eff/(Vo*Io),Vin[2]*Vin[2]*R.lossByVin[2].nom.eff/(Vo*Io)];
+    o.push(VE(tr`\mathbf{|Z_{in}|}`,tr`\frac{\mathbf{V_{in}}^{2}\,\boldsymbol{\eta}}{P_{out}}`,zi,"Ω",3,tr`V_{in,min},\ \eta\ \text{at hot, EOL}`,tr`V_{in,max},\ \eta\ \text{nominal}`,"Magnitude of the converter's negative input resistance, against which the input filter is checked."))}
+
+  o.push(`<h3>Swept results</h3><p>These depend on frequency or time, or are not monotonic in the tolerances, so the vector is filled from the corner enumeration. The equation each one comes from is given in the sections above.</p>`);
+  const sw=[];
+  const sv=(id,lhs,sym,why,dig)=>{const r=row(id);if(!r)return "";
+    const vals=[r.eva.min,r.nom,r.eva.max].map(x=>x*(r.scale||1));
+    return EQ(lhs,sym,null,vecM(vals,dig||3)+tr`\,`+uTex(r.unit||""),why)+`<p class="pair"><b>worst</b> ← ${esc(r.corner||"")}${r.limitText?`<br>Requirement: ${esc(r.limitText)}`:""}</p>`};
+  sw.push(sv("fc",tr`\mathbf{f_c}`,tr`\left\{f:\ \left|\mathbf{T}(j2\pi f)\right|=1\right\}`,"Loop crossover frequency over all corners."));
+  sw.push(sv("pm",tr`\mathbf{PM}`,tr`180^{\circ}+\angle\,\mathbf{T}(j2\pi\,\mathbf{f_c})`,"Phase margin; the minimum is the number that is compared with the requirement."));
+  sw.push(sv("gm",tr`\mathbf{GM}`,tr`-20\log_{10}\left|\mathbf{T}(j2\pi f_{180})\right|`,"Gain margin. 99 dB means the phase never reaches −180° below fsw/2."));
+  if(row("qp"))sw.push(sv("qp",tr`\mathbf{Q_p}`,tr`\frac{1}{\pi\left(\mathbf{m_c}D'-0.5\right)}`,"Sampling-gain Q of the current-mode modulator.",3));
+  sw.push(sv("tran",tr`\mathbf{\Delta V_{step}}`,tr`\Delta I_{step}\left|\mathbf{Z_{cl}}\right|`,"Load-step deviation; the minimum equals the nominal value."));
+  sw.push(sv("eff",tr`\boldsymbol{\eta}`,tr`\frac{P_{out}}{P_{out}+\sum\mathbf{P_{loss}}}`,"Efficiency at full load; the minimum is at the hottest ambient with end-of-life Rds(on).",4));
+  if(ext){sw.push(sv("tjHs",tr`\mathbf{T_{j,HS}}`,tr`\mathbf{T_a}+\mathbf{P_{HS}}\,R_{\theta,HS}`,"High-side junction temperature."));sw.push(sv("tjLs",tr`\mathbf{T_{j,LS}}`,tr`\mathbf{T_a}+\mathbf{P_{LS}}\,R_{\theta,LS}`,"Low-side junction temperature."))}
+  else sw.push(sv("tjIc",tr`\mathbf{T_{j}}`,tr`\mathbf{T_a}+\mathbf{P_{IC}}\,R_{\theta,JA}`,"Converter junction temperature."));
+  sw.push(sv("tInd",tr`\mathbf{T_L}`,tr`\mathbf{T_a}+\Delta T_{rated}\left(\frac{\mathbf{I_{L,rms}}}{I_{rated}}\right)^{2}`,"Inductor temperature."));
+  if(D.filter.on&&row("mb"))sw.push(sv("mb",tr`\mathbf{MB}`,tr`20\log_{10}\frac{|Z_{in}|}{\max_f|Z_{o,f}(f)|}`,"Middlebrook margin."));
+  o.push(sw.join(""));
+
+  /* summary matrix */
+  const rowsAll=R.rows.filter(r=>r.eva&&isFinite(r.eva.min)&&isFinite(r.eva.max));
+  const worstOf=r=>r.dir==="min"?r.eva.min:r.eva.max;
+  o.push(`<h3>Summary matrix</h3><p>Every result as one vector, with its requirement and the margin at the worst element.</p>
+  <div class="scroll"><table class="t wvec"><thead><tr><th>Result</th><th>${ti(tr`\left[\min,\ \mathrm{typ},\ \max\right]`)}</th><th>Requirement</th><th>Margin</th><th>Result</th></tr></thead><tbody>${rowsAll.map(r=>{
+    const sc=r.scale||1,v=[r.eva.min*sc,r.nom*sc,r.eva.max*sc];
+    let mg="—";if(r.limit!=null&&isFinite(r.limit)&&r.dir){const m=r.dir==="min"?worstOf(r)-r.limit:r.limit-worstOf(r);mg=`${(+(m*sc).toPrecision(3)).toString()} ${r.unit||""} (${fx(m/Math.abs(r.limit)*100,0)} %)`}
+    return `<tr class="st-${r.status}"><td><b>${esc(r.label)}</b></td><td class="vv">${ti(vecRow(v,3)+(r.unit?tr`\,`+uTex(r.unit):""))}</td><td class="lim">${esc(r.limitText||"—")}</td><td>${esc(mg)}</td><td>${Views.chip(r.status)}</td></tr>`}).join("")}</tbody></table></div>
+  </section>`);
+  return o.join("");
+}
+
+function partsList(S,D,R){
   const ext=S.mode==="ext",L=[];
   const st=p=>({verified:p.verified,example:!p.pn&&Object.values(p.src||{}).every(v=>v==="ex"||!v),pn:p.pn,mfr:p.mouser&&p.mouser.manufacturer,ds:p.mouser&&p.mouser.datasheet,life:p.mouser&&p.mouser.lifecycle});
   const icv=ext?S.parts.ctrl:S.parts.conv;
-  L.push(Object.assign({ref:ext?"U1 controller":"U1 converter",key:`Vin ≤ ${icv.vals.vinMaxIc} V, Vref ${icv.vals.vref} V, limit ${icv.vals.ilim} A`},st(icv)));
-  if(ext){L.push(Object.assign({ref:"Q1 high-side",key:`${D.hs.vds} V, ${D.hs.rds} mΩ, Qg ${D.hs.qg} nC`},st(S.parts.hs)));L.push(Object.assign({ref:"Q2 low-side",key:`${D.ls.vds} V, ${D.ls.rds} mΩ, Qg ${D.ls.qg} nC`},st(S.parts.ls)))}
-  L.push(Object.assign({ref:"L1",key:`${D.ind.L} µH, Isat ${D.ind.isat} A, ${D.ind.irms} A rms, ${D.ind.dcr} mΩ`},st(S.parts.ind)));
-  S.cout.forEach((r,i)=>L.push({ref:`Output C${i+1} (×${r.n})`,key:`${r.c} µF, ${r.vr} V, ${r.esr} mΩ, ${(Core.CAP_TYPES[r.type]||{}).label||""}`,verified:r.verified,example:!r.pn,pn:r.pn,mfr:r.mouser&&r.mouser.manufacturer,ds:r.mouser&&r.mouser.datasheet,life:r.mouser&&r.mouser.lifecycle}));
-  S.cin.forEach((r,i)=>L.push({ref:`Input C${i+1} (×${r.n})`,key:`${r.c} µF, ${r.vr} V, ${r.esr} mΩ, ${(Core.CAP_TYPES[r.type]||{}).label||""}`,verified:r.verified,example:!r.pn,pn:r.pn,mfr:r.mouser&&r.mouser.manufacturer,ds:r.mouser&&r.mouser.datasheet,life:r.mouser&&r.mouser.lifecycle}));
+  const stress=(part,param)=>R&&R.stress.find(s=>s.part.indexOf(part)===0&&(!param||s.param===param));
+  const row=id=>R&&R.rows.find(r=>r.id===id);
+  const pct=s=>s?`${Math.round(s.util*100)} %`:"";
+  const sp=D.specs;
+  const why={};
+  if(R){
+    const ipk=row("ipk").eva.max,vin=stress(ext?"Controller":"Converter IC","Input voltage");
+    why.U=`Rated for ${icv.vals.vinMaxIc} V input: uses ${pct(vin)} of its derated limit at ${sp.vinMax} V. Reference ${icv.vals.vref} V ± ${D.ic.vrefTol} %; current limit ${icv.vals.ilim} A is ${Math.round((R.ilim.min/ipk-1)*100)} % ${R.ilim.min>=ipk?"above":"below"} the worst-case peak current at its low tolerance.`+(ext?"":` Integrated switches ${D.ic.rdsHs}/${D.ic.rdsLs} mΩ; hottest junction ${Math.round(row("tjIc").eva.max)} °C.`);
+    if(ext){
+      const f=(nm,fet,tj)=>`${fet.vds} V rating uses ${pct(stress(nm,"Vds incl. overshoot"))} of its derated limit; ${fet.rds} mΩ Rds(on), Qg ${fet.qg} nC; peak current uses ${pct(stress(nm,"Drain current (peak)"))}; worst junction ${Math.round(tj)} °C.`;
+      why.Q1=f("High-side MOSFET",D.hs,row("tjHs").eva.max);why.Q2=f("Low-side MOSFET",D.ls,row("tjLs").eva.max);
+    }
+    const sat=stress("Inductor","Peak vs hot Isat"),rm=stress("Inductor","RMS current");
+    why.L=`Hot saturation current ${(D.ind.isat*(1-D.ind.isatHot/100)).toFixed(1)} A uses ${pct(sat)} of the allowed peak; RMS current ${pct(rm)} of its derated limit; DCR ${D.ind.dcr} mΩ.`;
+  }
+  L.push(Object.assign({ref:ext?"U1 controller":"U1 converter",key:`Vin ≤ ${icv.vals.vinMaxIc} V, Vref ${icv.vals.vref} V, limit ${icv.vals.ilim} A`,why:why.U},st(icv)));
+  if(ext){L.push(Object.assign({ref:"Q1 high-side",key:`${D.hs.vds} V, ${D.hs.rds} mΩ, Qg ${D.hs.qg} nC`,why:why.Q1},st(S.parts.hs)));L.push(Object.assign({ref:"Q2 low-side",key:`${D.ls.vds} V, ${D.ls.rds} mΩ, Qg ${D.ls.qg} nC`,why:why.Q2},st(S.parts.ls)))}
+  L.push(Object.assign({ref:"L1",key:`${D.ind.L} µH, Isat ${D.ind.isat} A, ${D.ind.irms} A rms, ${D.ind.dcr} mΩ`,why:why.L},st(S.parts.ind)));
+  const cw=(bank,i,pre)=>{if(!R)return "";const s=stress(`${pre} C${i+1}`,"Voltage"),r=stress(`${pre} C${i+1}`,"Ripple current per cap");
+    return `${bank[i].n} in parallel. Voltage uses ${pct(s)} of the derated limit; ripple current per part uses ${pct(r)} of its derated rating; ${bank[i].esr} mΩ ESR.`};
+  S.cout.forEach((r,i)=>L.push({ref:`Output C${i+1} (×${r.n})`,key:`${r.c} µF, ${r.vr} V, ${r.esr} mΩ, ${(Core.CAP_TYPES[r.type]||{}).label||""}`,why:cw(D.cout,i,"Output"),verified:r.verified,example:!r.pn,pn:r.pn,mfr:r.mouser&&r.mouser.manufacturer,ds:r.mouser&&r.mouser.datasheet,life:r.mouser&&r.mouser.lifecycle}));
+  S.cin.forEach((r,i)=>L.push({ref:`Input C${i+1} (×${r.n})`,key:`${r.c} µF, ${r.vr} V, ${r.esr} mΩ, ${(Core.CAP_TYPES[r.type]||{}).label||""}`,why:cw(D.cin,i,"Input"),verified:r.verified,example:!r.pn,pn:r.pn,mfr:r.mouser&&r.mouser.manufacturer,ds:r.mouser&&r.mouser.datasheet,life:r.mouser&&r.mouser.lifecycle}));
   return L;
 }
 
-/* simplified block schematic of the power stage and feedback */
-function schematic(D){
-  const ext=D.mode==="ext";
-  const t=(x,y,s,a)=>`<text x="${x}" y="${y}" ${a?`text-anchor="${a}"`:""} fill="var(--ink)">${s}</text>`;
-  const l=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--ink)" stroke-width="1.5"/>`;
+/* minimal bring-up schematic: values, key nodes, test points and the settings that matter on the bench */
+function schematic(D,R){
+  const ext=D.mode==="ext",sp=D.specs,ic=D.ic,ink="var(--ink)",cu="var(--copper)";
+  const t=(x,y,s,a,cls)=>`<text x="${x}" y="${y}" ${a?`text-anchor="${a}"`:""} ${cls==="s"?'font-size="10" fill="var(--muted)"':`fill="${ink}"`}>${s}</text>`;
+  const l=(x1,y1,x2,y2,w)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${ink}" stroke-width="${w||1.5}"/>`;
+  const cap=(x,y)=>l(x-10,y,x+10,y,2)+l(x-10,y+5,x+10,y+5,2);
+  const tp=(x,y,name,dy)=>`<circle cx="${x}" cy="${y}" r="4" fill="var(--panel)" stroke="${cu}" stroke-width="1.6"/>`+t(x+7,y+(dy==null?-6:dy),name,null,"s").replace('fill="var(--muted)"',`fill="${cu}"`);
+  const grp=(rows,pre)=>rows.filter(r=>r.n>0).map((r,i)=>`${pre}${i+1} ${r.n}×${r.c} µF`);
   let g="";
-  g+=t(16,64,"Vin");g+=l(40,60,90,60);
-  if(D.filter.on){g+=`<path d="M90 60 q6 -10 12 0 q6 -10 12 0 q6 -10 12 0" fill="none" stroke="var(--copper)" stroke-width="2"/>`+t(108,42,"Lf","middle");g+=l(126,60,170,60)}else g+=l(90,60,170,60);
-  g+=l(150,60,150,90)+`<line x1="140" y1="90" x2="160" y2="90" stroke="var(--ink)" stroke-width="2"/><line x1="140" y1="95" x2="160" y2="95" stroke="var(--ink)" stroke-width="2"/>`+l(150,95,150,120)+t(165,104,"Cin");
-  g+=`<rect x="170" y="40" width="70" height="40" rx="4" fill="var(--panel)" stroke="var(--ink)"/>`+t(205,64,ext?"Q1":"HS FET","middle");
-  g+=l(240,60,280,60)+`<rect x="255" y="80" width="50" height="34" rx="4" fill="var(--panel)" stroke="var(--ink)"/>`+t(280,101,ext?"Q2":"LS FET","middle")+l(280,60,280,80)+l(280,114,280,130);
-  g+=t(268,52,"SW","end");
-  g+=`<path d="M280 60 L300 60 q8 -12 16 0 q8 -12 16 0 q8 -12 16 0 L380 60" fill="none" stroke="var(--copper)" stroke-width="2"/>`+t(324,42,"L1","middle");
-  g+=l(380,60,470,60)+l(410,60,410,90)+`<line x1="400" y1="90" x2="420" y2="90" stroke="var(--ink)" stroke-width="2"/><line x1="400" y1="95" x2="420" y2="95" stroke="var(--ink)" stroke-width="2"/>`+l(410,95,410,120)+t(425,104,`Cout (${D.cout.length} groups)`);
-  g+=t(476,64,"Vout");
-  g+=l(450,60,450,150)+`<rect x="430" y="150" width="40" height="16" fill="var(--panel)" stroke="var(--ink)"/>`+t(478,162,"Rtop")+l(450,166,450,186)+`<rect x="430" y="186" width="40" height="16" fill="var(--panel)" stroke="var(--ink)"/>`+t(478,198,"Rbot");
-  g+=l(450,176,380,176);
-  g+=`<polygon points="380,160 380,192 340,176" fill="var(--panel)" stroke="var(--ink)"/>`+t(358,180,"EA","middle")+t(360,214,D.ea==="gm"?"gm + Type "+D.comp.type:"op-amp + Type "+D.comp.type,"middle");
-  g+=l(340,176,250,176)+`<rect x="170" y="156" width="80" height="40" rx="4" fill="var(--panel)" stroke="var(--ink)"/>`+t(210,174,"PWM","middle")+t(210,188,D.ctrl==="vm"?"V ramp":"current sense","middle");
-  g+=l(205,156,205,80);
-  return `<figure><svg class="plot schem" viewBox="0 0 560 230" width="100%" role="img" aria-label="Block schematic">${g}</svg><figcaption>Simplified block schematic.</figcaption></figure>`;
+  /* power path */
+  g+=t(8,52,"Vin")+t(8,76,`${sp.vinMin}–${sp.vinMax} V`,null,"s")+l(40,60,90,60);
+  if(D.filter.on){g+=`<path d="M90 60 q6 -10 12 0 q6 -10 12 0 q6 -10 12 0" fill="none" stroke="${cu}" stroke-width="2"/>`+t(108,42,`Lf ${D.filter.lf} µH`,"middle","s");g+=l(126,60,150,60)}else g+=l(90,60,150,60);
+  g+=l(150,60,170,60)+l(150,60,150,92)+cap(150,92)+l(150,97,150,132)+t(138,108,"Cin","end");
+  grp(D.cin,"C").forEach((s,i)=>{g+=t(164,108+i*12,s,null,"s")});
+  g+=`<rect x="170" y="40" width="70" height="40" rx="4" fill="var(--panel)" stroke="${ink}"/>`+t(205,57,ext?"Q1":"HS","middle")+t(205,72,ext?"high side":"in U1","middle","s");
+  g+=l(240,60,282,60)+t(262,52,"SW","middle")+tp(282,60,"TP1",16);
+  g+=`<rect x="256" y="84" width="54" height="34" rx="4" fill="var(--panel)" stroke="${ink}"/>`+t(283,101,ext?"Q2":"LS","middle")+t(283,113,ext?"low side":"in U1","middle","s")+l(283,60,283,84)+l(283,118,283,132);
+  g+=`<path d="M283 60 L304 60 q8 -12 16 0 q8 -12 16 0 q8 -12 16 0 L376 60" fill="none" stroke="${cu}" stroke-width="2"/>`+t(330,42,`L1 ${D.ind.L} µH`,"middle");
+  g+=l(376,60,470,60)+l(416,60,416,92)+cap(416,92)+l(416,97,416,132)+t(402,100,"Cout","end");
+  grp(D.cout,"C").forEach((s,i)=>{g+=t(404,111+i*11,s,"end","s")});
+  g+=tp(440,60,"TP2",16)+t(484,50,`Vout ${sp.vout} V, ${sp.ioutMax} A`);
+  /* ground */
+  g+=l(150,132,416,132,1)+t(300,146,"GND","middle","s");
+  /* feedback */
+  g+=l(470,60,520,60)+l(500,60,500,96)+tp(500,84,"TP3",4)+t(530,88,"loop injection",null,"s");
+  g+=`<rect x="486" y="100" width="28" height="18" fill="var(--panel)" stroke="${ink}"/>`+t(520,113,`Rtop ${Fmt.si(D.fb.rtop,"Ω",3)}`);
+  g+=l(500,118,500,146)+`<rect x="486" y="146" width="28" height="18" fill="var(--panel)" stroke="${ink}"/>`+t(520,159,`Rbot ${Fmt.si(D.fb.rbot,"Ω",3)}`)+l(500,164,500,180);
+  g+=l(500,132,452,132)+t(476,126,"FB","middle");
+  g+=`<polygon points="452,116 452,148 412,132" fill="var(--panel)" stroke="${ink}"/>`+t(430,136,"EA","middle");
+  g+=t(432,176,D.ea==="gm"?`gm, Type ${D.comp.type}`:`op-amp, Type ${D.comp.type}`,"middle","s");
+  /* controller */
+  g+=l(412,132,380,132)+t(396,146,"COMP","middle","s");
+  g+=l(380,132,250,176,1)+`<rect x="170" y="162" width="100" height="56" rx="4" fill="var(--panel)" stroke="${ink}"/>`+t(220,180,ext?"U1 controller":"U1 converter","middle")+t(220,194,`fsw ${sp.fsw} kHz`,"middle","s")+t(220,207,D.ctrl==="vm"?"voltage mode":"peak current","middle","s");
+  g+=l(205,162,205,80);
+  /* settings beside the pins */
+  const uv=R&&R.circuits&&R.circuits.uvlo;
+  g+=t(8,184,"EN",null)+l(30,181,170,181,1);
+  g+=t(8,198,uv?`Rt ${Fmt.si(uv.Rt,"Ω",3)} / Rb ${Fmt.si(uv.Rb,"Ω",3)}`:`UVLO ${sp.uvStart} V`,null,"s")+t(8,210,`start ${sp.uvStart} V${uv&&uv.model==="current"?`, stop ${sp.uvStop} V`:""}`,null,"s");
+  g+=t(8,228,`ILIM ${ic.ilim} A`)+l(76,225,170,214,1);
+  g+=t(8,246,"Test points: TP1 switch node, TP2 output ripple,",null,"s")+t(8,258,"TP3 loop-gain injection (add a small series resistor).",null,"s");
+  return `<figure><svg class="plot schem" viewBox="0 0 640 266" width="100%" role="img" aria-label="Bring-up schematic">${g}</svg><figcaption>Minimal bring-up schematic: part values, key nodes (SW, FB, COMP, EN), test points and the thresholds set by external parts. Per-part stress numbers are in the tables.</figcaption></figure>`;
 }
 
 /* standalone HTML file for saving */
 function standalone(html,title,css){
+  const kx=/class="katex/.test(html)?'\n<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">':"";
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">${kx}
 <style>${css}</style></head><body class="standalone">${html}</body></html>`;
 }
 return {build,standalone,partsList};
@@ -1924,6 +2413,7 @@ function renderResults(){
     <div class="summary">${sum.map(s=>`<div><span class="lbl">${s[0]}</span><b>${s[1]}</b><span class="sub">${s[2]}</span></div>`).join("")}</div>
     <section class="block"><h2>Items needing attention</h2><div class="panel">${iss.length?`<ul class="checks">${iss.map(i=>`<li><span class="chip ${i.st}">${{bad:"Fail",warn:"Check"}[i.st]}</span><div><div class="t1">${esc(i.t)}</div><div class="t2">${esc(i.d)}</div></div></li>`).join("")}</ul>`:`<p>No failures or marginal results.</p>`}</div></section>
     <section class="block"><h2>Worst-case analysis</h2><p class="note">EVA: every combination of operating condition and tolerance extreme. RSS: tolerances combined as root-sum-square at the worst operating point. ${R.corners.toLocaleString()} corners.</p><div class="panel">${Views.wcaTable(R)}</div></section>
+    <section class="block"><h2>Sensitivity ranking</h2><p class="note">Which tolerance moves each result most. Bars show the swing from that tolerance alone at the worst operating point; the percentage is its share of the RSS variance. Tighten the top item to gain the most.</p><div class="panel">${Views.sensMatrix(R)}</div>${Views.sensCards(R)}</section>
     <div class="cols">
       <section class="block"><h2>Loop gain</h2><div class="panel">${Views.bode(R,D,{parts:true})}</div></section>
       <section class="block"><h2>Compensation</h2><div class="panel">${Views.compTable(D)}<h4 style="margin:14px 0 6px">Poles and zeros</h4>${Views.polesZeros(D)}</div></section>
