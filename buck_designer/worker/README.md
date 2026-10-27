@@ -34,3 +34,7 @@ Mouser lookups spend the shared API key, so the worker only answers when the req
 ## Parts library page and CSV import
 
 `/parts_library/` is a live table of the shared library: search, filter by verified, edit any cell, tick Verified, add a part, delete a part. Import takes a CSV (use Download template on the page; the columns are `type, pn, subtype, manufacturer, description, datasheet, verified`, then one column per value). Imported parts are marked not verified unless the verified column says yes. Imports are limited to 200 parts per file, and each part is one KV write against the free tier's 1000 a day.
+
+## DigiKey lookup
+
+`GET /digikey?pn=<part number>` returns DigiKey's parameter list for a part (same lookup password as Mouser). Add Secrets `DIGIKEY_ID` and `DIGIKEY_SECRET` from a Product Information V4 app on developer.digikey.com. The library page's DigiKey button maps the parameters to library values and only fills blanks. The parameter-name mapping is in `shared/partslib.js` (`dkMap`); if a field does not fill, DigiKey probably words it differently and the pattern there needs adjusting.

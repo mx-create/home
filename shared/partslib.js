@@ -97,6 +97,51 @@ function googleUrl(type,pn){
   return "https://www.google.com/search?q="+encodeURIComponent(q);
 }
 
+/* ---------- DigiKey: structured parameters through the worker (same password as Mouser) ---------- */
+async function digikeyFetch(pn){
+  const path="/digikey?pn="+encodeURIComponent(pn);
+  let res=await mouserReq(path,getKey());
+  if(res.status===401&&typeof root.prompt==="function"){
+    const k=root.prompt(getKey()?"That password was not accepted. Enter the lookup password:":"Lookups are password protected. Enter the lookup password:");
+    if(k){res=await mouserReq(path,k);if(res.ok)setKey(k)}
+  }
+  return res;
+}
+/* "47 µF", "2.1mOhm @ 30A, 10V", "±20%", "Max 12mOhm", "100A (Tc)" -> number in the wanted unit; null if it is not a plain figure */
+const SI={p:1e-12,n:1e-9,u:1e-6,"µ":1e-6,m:1e-3,k:1e3,M:1e6,G:1e9};
+function dkNum(text,unit,scale){
+  const m=String(text||"").replace(/,/g,"").match(/(-?\d+(?:\.\d+)?)\s*([pnuµmkMG]?)\s*(Ohms?|Ω|F|H|V|A|C|Hz|W|%|°C)/);
+  if(!m)return null;
+  const mult=m[2]?SI[m[2]]:1,u=m[3];
+  if(unit==="%"){return u==="%"?+m[1]:null}
+  const want={Ohm:/^(Ohms?|Ω)$/,F:/^F$/,H:/^H$/,V:/^V$/,A:/^A$/,C:/^C$/,Hz:/^Hz$/}[unit];
+  if(!want||!want.test(u))return null;
+  const v=+m[1]*mult*(scale||1);return isFinite(v)?+v.toPrecision(6):null;
+}
+const pick=(p,re)=>{const k=Object.keys(p).find(x=>re.test(x));return k?p[k]:undefined};
+function dkMap(type,r){
+  const p=r.parameters||{},vals={},out={vals,manufacturer:r.manufacturer||"",description:r.description||"",datasheet:r.datasheet||"",mpn:r.mpn||""};
+  const put=(k,v)=>{if(v!=null&&isFinite(v))vals[k]=v};
+  if(type==="cap"){
+    put("c",dkNum(pick(p,/^Capacitance/),"F",1e6));put("vr",dkNum(pick(p,/^Voltage - Rated/),"V"));put("tol",dkNum(pick(p,/^Tolerance/),"%"));
+    put("esr",dkNum(pick(p,/^ESR/),"Ohm",1e3));put("irmsC",dkNum(pick(p,/^Ripple Current/),"A"));
+    const cat=(r.category||"").toLowerCase(),tc=String(pick(p,/^Temperature Coefficient|^Dielectric/)||"");
+    out.type=/polymer/.test(cat)?"poly":/tantalum/.test(cat)?"tant":/alumin/.test(cat)?"alu":/film/.test(cat)?"film":/ceramic/.test(cat)||/X[5-8][RSTU]|C0G|NP0/i.test(tc)?"mlcc":null;
+    if(/C0G|NP0/i.test(tc))out.dielectric="c0g";else if(/X[5-8][RSTU]/i.test(tc))out.dielectric="x7r";
+  }else if(type==="fet"){
+    put("vds",dkNum(pick(p,/^Drain to Source Voltage/),"V"));put("id",dkNum(pick(p,/^Current - Continuous Drain/),"A"));
+    put("rds",dkNum(pick(p,/^Rds On/),"Ohm",1e3));put("qg",dkNum(pick(p,/^Gate Charge/),"C",1e9));
+    const t=String(pick(p,/^Operating Temperature/)||"").match(/(-?\d+)\s*°C\s*~\s*(-?\d+)\s*°C/);if(t)put("tjmax",+t[2]);
+  }else if(type==="ind"){
+    put("L",dkNum(pick(p,/^Inductance/),"H",1e6));put("ltol",dkNum(pick(p,/^Tolerance/),"%"));
+    put("isat",dkNum(pick(p,/Saturation/),"A"));put("irms",dkNum(pick(p,/^Current Rating/),"A"));put("dcr",dkNum(pick(p,/DC Resistance|DCR/),"Ohm",1e3));
+  }else{
+    put("vinMaxIc",dkNum(pick(p,/^Voltage - Input \(Max\)/),"V"));put("ioutMaxIc",dkNum(pick(p,/^Current - Output/),"A"));
+    put("fswMax",dkNum(pick(p,/^Frequency - Switching/),"Hz",1e-3));
+  }
+  return out;
+}
+
 /* a verified tick on a library part; the server keeps the existing values */
 async function setVerified(type,e,flag,by){
   return save(type,{pn:e.pn,type:e.type,verified:!!flag,vals:e.vals},by);
@@ -143,5 +188,5 @@ function compToCap(g,mz){
   return e;
 }
 
-root.PartsLib={API,TYPES,all,get,status,onChange,pull,flush,save,remove,history,adopt,getBy,setBy,capToComp,compToCap,capComplete,CAP_REQ,mouserFetch,googleUrl,askKeys,setVerified,getKey,setKey};
+root.PartsLib={API,TYPES,all,get,status,onChange,pull,flush,save,remove,history,adopt,getBy,setBy,capToComp,compToCap,capComplete,CAP_REQ,mouserFetch,digikeyFetch,dkMap,dkNum,googleUrl,askKeys,setVerified,getKey,setKey};
 })(typeof window!=="undefined"?window:globalThis);
