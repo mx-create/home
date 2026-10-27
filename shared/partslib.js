@@ -142,6 +142,61 @@ function dkMap(type,r){
   return out;
 }
 
+/* what Mouser's one-line description states plainly; the rest has to come from the datasheet */
+function mouserMap(kind,r){
+  const d=r.description||"",vals={};
+  const all=(re,sc)=>[...d.matchAll(re)].map(m=>parseFloat(m[1])*(sc||1));
+  const volts=all(/(\d+(?:\.\d+)?)\s*V(?:DC)?\b/g),amps=all(/(\d+(?:\.\d+)?)\s*A\b/g),mOhm=all(/(\d+(?:\.\d+)?)\s*m\s?Ohms?\b/gi);
+  const uH=[...all(/(\d+(?:\.\d+)?)\s*[uµ]H\b/gi),...all(/(\d+(?:\.\d+)?)\s*nH\b/gi,1e-3)];
+  const uF=[...all(/(\d+(?:\.\d+)?)\s*[uµ]F\b/gi),...all(/(\d+(?:\.\d+)?)\s*nF\b/gi,1e-3),...all(/(\d+(?:\.\d+)?)\s*pF\b/gi,1e-6)];
+  const pct=all(/(\d+(?:\.\d+)?)\s*%/g);let type=null;
+  if(kind==="fet"){if(volts.length)vals.vds=volts[0];if(amps.length)vals.id=amps[0]}
+  else if(kind==="ind"){if(uH.length)vals.L=uH[0];if(pct.length)vals.ltol=pct[0];if(mOhm.length)vals.dcr=mOhm[0]}
+  else if(kind==="cap"){if(uF.length)vals.c=uF[0];if(volts.length)vals.vr=volts[0];if(pct.length)vals.tol=pct[0];
+    if(/polymer/i.test(d))type="poly";else if(/tantalum/i.test(d))type="tant";else if(/alumin(i)?um|electrolytic/i.test(d))type="alu";else if(/film/i.test(d))type="film";else if(/ceramic|mlcc|X5R|X7R|X6S|X7S|C0G|NP0/i.test(d))type="mlcc"}
+  else if(volts.length)vals.vinMaxIc=Math.max.apply(null,volts);
+  const out={vals,type,manufacturer:r.manufacturer||"",description:d,datasheet:r.datasheet||"",mpn:r.mpn||""};
+  const di=(d.match(/\b(X5R|X7R|X6S|X7S|X7T|X8R|C0G|NP0|Y5V)\b/i)||[])[1];
+  if(di)out.dielectric=/C0G|NP0/i.test(di)?"c0g":"x7r";
+  return out;
+}
+/* One lookup everywhere: DigiKey first; Mouser only if DigiKey fails or has nothing; otherwise nothing found.
+   Returns {ok,source,mpn,exact,manufacturer,description,datasheet,productUrl,type,dielectric,vals,raw,errors[],needPassword}.
+   ok:false means neither source knew the part: the caller adds it with placeholders for the user to fill. */
+async function lookupPart(kind,pn){
+  const errors=[];
+  const json=async res=>res.json().catch(()=>({}));
+  let dk=null;
+  try{
+    const res=await digikeyFetch(pn);
+    if(res.status===401)return {ok:false,needPassword:true,errors:["The lookup password is needed."]};
+    const r=await json(res);
+    if(!res.ok)errors.push("DigiKey: "+(r.error||("returned "+res.status)));
+    else if(!r.found)errors.push("DigiKey does not list "+pn);
+    else dk={r,m:dkMap(kind,r)};
+  }catch(e){errors.push("DigiKey: could not reach the service")}
+  if(dk&&Object.keys(dk.m.vals).length){
+    return Object.assign({ok:true,source:"digikey",exact:!!dk.r.exact,productUrl:dk.r.productUrl||"",raw:dk.r,errors,otherMatches:dk.r.otherMatches||0},dk.m);
+  }
+  let mz=null;
+  try{
+    const res=await mouserFetch(pn);
+    if(res.status===401)return {ok:false,needPassword:true,errors:["The lookup password is needed."]};
+    const r=await json(res);
+    if(!res.ok)errors.push("Mouser: "+(r.error||("returned "+res.status)));
+    else if(!r.found)errors.push("Mouser does not list "+pn);
+    else mz={r,m:mouserMap(kind,r)};
+  }catch(e){errors.push("Mouser: could not reach the service")}
+  if(dk&&!mz){   /* DigiKey knew the part but had no usable values; keep its text fields */
+    return Object.assign({ok:true,source:"digikey",exact:!!dk.r.exact,productUrl:dk.r.productUrl||"",raw:dk.r,errors,otherMatches:dk.r.otherMatches||0},dk.m);
+  }
+  if(mz){
+    const base=dk?Object.assign({},mz.m,{manufacturer:dk.m.manufacturer||mz.m.manufacturer,datasheet:dk.m.datasheet||mz.m.datasheet,type:dk.m.type||mz.m.type}):mz.m;
+    return Object.assign({ok:true,source:dk?"digikey+mouser":"mouser",exact:dk?!!dk.r.exact:(mz.r.mpn||"").toUpperCase()===pn.toUpperCase(),productUrl:(dk&&dk.r.productUrl)||mz.r.productUrl||"",raw:mz.r,errors,otherMatches:mz.r.otherMatches||0},base);
+  }
+  return {ok:false,errors};
+}
+
 /* a verified tick on a library part; the server keeps the existing values */
 async function setVerified(type,e,flag,by){
   return save(type,{pn:e.pn,type:e.type,verified:!!flag,vals:e.vals},by);
@@ -188,5 +243,5 @@ function compToCap(g,mz){
   return e;
 }
 
-root.PartsLib={API,TYPES,all,get,status,onChange,pull,flush,save,remove,history,adopt,getBy,setBy,capToComp,compToCap,capComplete,CAP_REQ,mouserFetch,digikeyFetch,dkMap,dkNum,googleUrl,askKeys,setVerified,getKey,setKey};
+root.PartsLib={API,TYPES,all,get,status,onChange,pull,flush,save,remove,history,adopt,getBy,setBy,capToComp,compToCap,capComplete,CAP_REQ,mouserFetch,digikeyFetch,lookupPart,mouserMap,dkMap,dkNum,googleUrl,askKeys,setVerified,getKey,setKey};
 })(typeof window!=="undefined"?window:globalThis);

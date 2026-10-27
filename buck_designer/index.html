@@ -1180,7 +1180,7 @@ return {run,cornerText,PARAM_LABEL,snubberDesign};
 })();
 if(typeof module!=="undefined")module.exports=WCA;
 </script>
-<script src="../shared/partslib.js?v=20261027c"></script>
+<script src="../shared/partslib.js?v=20261027d"></script>
 <script>/* ===================== Formatting and SVG plots ===================== */
 "use strict";
 const Fmt=(function(){
@@ -2112,7 +2112,7 @@ function mouserHTML(m){
   const stock=parseInt(m.stock,10),p1=priceAt(m,1),p100=priceAt(m,100);
   return `<div class="mz"><div><b>${esc(m.manufacturer)}</b> <span class="mono">${esc(m.mpn)}</span></div><div>${esc(m.description)}</div>
     <div class="mrow">${lifeChip(m.lifecycle)}${isFinite(stock)?`<span class="chip ${stock>0?"ok":"bad"}">${stock>0?stock.toLocaleString()+" in stock":"No stock"}</span>`:""}${p1?`<span class="mono">${esc(p1)} each · ${esc(p100||p1)} at 100</span>`:""}</div>
-    <div class="links">${m.datasheet?`<a class="btn pri sm" href="${esc(m.datasheet)}" target="_blank" rel="noopener">Open datasheet</a>`:""}${m.productUrl?`<a href="${esc(m.productUrl)}" target="_blank" rel="noopener">Mouser page</a>`:""}</div>
+    <div class="links">${m.datasheet?`<a class="btn pri sm" href="${esc(m.datasheet)}" target="_blank" rel="noopener">Open datasheet</a>`:""}${m.productUrl?`<a href="${esc(m.productUrl)}" target="_blank" rel="noopener">${m.source==="mouser"?"Mouser":"DigiKey"} page</a>`:""}</div>
     ${(m.hints||[]).map(h=>`<div class="hint">${esc(h)}</div>`).join("")}</div>`;
 }
 const LIBTYPE={ctrl:"ctrl",conv:"conv",hs:"fet",ls:"fet",ind:"ind"};
@@ -2294,25 +2294,27 @@ async function lookup(spec,btn){
   const pn=(o.pn||"").trim();
   if(!pn){const s=st();s.className="status err";s.textContent="Enter a part number first.";return}
   if(busy[spec])return;busy[spec]=true;btn.disabled=true;btn.textContent="Searching…";
-  const s0=st();s0.className="status";s0.textContent=`Searching Mouser for ${pn}…`;
+  const s0=st();s0.className="status";s0.textContent=`Searching DigiKey, then Mouser, for ${pn}…`;
   try{
-    let res;
-    try{res=await PL.mouserFetch(pn)}
-    catch(e){throw {msg:IN_CLAUDE?"Mouser lookup works on the mxdesign.uk version of this tool. Here, enter values from the datasheet.":"Couldn't reach the lookup service. Check your connection and try again."}}
-    const r=await res.json().catch(()=>({}));
-    if(!res.ok)throw {msg:r.error?`Lookup failed: ${r.error}`:`Lookup service returned ${res.status}.`};
-    if(!r.found){o.mouser=null;save();renderDesign();const s=st();s.className="status err";s.textContent=`${pn} isn't listed on Mouser. Check the part number, or enter values from the datasheet.`;return}
-    const {vals,hints}=parseDesc(kind,r.description||"");
+    let r;
+    try{r=await PL.lookupPart(kind,pn)}
+    catch(e){throw {msg:IN_CLAUDE?"Part lookup works on the mxdesign.uk version of this tool. Here, enter values from the datasheet.":"Couldn't reach the lookup service. Check your connection and try again."}}
+    if(r.needPassword)throw {msg:"The lookup password is needed for DigiKey and Mouser lookups."};
+    const srcName=r.source==="digikey"?"DigiKey":r.source==="mouser"?"Mouser":"DigiKey and Mouser";
+    if(!r.ok){o.mouser=null;save();renderDesign();const s=st();s.className="status err";s.textContent=`${r.errors.join(". ")}. Enter the values from the datasheet and tick it as checked.`;return}
+    const vals=Object.assign({},r.vals),hints=r.source==="mouser"?parseDesc(kind,r.description||"").hints:[];
+    if(kind==="cap"&&r.type)vals._type=r.type;
     o.src=o.src||{};
     if(kind==="cap"&&vals._type&&vals._type!==o.type){applyCapType(o,vals._type,true);["esl","tol","temp","eol","esrLo","esrHi"].forEach(k=>o.src[k]="mouser")}
     delete vals._type;
     const tgt=kind==="cap"?o:o.vals;let cnt=0;
-    for(const k in vals){if(k in tgt&&isFinite(vals[k])){tgt[k]=vals[k];o.src[k]="mouser";cnt++}}
+    for(const k in vals){if(k in tgt&&isFinite(vals[k])&&vals[k]>0){tgt[k]=vals[k];o.src[k]="mouser";cnt++}}
     if(r.mpn)o.pn=String(r.mpn).toUpperCase();
     o.verified=false;
-    o.mouser={mpn:r.mpn||pn,manufacturer:r.manufacturer||"",description:r.description||"",datasheet:r.datasheet||"",productUrl:r.productUrl||"",stock:r.stock,lifecycle:r.lifecycle||"",priceBreaks:Array.isArray(r.priceBreaks)?r.priceBreaks:[],hints};
+    const rw=r.raw||{};
+    o.mouser={mpn:r.mpn||pn,manufacturer:r.manufacturer||"",description:r.description||"",datasheet:r.datasheet||"",productUrl:r.productUrl||"",source:r.source,stock:rw.stock,lifecycle:rw.lifecycle||"",priceBreaks:Array.isArray(rw.priceBreaks)?rw.priceBreaks:[],hints};
     save();renderDesign();schedule();
-    const s=st();s.className="status";s.textContent=(cnt?`Filled ${cnt} value${cnt>1?"s":""} from the description. `:"")+"Enter the rest from the datasheet, then tick it as checked."+(r.otherMatches?` Mouser listed ${r.otherMatches} similar part${r.otherMatches>1?"s":""}; confirm the suffix.`:"");
+    const s=st();s.className="status";s.textContent=`${srcName} ${r.exact?"matched":"closest match"} ${r.mpn||pn}. `+(cnt?`Filled ${cnt} value${cnt>1?"s":""}. `:"No values were listed. ")+"Enter the rest from the datasheet, then tick it as checked."+(r.exact?"":" Confirm the part suffix.");
   }catch(e){const s=st();if(s){s.className="status err";s.textContent=(e&&e.msg)||"Lookup failed. Try again."}}
   finally{busy[spec]=false;const b2=document.querySelector(`[data-look="${spec}"]`);if(b2){b2.disabled=false;b2.textContent="Look up"}}
 }
