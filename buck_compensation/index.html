@@ -297,6 +297,10 @@ body.reporting .mxfoot{display:none}
   <legend>Inductor (each phase)</legend>
   <div class="row"><label for="L"><span class="sym">L</span>Inductance</label><input id="L" type="number" step="any" value="4.7"><span class="u">µH</span></div>
   <div class="row"><label for="dcr"><span class="sym">DCR</span>Winding resistance</label><input id="dcr" type="number" step="any" value="15"><span class="u">mΩ</span></div>
+  <div class="cg-lib" id="indLib"><select id="indPick" aria-label="Pick an inductor from the shared library"></select>
+    <div class="row1"><input type="text" id="indPn" placeholder="Manufacturer part number" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <button type="button" id="indLook">Look up</button><button type="button" id="indSave">Save to library</button></div>
+    <div class="cg-st" id="indSt" role="status"></div></div>
 </fieldset>
 <fieldset data-show="mp">
   <legend>Phase matching</legend>
@@ -578,7 +582,50 @@ function libStatus(){
   $('libStatus').textContent=t+(s.pending?` · ${s.pending} waiting to share`:'');
 }
 $('libBy').value=PartsLib.getBy(); $('libBy').addEventListener('change',()=>PartsLib.setBy($('libBy').value.trim()));
-PartsLib.onChange(()=>{libStatus(); const a=document.activeElement; if(!(a&&$('bank').contains(a)))renderBank();});
+PartsLib.onChange(()=>{libStatus(); indOpts(); const a=document.activeElement; if(!(a&&$('bank').contains(a)))renderBank();});
+
+/* ---- inductor: shared library picker, DigiKey/Mouser lookup, save ---- */
+let indMz={manufacturer:'',description:'',datasheet:''};
+function indStat(html,err){const el=$('indSt'); el.innerHTML=html; el.className='cg-st'+(err?' err':'');}
+function indOpts(){const sel=$('indPn').value.trim().toUpperCase();
+  $('indPick').innerHTML='<option value="">Pick an inductor from the shared library…</option>'+PartsLib.get('ind').map(e=>`<option value="${escA(e.pn)}"${e.pn===sel?' selected':''}>${e.verified?'✓ ':'○ '}${escA(e.pn)}${e.description?' · '+escA(e.description.slice(0,36)):''}</option>`).join('');}
+function setInd(L,dcr){const out=[];
+  if(isFinite(L)&&L>0){$('L').value=+(+L).toPrecision(6);out.push('L');}
+  if(isFinite(dcr)&&dcr>0){$('dcr').value=+(+dcr).toPrecision(6);out.push('DCR');}
+  $('L').dispatchEvent(new Event('input',{bubbles:true}));return out;}
+$('indPn').addEventListener('input',()=>{indMz={manufacturer:'',description:'',datasheet:''};});
+$('indPick').addEventListener('change',e=>{const pn=e.target.value; if(!pn)return;
+  const x=PartsLib.get('ind').find(y=>y.pn===pn); if(!x)return; const v=x.vals||{};
+  $('indPn').value=x.pn; indMz={manufacturer:x.manufacturer||'',description:x.description||'',datasheet:x.datasheet||''};
+  const got=setInd(v.L,v.dcr);
+  const vb=x.verified?'<b style="color:var(--good)">✓ Verified</b>':'<b style="color:var(--warn)">○ Not verified yet</b>';
+  const ds=indMz.datasheet?` <a href="${escA(indMz.datasheet)}" target="_blank" rel="noopener">Datasheet</a>`:'';
+  indStat(`${vb}. Loaded ${escA(x.pn)}${indMz.manufacturer?' ('+escA(indMz.manufacturer)+')':''}: ${got.length?got.join(', '):'no values'}.${v.dcr>0?'':' DCR is not in the library for this part, enter it.'}${ds}`);});
+$('indLook').addEventListener('click',async()=>{
+  const pn=$('indPn').value.trim(); if(!pn){indStat('Enter a part number first.',true);return;}
+  const b=$('indLook'); b.disabled=true; b.textContent='Searching…'; indStat('Searching DigiKey, then Mouser if needed…');
+  try{
+    const r=await PartsLib.lookupPart('ind',pn);
+    if(r.needPassword){indStat('The lookup password is needed for DigiKey and Mouser lookups.',true);return;}
+    if(!r.ok){indStat(escA(r.errors.join('. '))+'. Enter L and DCR by hand.',true);return;}
+    $('indPn').value=String(r.mpn||pn).toUpperCase(); indMz={manufacturer:r.manufacturer||'',description:r.description||'',datasheet:r.datasheet||''};
+    const got=setInd(r.vals.L,r.vals.dcr);
+    const ds=indMz.datasheet?` <a href="${escA(indMz.datasheet)}" target="_blank" rel="noopener">Datasheet</a>`:'';
+    const src=r.source==='digikey'?'DigiKey':r.source==='mouser'?'Mouser':'DigiKey and Mouser';
+    indStat(`<b>${escA(indMz.manufacturer)}</b> ${escA(indMz.description)}. From ${src}${r.exact?'':' (closest match, check the part number)'}: ${got.length?got.join(', '):'no values'}.${got.includes('DCR')?' Use the maximum DCR from the datasheet if this is a typical figure.':' Enter DCR from the datasheet.'}${ds}`);
+  }catch(err){indStat('Lookup failed: '+escA(err.message||'could not reach the service'),true);}
+  finally{b.disabled=false; b.textContent='Look up';}});
+$('indSave').addEventListener('click',async()=>{
+  const pn=$('indPn').value.trim().toUpperCase(),L=parseFloat($('L').value),dcr=parseFloat($('dcr').value);
+  if(!pn){indStat('Enter the part number first.',true);return;}
+  if(!/^[A-Za-z0-9.\-\/#+_ ]{2,60}$/.test(pn)){indStat('That part number has characters the library does not accept.',true);return;}
+  if(!(L>0)){indStat('Enter the inductance first.',true);return;}
+  const vals={L}; if(dcr>0)vals.dcr=dcr;
+  const by=($('libBy').value||'').trim(); if(by)PartsLib.setBy(by);
+  try{const r=await PartsLib.save('ind',{pn,manufacturer:indMz.manufacturer,description:indMz.description,datasheet:indMz.datasheet,vals},by);
+    indStat(r.shared?`Saved ${escA(pn)} to the shared library.`:`Saved ${escA(pn)} on this device. It will be shared when the library is reachable.`);
+  }catch(err){indStat('The library did not accept it: '+escA(err.message||'error'),true);}});
+indOpts();
 libStatus(); PartsLib.pull();
 $('addCap').addEventListener('click',()=>{bank.push({type:'x7r',c:10,n:1,kb:70,esr:5,fs:1000,df:0.025,esl:0.4,kt:1}); renderBank(); compute();});
 
