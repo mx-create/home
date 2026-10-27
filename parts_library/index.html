@@ -50,6 +50,7 @@ td.desc input{width:300px}
 .add{display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin:10px 0;padding:10px;border:1px dashed var(--rule);border-radius:8px}
 .add label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:2px}
 .paste{margin:8px 0;padding:8px 12px;border:1px solid var(--rule);border-radius:8px;background:var(--sheet)}.paste summary{cursor:pointer;font-weight:600}
+td input.ph{border-color:var(--warn);background:var(--warn-bg)}
 .empty{padding:24px;color:var(--muted)}
 </style>
 </head>
@@ -78,7 +79,7 @@ td.desc input{width:300px}
   <div class="wrap" id="tbl"></div>
   <p class="status" id="count"></p>
 </main>
-<script src="../shared/partslib.js?v=20261027b"></script>
+<script src="../shared/partslib.js?v=20261027c"></script>
 <script>
 (function(){
 "use strict";
@@ -114,11 +115,10 @@ function renderTabs(){
   $("tabs").innerHTML=Object.keys(NAMES).map(t=>`<button type="button" role="tab" data-t="${t}" aria-selected="${t===tab}">${NAMES[t]} (${PL.get(t).length})</button>`).join("");
 }
 function renderAdd(){
-  const c=COLS[tab].find(x=>x.k===MAIN[tab]);
-  $("add").innerHTML=`<label>New part number<input type="text" id="a-pn" maxlength="60" autocomplete="off" spellcheck="false"></label>`+
-   (tab==="cap"?`<label>Type<select id="a-sub">${CAPTYPES.map(x=>`<option>${x}</option>`).join("")}</select></label>`:"")+
-   `<label>${esc(c.h)} ${c.u?"("+esc(c.u)+")":""}<input type="number" id="a-v" step="any"></label><button class="btn pri" type="button" id="a-go">Add ${esc(NAMES[tab].toLowerCase().replace(/s$/,""))}</button>
-   <span class="status">New parts start as not verified. Fill in the rest of the row after adding.</span>`;
+  $("add").innerHTML=`<label>Manufacturer part number<input type="text" id="a-pn" maxlength="60" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. GRM32ER71A476ME15L"></label>`+
+   (tab==="cap"?`<label>Type if DigiKey can't find it<select id="a-sub">${CAPTYPES.map(x=>`<option>${x}</option>`).join("")}</select></label>`:"")+
+   `<button class="btn pri" type="button" id="a-go">Add ${esc(NAMES[tab].toLowerCase().replace(/s$/,""))}</button>
+   <span class="status">Looks the part up on DigiKey and fills what it can (lookup password needed). If DigiKey can't find it, the part is added with 0 in its main field for you to replace. Always added as not verified.</span>`;
 }
 function renderTable(){
   const rows=rowsFor(tab),cols=COLS[tab];
@@ -130,7 +130,7 @@ function renderTable(){
      ${tab==="cap"?`<td><select data-f="type" aria-label="Type">${CAPTYPES.map(x=>`<option${x===e.type?" selected":""}>${x}</option>`).join("")}</select></td>`:""}
      <td class="txt"><input type="text" data-f="manufacturer" maxlength="80" value="${esc(e.manufacturer)}" aria-label="Manufacturer"></td>
      <td class="desc"><input type="text" data-f="description" maxlength="300" value="${esc(e.description)}" aria-label="Description"></td>
-     ${cols.map(c=>`<td><input type="number" step="any" data-v="${c.k}" value="${v[c.k]!=null?esc(v[c.k]):""}" aria-label="${esc(c.h)}"></td>`).join("")}
+     ${cols.map(c=>`<td><input type="number" step="any" data-v="${c.k}" ${c.k===MAIN[tab]&&v[c.k]===0?'class="ph" title="Placeholder: enter the real value"':""} value="${v[c.k]!=null?esc(v[c.k]):""}" aria-label="${esc(c.h)}"></td>`).join("")}
      <td class="txt"><input type="text" data-f="datasheet" maxlength="400" value="${esc(e.datasheet)}" placeholder="https://" aria-label="Datasheet link">${/^https?:\/\//i.test(e.datasheet||"")?` <a href="${esc(e.datasheet)}" target="_blank" rel="noopener">open</a>`:""}</td>
      <td><a class="btn" href="${esc(PL.googleUrl(tab,e.pn))}" target="_blank" rel="noopener" title="Opens Google with a ready-made question that answers as one line to paste above. AI answers can be wrong: check values against the datasheet before ticking Verified.">Google</a> <button class="btn" type="button" data-act="digikey" title="Fills parameters from DigiKey. Needs the lookup password.">DigiKey</button> <button class="btn" type="button" data-act="mouser">Mouser</button> <button class="btn" type="button" data-act="del" aria-label="Delete ${esc(e.pn)}">✕</button> <span class="rowst" data-rs></span></td></tr>`}).join("")+`</tbody></table>`;
   $("count").textContent=`${rows.length} of ${PL.get(tab).length} shown`;
@@ -247,16 +247,37 @@ $("pl-go").addEventListener("click",async()=>{
 });
 
 /* ---------- add ---------- */
-$("add").addEventListener("click",async ev=>{
-  if(ev.target.id!=="a-go")return;
-  const pn=$("a-pn").value.trim().toUpperCase(),v=$("a-v").value;
+async function addPart(){
+  const pn=$("a-pn").value.trim().toUpperCase();
   if(!/^[A-Za-z0-9.\-\/#+_ ]{2,60}$/.test(pn)){say("Enter a part number (2 to 60 letters, numbers or . - / # + _).",true);return}
-  if(v===""||!isFinite(Number(v))){say("Enter the first value as a number.",true);return}
-  const vals={};vals[MAIN[tab]]=Number(v);
-  const e={pn,vals,verified:false};if(tab==="cap")e.type=$("a-sub").value;
-  try{const r=await PL.save(tab,e,by());say(r.shared?`Added ${pn}.`:`Added ${pn} on this device. It will be shared when the library is reachable.`);renderAll();renderAdd()}
-  catch(err){say(`Not added: ${err.message}`,true)}
-});
+  const go=$("a-go");go.disabled=true;say(`Looking up ${pn} on DigiKey…`);
+  const e={pn,vals:{},verified:false};let note="",real=false;
+  try{
+    const res=await PL.digikeyFetch(pn),r=await res.json().catch(()=>({}));
+    if(!res.ok)throw new Error(r.error||`DigiKey returned ${res.status}`);
+    if(!r.found)throw new Error("DigiKey does not list that part number");
+    const m=PL.dkMap(tab,r);
+    Object.assign(e.vals,m.vals);
+    for(const k of ["manufacturer","description"])if(m[k])e[k]=m[k];
+    if(m.datasheet&&/^https?:\/\//i.test(m.datasheet))e.datasheet=m.datasheet;
+    if(tab==="cap"){e.type=m.type||$("a-sub").value;if(m.dielectric)e.dielectric=m.dielectric}
+    real=Object.keys(m.vals).length>0;
+    note=r.exact?`DigiKey matched ${r.mpn}.`:`DigiKey closest match ${r.mpn}, check it is the part you meant.`;
+    if(!real)note+=" It listed no values we can use.";
+  }catch(err){note=`DigiKey: ${err.message||"could not reach the service"}.`;if(tab==="cap")e.type=$("a-sub").value}
+  const mk=MAIN[tab];
+  if(!real||e.vals[mk]==null)e.vals[mk]=e.vals[mk]||0;
+  const missing=!(e.vals[mk]>0);
+  try{
+    const r=await PL.save(tab,e,by());
+    const filled=Object.keys(e.vals).filter(k=>e.vals[k]>0);
+    say(`${note} Added ${pn}${r.shared?"":" on this device only"} as not verified. ${filled.length?`Filled ${filled.join(", ")}. `:""}${missing?`The main field shows 0 as a placeholder: enter the real value in the row. `:""}Check everything against the datasheet, then tick Verified.`,false);
+    renderAll();renderAdd();
+  }catch(err){say(`Not added: ${err.message}`,true)}
+  finally{const g=$("a-go");if(g)g.disabled=false}
+}
+$("add").addEventListener("click",ev=>{if(ev.target.id==="a-go")addPart()});
+$("add").addEventListener("keydown",ev=>{if(ev.key==="Enter"&&ev.target.id==="a-pn"){ev.preventDefault();addPart()}});
 
 /* ---------- CSV ---------- */
 function parseCSV(text){
