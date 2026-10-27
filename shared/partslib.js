@@ -81,16 +81,19 @@ async function mouserFetch(pn){
   }
   return res;
 }
-/* Google search link with a ready-made question; Google's AI answer can draft the values, which stay unverified until checked */
-const ASK={
- cap:"capacitance (µF), ESR (mΩ) and the frequency it is specified at, ESL (nH), rated voltage (V), rated ripple current (A rms), tolerance (%), loss tangent tanδ, dielectric or technology",
- fet:"Vds (V), continuous Id (A), maximum Rds(on) at 25 °C (mΩ), Qg, Qgs, Qgd (nC), Miller plateau voltage (V), Coss (pF), Qrr (nC), body diode Vf (V), RθJA (°C/W), maximum junction temperature (°C)",
- ind:"inductance (µH), tolerance (%), saturation current Isat (A), rated RMS current Irms (A), maximum DCR (mΩ), temperature rise at rated current (°C)",
- ctrl:"maximum input voltage (V), maximum switching frequency (kHz), minimum on-time (ns), current limit (A), reference voltage (V) and tolerance, error amplifier gain-bandwidth, gate drive voltage (V), quiescent current (mA), soft-start current",
- conv:"maximum input voltage (V), rated output current (A), high-side and low-side Rds(on) (mΩ), switching frequency (kHz), current limit (A), reference voltage (V), quiescent current (mA), RθJA (°C/W)"
+/* Google search link: asks for ONE comma-separated line in a fixed field order, so the answer can be pasted into the
+   parts library page. Values from an AI answer stay unverified until checked against the datasheet. */
+const FIELDS={
+ cap:[["subtype","technology: mlcc, poly, tant, alu or film"],["c","capacitance in µF"],["esr","ESR in mΩ"],["esl","ESL in nH"],["vr","rated voltage in V"],["irmsC","rated ripple current in A rms"],["tol","tolerance in ± %"],["df","loss tangent tanδ as a fraction, e.g. 0.025"],["fs","frequency in kHz at which the ESR is specified"]],
+ fet:[["vds","Vds in V"],["id","continuous Id in A"],["rds","maximum Rds(on) at 25 °C in mΩ"],["qg","total gate charge in nC"],["qgs","Qgs in nC"],["qgd","Qgd in nC"],["vpl","Miller plateau in V"],["coss","Coss in pF"],["qrr","Qrr in nC"],["vf","body diode Vf in V"],["rth","RθJA in °C/W"],["tjmax","max junction temperature in °C"]],
+ ind:[["L","inductance in µH"],["ltol","tolerance in ± %"],["isat","saturation current in A"],["irms","rated RMS current in A"],["dcr","maximum DCR in mΩ"],["dTr","temperature rise at rated current in °C"]],
+ ctrl:[["vinMaxIc","maximum input voltage in V"],["fswMax","maximum switching frequency in kHz"],["tonMin","minimum on-time in ns"],["ilim","current limit in A"],["vref","reference voltage in V"],["vrefTol","reference tolerance in ± %"],["eaGbw","error amplifier gain-bandwidth in MHz"],["vdrv","gate drive voltage in V"],["iq","quiescent current in mA"],["iss","soft-start current in µA"]],
+ conv:[["vinMaxIc","maximum input voltage in V"],["ioutMaxIc","rated output current in A"],["rdsHs","high-side Rds(on) in mΩ"],["rdsLs","low-side Rds(on) in mΩ"],["fswMax","maximum switching frequency in kHz"],["ilim","current limit in A"],["vref","reference voltage in V"],["iq","quiescent current in mA"],["rthIc","RθJA in °C/W"]]
 };
+const askKeys=t=>(FIELDS[t]||[]).map(x=>x[0]);
 function googleUrl(type,pn){
-  const q=`For part number ${pn}, give me a table with ${ASK[type]||"its key electrical specifications"}. Give the datasheet link and say which datasheet each value comes from.`;
+  const f=FIELDS[type]||[];
+  const q=`For part number ${pn}, reply with exactly ONE line of comma-separated values and nothing else: no table, no header, no explanation, no units, no code block. The line must be: ${pn},${f.map(x=>x[0]).join(",")}  where the fields are, in order: ${f.map(x=>x[0]+" = "+x[1]).join("; ")}. Use plain numbers only. If the datasheet only gives a curve or a range, give the typical number; if a value is not stated, leave that field empty.`;
   return "https://www.google.com/search?q="+encodeURIComponent(q);
 }
 
@@ -140,5 +143,5 @@ function compToCap(g,mz){
   return e;
 }
 
-root.PartsLib={API,TYPES,all,get,status,onChange,pull,flush,save,remove,history,adopt,getBy,setBy,capToComp,compToCap,capComplete,CAP_REQ,mouserFetch,googleUrl,setVerified,getKey,setKey};
+root.PartsLib={API,TYPES,all,get,status,onChange,pull,flush,save,remove,history,adopt,getBy,setBy,capToComp,compToCap,capComplete,CAP_REQ,mouserFetch,googleUrl,askKeys,setVerified,getKey,setKey};
 })(typeof window!=="undefined"?window:globalThis);
