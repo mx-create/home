@@ -79,7 +79,7 @@ td input.ph{border-color:var(--warn);background:var(--warn-bg)}
   <div class="wrap" id="tbl"></div>
   <p class="status" id="count"></p>
 </main>
-<script src="../shared/partslib.js?v=20261027c"></script>
+<script src="../shared/partslib.js?v=20261027d"></script>
 <script>
 (function(){
 "use strict";
@@ -118,7 +118,7 @@ function renderAdd(){
   $("add").innerHTML=`<label>Manufacturer part number<input type="text" id="a-pn" maxlength="60" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. GRM32ER71A476ME15L"></label>`+
    (tab==="cap"?`<label>Type if DigiKey can't find it<select id="a-sub">${CAPTYPES.map(x=>`<option>${x}</option>`).join("")}</select></label>`:"")+
    `<button class="btn pri" type="button" id="a-go">Add ${esc(NAMES[tab].toLowerCase().replace(/s$/,""))}</button>
-   <span class="status">Looks the part up on DigiKey and fills what it can (lookup password needed). If DigiKey can't find it, the part is added with 0 in its main field for you to replace. Always added as not verified.</span>`;
+   <span class="status">Looks the part up on DigiKey, then Mouser if DigiKey fails (lookup password needed). If neither finds it, the part is added with 0 in its main field for you to replace. Always added as not verified.</span>`;
 }
 function renderTable(){
   const rows=rowsFor(tab),cols=COLS[tab];
@@ -132,7 +132,7 @@ function renderTable(){
      <td class="desc"><input type="text" data-f="description" maxlength="300" value="${esc(e.description)}" aria-label="Description"></td>
      ${cols.map(c=>`<td><input type="number" step="any" data-v="${c.k}" ${c.k===MAIN[tab]&&v[c.k]===0?'class="ph" title="Placeholder: enter the real value"':""} value="${v[c.k]!=null?esc(v[c.k]):""}" aria-label="${esc(c.h)}"></td>`).join("")}
      <td class="txt"><input type="text" data-f="datasheet" maxlength="400" value="${esc(e.datasheet)}" placeholder="https://" aria-label="Datasheet link">${/^https?:\/\//i.test(e.datasheet||"")?` <a href="${esc(e.datasheet)}" target="_blank" rel="noopener">open</a>`:""}</td>
-     <td><a class="btn" href="${esc(PL.googleUrl(tab,e.pn))}" target="_blank" rel="noopener" title="Opens Google with a ready-made question that answers as one line to paste above. AI answers can be wrong: check values against the datasheet before ticking Verified.">Google</a> <button class="btn" type="button" data-act="digikey" title="Fills parameters from DigiKey. Needs the lookup password.">DigiKey</button> <button class="btn" type="button" data-act="mouser">Mouser</button> <button class="btn" type="button" data-act="del" aria-label="Delete ${esc(e.pn)}">✕</button> <span class="rowst" data-rs></span></td></tr>`}).join("")+`</tbody></table>`;
+     <td><a class="btn" href="${esc(PL.googleUrl(tab,e.pn))}" target="_blank" rel="noopener" title="Opens Google with a ready-made question that answers as one line to paste above. AI answers can be wrong: check values against the datasheet before ticking Verified.">Google</a> <button class="btn" type="button" data-act="look" title="DigiKey first, then Mouser. Fills blanks only. Needs the lookup password.">Look up</button> <button class="btn" type="button" data-act="del" aria-label="Delete ${esc(e.pn)}">✕</button> <span class="rowst" data-rs></span></td></tr>`}).join("")+`</tbody></table>`;
   $("count").textContent=`${rows.length} of ${PL.get(tab).length} shown`;
 }
 function renderStatus(){
@@ -169,62 +169,25 @@ $("tbl").addEventListener("click",async ev=>{
     if(!confirm(`Delete ${pn} from the shared library for everyone? The previous version is kept for 90 days.`))return;
     try{await PL.remove(tab,pn);renderAll()}catch(err){say(`Not deleted: ${err.message}`,true)}
     return}
-  if(b.dataset.act==="digikey"){b.disabled=true;rs.textContent="searching…";
+  if(b.dataset.act==="look"){b.disabled=true;rs.textContent="searching…";
     try{
-      const res=await PL.digikeyFetch(pn),r=await res.json().catch(()=>({}));
-      if(!res.ok)throw new Error(r.error||`Lookup returned ${res.status}`);
-      if(!r.found){rs.textContent="not on DigiKey";return}
-      const cur=find(pn),m=PL.dkMap(tab,r),patch={vals:{}};
-      if(!cur.manufacturer&&m.manufacturer)patch.manufacturer=m.manufacturer;
-      if(!cur.description&&m.description)patch.description=m.description;
-      if(!cur.datasheet&&m.datasheet&&/^https?:\/\//i.test(m.datasheet))patch.datasheet=m.datasheet;
-      if(tab==="cap"){if(m.type&&!cur.type)patch.type=m.type;if(m.dielectric&&!cur.dielectric)patch.dielectric=m.dielectric}
-      const filled=[],kept=[];
-      for(const k in m.vals){if(cur.vals[k]==null){patch.vals[k]=m.vals[k];filled.push(k)}else kept.push(k)}
+      const r=await PL.lookupPart(tab,pn);
+      if(r.needPassword){rs.textContent="";say("The lookup password is needed (DigiKey and Mouser lookups).",true);return}
+      if(!r.ok){rs.textContent="not found";say(`${r.errors.join(". ")}. Enter the values by hand.`,true);return}
+      const cur=find(pn),patch={vals:{}},filled=[],kept=[];
+      for(const k of ["manufacturer","description"])if(!cur[k]&&r[k])patch[k]=r[k];
+      if(!cur.datasheet&&r.datasheet&&/^https?:\/\//i.test(r.datasheet))patch.datasheet=r.datasheet;
+      if(tab==="cap"){if(r.type&&!cur.type)patch.type=r.type;if(r.dielectric&&!cur.dielectric)patch.dielectric=r.dielectric}
+      for(const k in r.vals){if(cur.vals[k]>0||(cur.vals[k]!=null&&k!==MAIN[tab]))kept.push(k);else{patch.vals[k]=r.vals[k];filled.push(k)}}
       const nt=Object.keys(patch).length-1;
-      if(!filled.length&&!nt){rs.textContent="nothing new";say(`DigiKey found ${r.mpn} but nothing new to add. It returned ${Object.keys(r.parameters||{}).length} parameters.`);return}
+      if(!filled.length&&!nt){rs.textContent="nothing new";say(`${r.source} found ${r.mpn||pn} but there was nothing new to add.`);return}
       if(!filled.length)delete patch.vals;
       await saveEntry(pn,patch,tr);renderTable();
-      say(`DigiKey ${r.exact?"matched ":"closest match "}${r.mpn}${r.exact?"":" (check it is the part you meant)"}. Filled ${filled.length?filled.join(", "):"no values"}${nt?` and ${nt} text field${nt>1?"s":""}`:""}${kept.length?`; kept your existing ${kept.join(", ")}`:""}. Check against the datasheet, then tick Verified.`);
-    }catch(err){rs.textContent="";say(`DigiKey lookup failed: ${err.message||"could not reach the service"}`,true)}
-    finally{b.disabled=false}
-    return}
-  if(b.dataset.act==="mouser"){b.disabled=true;rs.textContent="searching…";
-    try{
-      const res=await PL.mouserFetch(pn),r=await res.json().catch(()=>({}));
-      if(!res.ok)throw new Error(r.error||`Lookup returned ${res.status}`);
-      if(!r.found){rs.textContent="not on Mouser";return}
-      const cur=find(pn),patch={vals:{}};
-      if(!cur.manufacturer&&r.manufacturer)patch.manufacturer=r.manufacturer;
-      if(!cur.description&&r.description)patch.description=r.description;
-      if(!cur.datasheet&&r.datasheet&&/^https?:\/\//i.test(r.datasheet))patch.datasheet=r.datasheet;
-      const d=parse(tab,r.description||"");
-      for(const k in d.vals)if(cur.vals[k]==null)patch.vals[k]=d.vals[k];
-      if(d.type&&tab==="cap"&&!cur.type)patch.type=d.type;
-      const nv=Object.keys(patch.vals).length,nt=Object.keys(patch).length-1;
-      if(!nv&&!nt){rs.textContent="nothing new";return}
-      if(!nv)delete patch.vals;
-      await saveEntry(pn,patch,tr);renderTable();
-      say(`Mouser filled ${[nt?nt+" text field"+(nt>1?"s":""):"",nv?nv+" value"+(nv>1?"s":""):""].filter(Boolean).join(" and ")} for ${pn}. Check them against the datasheet, then tick Verified.`);
+      say(`${r.source==="digikey"?"DigiKey":r.source==="mouser"?"Mouser (DigiKey had no usable values)":"DigiKey and Mouser"} ${r.exact?"matched":"closest match"} ${r.mpn||pn}${r.exact?"":", check it is the part you meant"}. Filled ${filled.length?filled.join(", "):"no values"}${nt?` and ${nt} text field${nt>1?"s":""}`:""}${kept.length?`; kept your existing ${kept.join(", ")}`:""}. Check against the datasheet, then tick Verified.`);
     }catch(err){rs.textContent="";say(`Lookup failed: ${err.message||"could not reach the service"}`,true)}
     finally{b.disabled=false}
-  }
+    return}
 });
-/* only fills what Mouser's one-line description states plainly; everything else comes from the datasheet */
-function parse(kind,d){
-  const all=(re,sc)=>[...d.matchAll(re)].map(m=>parseFloat(m[1])*(sc||1));
-  const volts=all(/(\d+(?:\.\d+)?)\s*V(?:DC)?\b/g),amps=all(/(\d+(?:\.\d+)?)\s*A\b/g),mOhm=all(/(\d+(?:\.\d+)?)\s*m\s?Ohms?\b/gi);
-  const uH=[...all(/(\d+(?:\.\d+)?)\s*[uµ]H\b/gi),...all(/(\d+(?:\.\d+)?)\s*nH\b/gi,1e-3)];
-  const uF=[...all(/(\d+(?:\.\d+)?)\s*[uµ]F\b/gi),...all(/(\d+(?:\.\d+)?)\s*nF\b/gi,1e-3),...all(/(\d+(?:\.\d+)?)\s*pF\b/gi,1e-6)];
-  const pct=all(/(\d+(?:\.\d+)?)\s*%/g),vals={};let type=null;
-  if(kind==="fet"){if(volts.length)vals.vds=volts[0];if(amps.length)vals.id=amps[0]}
-  else if(kind==="ind"){if(uH.length)vals.L=uH[0];if(pct.length)vals.ltol=pct[0];if(mOhm.length)vals.dcr=mOhm[0]}
-  else if(kind==="cap"){if(uF.length)vals.c=uF[0];if(volts.length)vals.vr=volts[0];if(pct.length)vals.tol=pct[0];
-    if(/polymer/i.test(d))type="poly";else if(/tantalum/i.test(d))type="tant";else if(/alumin(i)?um|electrolytic/i.test(d))type="alu";else if(/film/i.test(d))type="film";else if(/ceramic|mlcc|X5R|X7R|C0G|NP0/i.test(d))type="mlcc"}
-  else if(volts.length)vals.vinMaxIc=Math.max.apply(null,volts);
-  return {vals,type};
-}
-
 /* ---------- paste Google's one-line answer ---------- */
 $("pl-go").addEventListener("click",async()=>{
   const keys=PL.askKeys(tab);
@@ -250,28 +213,22 @@ $("pl-go").addEventListener("click",async()=>{
 async function addPart(){
   const pn=$("a-pn").value.trim().toUpperCase();
   if(!/^[A-Za-z0-9.\-\/#+_ ]{2,60}$/.test(pn)){say("Enter a part number (2 to 60 letters, numbers or . - / # + _).",true);return}
-  const go=$("a-go");go.disabled=true;say(`Looking up ${pn} on DigiKey…`);
-  const e={pn,vals:{},verified:false};let note="",real=false;
+  const go=$("a-go");go.disabled=true;say(`Looking up ${pn} on DigiKey, then Mouser if needed…`);
+  const e={pn,vals:{},verified:false};let note="";
+  const r=await PL.lookupPart(tab,pn).catch(()=>({ok:false,errors:["Lookup failed"]}));
+  if(r.needPassword){go.disabled=false;say("The lookup password is needed to look the part up. Enter it when asked, or add the part by hand: press Add again and cancel the password box.",true);return}
+  if(r.ok){
+    Object.assign(e.vals,r.vals);
+    for(const k of ["manufacturer","description"])if(r[k])e[k]=r[k];
+    if(r.datasheet&&/^https?:\/\//i.test(r.datasheet))e.datasheet=r.datasheet;
+    if(tab==="cap"){e.type=r.type||$("a-sub").value;if(r.dielectric)e.dielectric=r.dielectric}
+    note=`${r.source==="digikey"?"DigiKey":r.source==="mouser"?"Mouser":"DigiKey and Mouser"} ${r.exact?"matched":"closest match"} ${r.mpn||pn}${r.exact?"":", check it is the part you meant"}.`;
+  }else{note=`${r.errors.join(". ")}.`;if(tab==="cap")e.type=$("a-sub").value}
+  const mk=MAIN[tab];if(!(e.vals[mk]>0))e.vals[mk]=0;
+  const filled=Object.keys(e.vals).filter(k=>e.vals[k]>0);
   try{
-    const res=await PL.digikeyFetch(pn),r=await res.json().catch(()=>({}));
-    if(!res.ok)throw new Error(r.error||`DigiKey returned ${res.status}`);
-    if(!r.found)throw new Error("DigiKey does not list that part number");
-    const m=PL.dkMap(tab,r);
-    Object.assign(e.vals,m.vals);
-    for(const k of ["manufacturer","description"])if(m[k])e[k]=m[k];
-    if(m.datasheet&&/^https?:\/\//i.test(m.datasheet))e.datasheet=m.datasheet;
-    if(tab==="cap"){e.type=m.type||$("a-sub").value;if(m.dielectric)e.dielectric=m.dielectric}
-    real=Object.keys(m.vals).length>0;
-    note=r.exact?`DigiKey matched ${r.mpn}.`:`DigiKey closest match ${r.mpn}, check it is the part you meant.`;
-    if(!real)note+=" It listed no values we can use.";
-  }catch(err){note=`DigiKey: ${err.message||"could not reach the service"}.`;if(tab==="cap")e.type=$("a-sub").value}
-  const mk=MAIN[tab];
-  if(!real||e.vals[mk]==null)e.vals[mk]=e.vals[mk]||0;
-  const missing=!(e.vals[mk]>0);
-  try{
-    const r=await PL.save(tab,e,by());
-    const filled=Object.keys(e.vals).filter(k=>e.vals[k]>0);
-    say(`${note} Added ${pn}${r.shared?"":" on this device only"} as not verified. ${filled.length?`Filled ${filled.join(", ")}. `:""}${missing?`The main field shows 0 as a placeholder: enter the real value in the row. `:""}Check everything against the datasheet, then tick Verified.`,false);
+    const sv=await PL.save(tab,e,by());
+    say(`${note} Added ${pn}${sv.shared?"":" on this device only"} as not verified. ${filled.length?`Filled ${filled.join(", ")}. `:""}${e.vals[mk]>0?"":"The main field shows 0 as a placeholder: enter the real value in the row. "}Check everything against the datasheet, then tick Verified.`);
     renderAll();renderAdd();
   }catch(err){say(`Not added: ${err.message}`,true)}
   finally{const g=$("a-go");if(g)g.disabled=false}

@@ -451,7 +451,7 @@ body.reporting .mxfoot{display:none}
 
 <footer class="mxfoot" style="max-width:1200px;margin:40px auto 0;padding:18px 16px 24px">Made by Manu R &middot; <a href="https://blog.mxdesign.uk">blog.mxdesign.uk</a> &middot; <a href="https://www.linkedin.com/in/manu-r-engineer" target="_blank" rel="noopener">LinkedIn</a> &middot; <a href="https://mxdesign.uk/RC_standard_finder/">RC Standard Finder</a></footer>
 <script src="vendor/katex/katex.min.js"></script>
-<script src="../shared/partslib.js?v=20261027c"></script>
+<script src="../shared/partslib.js?v=20261027d"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -544,15 +544,20 @@ function applyLib(i,pn){
 }
 async function lookupCap(i,btn){
   const g=bank[i], pn=(g.pn||'').trim(); if(!pn){stat(i,'Enter a part number first.',true);return;}
-  btn.disabled=true; btn.textContent='Searching…'; stat(i,'Searching Mouser…');
+  btn.disabled=true; btn.textContent='Searching…'; stat(i,'Searching DigiKey, then Mouser if needed…');
   try{
-    const res=await PartsLib.mouserFetch(pn); const r=await res.json().catch(()=>({}));
-    if(!res.ok)throw new Error(r.error||('Lookup returned '+res.status));
-    if(!r.found){stat(i,escA(pn)+' is not listed on Mouser. Enter the datasheet values and save it anyway.',true);return;}
-    g.pn=String(r.mpn||pn).toUpperCase(); g.mz={manufacturer:r.manufacturer||'',description:r.description||'',datasheet:r.datasheet||''};
+    const r=await PartsLib.lookupPart('cap',pn);
+    if(r.needPassword){stat(i,'The lookup password is needed for DigiKey and Mouser lookups.',true);return;}
+    if(!r.ok){stat(i,escA(r.errors.join('. '))+'. Enter the datasheet values by hand.',true);return;}
+    const e={pn:String(r.mpn||pn).toUpperCase(),type:r.type||({x7r:'mlcc',c0g:'mlcc',poly:'poly',tant:'tant',alu:'alu'}[g.type]||'mlcc'),dielectric:r.dielectric,manufacturer:r.manufacturer,description:r.description,datasheet:r.datasheet,vals:r.vals};
+    const m=PartsLib.capToComp(e), prev=g.type;
+    g.pn=m.pn; g.mz=m.mz; if(r.type){g.type=m.type; if(prev!==m.type&&CAPS[m.type])g.kb=CAPS[m.type].kbias;}
+    const got=[]; ['c','esr','esl'].forEach(k=>{if(isFinite(m[k])&&e.vals[k]>0){g[k]=m[k];got.push({c:'C',esr:'ESR',esl:'ESL'}[k]);}});
+    if(isFinite(e.vals.esr)&&e.vals.esr>0&&r.vals.esr){g.fs=m.fs; g.df=m.df;}
     const ds=g.mz.datasheet?` <a href="${escA(g.mz.datasheet)}" target="_blank" rel="noopener">Datasheet</a>`:'';
-    g.note=`<b>${escA(g.mz.manufacturer)}</b> ${escA(g.mz.description)}.${ds} Enter C, ESR, ESL, tanδ and the spec frequency from the datasheet, then save.`;
-    renderBank();
+    const src=r.source==='digikey'?'DigiKey':r.source==='mouser'?'Mouser':'DigiKey and Mouser';
+    g.note=`<b>${escA(g.mz.manufacturer)}</b> ${escA(g.mz.description)}. From ${src}${r.exact?'':' (closest match, check the part number)'}: ${got.length?got.join(', '):'no values'}. Enter the rest (ESR, ESL, tanδ and the spec frequency are rarely listed for ceramics) from the datasheet, then save.${ds}`;
+    renderBank(); compute();
   }catch(err){stat(i,'Lookup failed: '+escA(err.message||'could not reach the service'),true);}
   finally{const b=document.querySelector(`[data-look="${i}"]`); if(b){b.disabled=false;b.textContent='Look up';}}
 }
