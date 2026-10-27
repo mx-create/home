@@ -83,6 +83,14 @@ button:hover{border-color:var(--ink)}
 .cg-h b{font:700 .95rem var(--f-disp);letter-spacing:.05em;min-width:26px}
 .cg-h select{flex:1}
 .cg-h button{padding:4px 8px;line-height:1}
+.cg-lib{display:grid;gap:6px;margin-top:6px}
+.cg-lib .row1{display:flex;gap:6px;align-items:center}
+.cg-lib select,.cg-lib input{flex:1;min-width:0;font-size:.8rem;padding:4px 5px}
+.cg-lib button{padding:4px 8px;font-size:.78rem;white-space:nowrap}
+.cg-st{font-size:.72rem;color:var(--muted);line-height:1.35}.cg-st.err{color:#b3261e}
+.cg-st a{color:inherit}
+.libline{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.76rem;color:var(--muted);margin-top:8px}
+.libline input{font-size:.8rem;padding:3px 6px;width:11em}
 .cg-g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 6px;margin-top:6px}
 .cg-g label{display:grid;gap:2px;font-size:.68rem;color:var(--muted);line-height:1.2;min-width:0;white-space:nowrap}
 .cg-g input{padding:4px 5px;font-size:.8rem}
@@ -299,8 +307,9 @@ body.reporting .mxfoot{display:none}
 <fieldset>
   <legend>Output capacitor bank</legend>
   <div id="bank"></div>
+  <div class="libline"><span id="libStatus" role="status"></span><label>Your name for library edits <input id="libBy" type="text" maxlength="40" autocomplete="name" placeholder="optional"></label></div>
   <div class="btnrow"><button type="button" id="addCap">+ Add capacitor group</button></div>
-  <p class="hint">Each group is N identical parts. Groups are combined as complex impedances in parallel, so ESR, ESL and anti-resonance all come through. Per part: ESR = (R<sub>S</sub> + tanδ/(2πfC))·k<sub>T</sub>. k<sub>C</sub> is the capacitance left after DC bias, temperature and ageing; k<sub>T</sub> is the cold-ESR multiplier.</p>
+  <p class="hint">Pick a capacitor from the shared library, or enter its datasheet values and save it there so everyone can use it. Each group is N identical parts. Groups are combined as complex impedances in parallel, so ESR, ESL and anti-resonance all come through. Per part: ESR = (R<sub>S</sub> + tanδ/(2πfC))·k<sub>T</sub>. k<sub>C</sub> is the capacitance left after DC bias, temperature and ageing; k<sub>T</sub> is the cold-ESR multiplier.</p>
 </fieldset>
 <fieldset>
   <legend>Control &amp; power stage</legend>
@@ -442,6 +451,7 @@ body.reporting .mxfoot{display:none}
 
 <footer class="mxfoot" style="max-width:1200px;margin:40px auto 0;padding:18px 16px 24px">Made by Manu R &middot; <a href="https://blog.mxdesign.uk">blog.mxdesign.uk</a> &middot; <a href="https://www.linkedin.com/in/manu-r-engineer" target="_blank" rel="noopener">LinkedIn</a> &middot; <a href="https://mxdesign.uk/RC_standard_finder/">RC Standard Finder</a></footer>
 <script src="vendor/katex/katex.min.js"></script>
+<script src="../shared/partslib.js"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -495,17 +505,75 @@ const DEFAULT_BANK=[
 ];
 let bank=JSON.parse(JSON.stringify(DEFAULT_BANK));
 const BK=[['c','C µF'],['n','Qty'],['kb','k<sub>C</sub> %'],['esr','ESR mΩ'],['fs','@ kHz'],['df','tanδ'],['esl','ESL nH'],['kt','k<sub>T</sub> ×']];
+const escA=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function libOpts(sel){return PartsLib.get('cap').map(e=>`<option value="${escA(e.pn)}"${e.pn===sel?' selected':''}>${escA(e.pn)}${e.description?' · '+escA(e.description.slice(0,36)):''}</option>`).join('')}
 function renderBank(){
   $('bank').innerHTML=bank.map((g,i)=>`<div class="cg" style="--bc:${BCOL[i%BCOL.length]}">
     <div class="cg-h"><b>C${i+1}</b><select id="bk${i}_type" data-i="${i}" data-k="type" aria-label="Technology of group ${i+1}">${Object.keys(CAPNAME).map(k=>`<option value="${k}"${k===g.type?' selected':''}>${CAPNAME[k]}</option>`).join('')}</select>
     ${bank.length>1?`<button type="button" data-del="${i}" aria-label="Remove group ${i+1}">✕</button>`:''}</div>
+    <div class="cg-lib"><select data-i="${i}" data-lib="1" aria-label="Pick capacitor ${i+1} from the shared library"><option value="">Pick from the shared library…</option>${libOpts(g.pn)}</select>
+      <div class="row1"><input type="text" id="bk${i}_pn" data-i="${i}" data-k="pn" placeholder="Manufacturer part number" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${escA(g.pn||'')}">
+      <button type="button" data-look="${i}">Look up</button><button type="button" data-save="${i}">Save to library</button></div>
+      <div class="cg-st" id="bkst${i}" role="status">${g.note||''}</div></div>
     <div class="cg-g">${BK.map(([k,l])=>`<label>${l}<input id="bk${i}_${k}" type="number" step="any" data-i="${i}" data-k="${k}" value="${g[k]}"></label>`).join('')}</div></div>`).join('');
 }
 $('bank').addEventListener('input',e=>{const t=e.target,i=+t.dataset.i,k=t.dataset.k; if(isNaN(i)||!k)return;
   if(k==='type'){bank[i].type=t.value; const c=CAPS[t.value]; if(c){bank[i].df=c.df;bank[i].fs=c.fspec;bank[i].esl=c.esl;bank[i].kb=c.kbias;bank[i].esr=c.esr;} renderBank(); compute(); return;}
+  if(k==='pn'){bank[i].pn=t.value.toUpperCase();return;}
   bank[i][k]=parseFloat(t.value);});
-$('bank').addEventListener('change',e=>{if(e.target.dataset.k&&e.target.dataset.k!=='type')compute();});
-$('bank').addEventListener('click',e=>{const d=e.target.closest('[data-del]'); if(!d)return; bank.splice(+d.dataset.del,1); renderBank(); compute();});
+$('bank').addEventListener('change',e=>{const t=e.target;
+  if(t.dataset.lib&&t.value){applyLib(+t.dataset.i,t.value);return;}
+  if(t.dataset.k&&t.dataset.k!=='type'&&t.dataset.k!=='pn')compute();});
+$('bank').addEventListener('click',e=>{
+  const lk=e.target.closest('[data-look]'); if(lk){lookupCap(+lk.dataset.look,lk);return;}
+  const sv=e.target.closest('[data-save]'); if(sv){saveCap(+sv.dataset.save,sv);return;}
+  const d=e.target.closest('[data-del]'); if(!d)return; bank.splice(+d.dataset.del,1); renderBank(); compute();});
+function stat(i,html,err){const el=$('bkst'+i); if(el){el.innerHTML=html; el.className='cg-st'+(err?' err':'');} if(bank[i])bank[i].note=html;}
+function applyLib(i,pn){
+  const e=PartsLib.get('cap').find(x=>x.pn===pn); if(!e)return;
+  const m=PartsLib.capToComp(e), g=bank[i], prev=g.type;
+  g.pn=m.pn; g.type=m.type; g.mz=m.mz;
+  ['c','esr','esl','fs','df'].forEach(k=>{if(isFinite(m[k]))g[k]=m[k];});
+  if(prev!==m.type&&CAPS[m.type])g.kb=CAPS[m.type].kbias;
+  const bits=[]; if(m.fromPreset.df||m.fromPreset.fs)bits.push('tanδ and the ESR spec frequency are the type preset, so check them in the datasheet');
+  bits.push('k<sub>C</sub> (DC-bias loss) depends on your voltage, so set it for this design');
+  const ds=m.mz.datasheet?` <a href="${escA(m.mz.datasheet)}" target="_blank" rel="noopener">Datasheet</a>`:'';
+  g.note=`Loaded ${escA(m.pn)}${m.mz.manufacturer?' ('+escA(m.mz.manufacturer)+')':''}. ${bits.join('; ')}.${ds}`;
+  renderBank(); compute();
+}
+async function lookupCap(i,btn){
+  const g=bank[i], pn=(g.pn||'').trim(); if(!pn){stat(i,'Enter a part number first.',true);return;}
+  btn.disabled=true; btn.textContent='Searching…'; stat(i,'Searching Mouser…');
+  try{
+    const res=await fetch(PartsLib.API+'/part?pn='+encodeURIComponent(pn)); const r=await res.json().catch(()=>({}));
+    if(!res.ok)throw new Error(r.error||('Lookup returned '+res.status));
+    if(!r.found){stat(i,escA(pn)+' is not listed on Mouser. Enter the datasheet values and save it anyway.',true);return;}
+    g.pn=String(r.mpn||pn).toUpperCase(); g.mz={manufacturer:r.manufacturer||'',description:r.description||'',datasheet:r.datasheet||''};
+    const ds=g.mz.datasheet?` <a href="${escA(g.mz.datasheet)}" target="_blank" rel="noopener">Datasheet</a>`:'';
+    g.note=`<b>${escA(g.mz.manufacturer)}</b> ${escA(g.mz.description)}.${ds} Enter C, ESR, ESL, tanδ and the spec frequency from the datasheet, then save.`;
+    renderBank();
+  }catch(err){stat(i,'Lookup failed: '+escA(err.message||'could not reach the service'),true);}
+  finally{const b=document.querySelector(`[data-look="${i}"]`); if(b){b.disabled=false;b.textContent='Look up';}}
+}
+async function saveCap(i,btn){
+  const g=bank[i]; if(!(g.pn||'').trim()){stat(i,'Enter the part number first.',true);return;}
+  if(!/^[A-Za-z0-9.\-\/#+_ ]{2,60}$/.test(g.pn.trim())){stat(i,'That part number has characters the library does not accept.',true);return;}
+  const e=PartsLib.compToCap(g,g.mz); if(!e){stat(i,'Pick a technology other than Custom before saving, so others can find it.',true);return;}
+  const by=($('libBy').value||'').trim(); if(by)PartsLib.setBy(by);
+  btn.disabled=true;
+  try{const r=await PartsLib.save('cap',e,by);
+    stat(i,r.shared?`Saved ${escA(e.pn)} to the shared library.`:`Saved ${escA(e.pn)} on this device. It will be shared when the library is reachable.`);}
+  catch(err){stat(i,'The library did not accept it: '+escA(err.message||'error'),true);}
+  finally{btn.disabled=false;}
+}
+function libStatus(){
+  const s=PartsLib.status(), n=PartsLib.get('cap').length;
+  const t={ok:`Shared library: ${n} capacitor${n===1?'':'s'}`,loading:'Shared library: loading…',offline:`Shared library unreachable. Using this device's copy (${n} capacitors)`,nosetup:'Shared library is not set up on the server yet. Parts stay on this device',idle:'Shared library'}[s.state]||'';
+  $('libStatus').textContent=t+(s.pending?` · ${s.pending} waiting to share`:'');
+}
+$('libBy').value=PartsLib.getBy(); $('libBy').addEventListener('change',()=>PartsLib.setBy($('libBy').value.trim()));
+PartsLib.onChange(()=>{libStatus(); const a=document.activeElement; if(!(a&&$('bank').contains(a)))renderBank();});
+libStatus(); PartsLib.pull();
 $('addCap').addEventListener('click',()=>{bank.push({type:'x7r',c:10,n:1,kb:70,esr:5,fs:1000,df:0.025,esl:0.4,kt:1}); renderBank(); compute();});
 
 /* ---------- state & visibility ---------- */
@@ -527,7 +595,7 @@ function applyVis(){
 function read(){
   const g=id=>parseFloat($(id).value);
   const o={vin:g('vin'),vout:g('vout'),iout:g('iout'),fsw:g('fsw')*1e3,L:g('L')*1e-6,dcr:g('dcr')*1e-3,
-    bank:bank.map(b=>({type:b.type,c:b.c*1e-6,n:Math.max(1,Math.round(b.n||1)),kb:b.kb/100,esr:b.esr*1e-3,fs:b.fs*1e3,df:b.df||0,esl:(b.esl||0)*1e-9,kt:b.kt||1})),
+    bank:bank.map(b=>({pn:b.pn||'',type:b.type,c:b.c*1e-6,n:Math.max(1,Math.round(b.n||1)),kb:b.kb/100,esr:b.esr*1e-3,fs:b.fs*1e3,df:b.df||0,esl:(b.esl||0)*1e-9,kt:b.kt||1})),
     mode:$('mode').value,src:$('src').value,vramp:g('vramp'),ri:g('ri'),se:g('se')*1e6,gk:g('gknown'),
     amp:$('amp').value,gm:g('gm')*1e-6,vref:g('vref'),rtop:g('rtop')*1e3,
     type:typeSel(),method:typeSel()===1?'k':$('method').value,fc:g('fc')*1e3,pm:g('pm'),snap:$('snap').checked,
@@ -542,7 +610,7 @@ function capModel(p){
     const esrPart=f=>(Rs+b.df/(TAU*f*b.c))*b.kt;
     const Zb=f=>{const w=TAU*f;return[esrPart(f)/b.n,(w*b.esl-1/(w*Ce))/b.n]};
     const srf=b.esl>0?1/(TAU*Math.sqrt(b.esl*Ce)):Infinity;
-    return {...b,i,Rs,Ce,Ctot:Ce*b.n,esrPart,Z:Zb,srf,label:`C${i+1}: ${b.n}× ${fe(b.c,'F')} ${CAPNAME[b.type]}`};
+    return {...b,i,Rs,Ce,Ctot:Ce*b.n,esrPart,Z:Zb,srf,label:`C${i+1}: ${b.n}× ${fe(b.c,'F')} ${CAPNAME[b.type]}${b.pn?' '+escA(b.pn):''}`};
   });
   const Ceff=br.reduce((a,b)=>a+b.Ctot,0);
   const Y=f=>br.reduce((a,b)=>cadd(a,inv(b.Z(f))),[0,0]);
