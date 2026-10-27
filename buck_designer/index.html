@@ -271,7 +271,7 @@ ol.rank{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;ma
       <input type="file" id="file-proj" accept=".json,application/json" hidden>
       <input type="file" id="file-lib" accept=".json,application/json" hidden>
     </div>
-    <div class="libstatus" id="lib-status" role="status"></div>
+    <div class="libstatus" id="lib-status" role="status"></div><a class="libstatus" href="../parts_library/" style="text-decoration:underline">Parts library</a>
   </header>
   <nav class="tabs" aria-label="Sections">
     <a href="#design">Design</a><a href="#results">Results</a><a href="#report">Report</a>
@@ -2127,7 +2127,7 @@ function partCard(slot,title,groups,more){
   if(more)body+=`<details class="more"><summary>Tolerances and drift</summary>${grid(more.map(f))}</details>`;
   return `<div class="panel part" id="card-${slot}">
     <div class="part-h"><h3>${esc(title)}</h3><span id="chip-${slot}">${chipFor(p)}</span></div>
-    ${items.length?`<div class="libbar"><select data-lib="${slot}" aria-label="Use a part from the shared library"><option value="">Use a part from the shared library…</option>${items.map((x,i)=>`<option value="${esc(x.pn)}">${esc(x.pn)}${x.manufacturer?" · "+esc(x.manufacturer):""}</option>`).join("")}</select></div>`:""}
+    ${items.length?`<div class="libbar"><select data-lib="${slot}" aria-label="Use a part from the shared library"><option value="">Use a part from the shared library…</option>${items.map((x,i)=>`<option value="${esc(x.pn)}">${x.verified?"✓ ":"○ "}${esc(x.pn)}${x.manufacturer?" · "+esc(x.manufacturer):""}</option>`).join("")}</select></div>`:""}
     <div class="pn"><span class="fi"><input id="pn-${slot}" data-path="parts.${slot}.pn" data-text="1" data-pn="1" placeholder="Manufacturer part number" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc(p.pn)}"></span>
       <button class="btn pri" type="button" data-look="part:${slot}">Look up</button></div>
     <div class="meta">${mouserHTML(p.mouser)}<div class="status" id="st-${slot}" role="status"></div></div>
@@ -2144,7 +2144,7 @@ function capCard(bank,r,i){
       <span class="fi" style="flex:1 1 180px"><select data-captype="${path}" aria-label="Capacitor type">${Object.entries(Core.CAP_TYPES).map(([k,v])=>`<option value="${k}" ${r.type===k?"selected":""}>${esc(v.label)}</option>`).join("")}</select></span>
       <span id="chip-${r.id}">${chipFor(r)}</span>
       <button class="btn sm ghost" type="button" data-capdel="${path}" aria-label="Remove group C${i+1}">Remove</button></div>
-    ${items.length?`<div class="libbar"><select data-libcap="${path}" aria-label="Use a capacitor from the shared library"><option value="">Use a capacitor from the shared library…</option>${items.map((x,j)=>`<option value="${esc(x.pn)}">${esc(x.pn)}${x.description?" · "+esc(x.description.slice(0,40)):""}</option>`).join("")}</select></div>`:""}
+    ${items.length?`<div class="libbar"><select data-libcap="${path}" aria-label="Use a capacitor from the shared library"><option value="">Use a capacitor from the shared library…</option>${items.map((x,j)=>`<option value="${esc(x.pn)}">${x.verified?"✓ ":"○ "}${esc(x.pn)}${x.description?" · "+esc(x.description.slice(0,40)):""}</option>`).join("")}</select></div>`:""}
     <div class="pn"><span class="fi"><input id="pn-${r.id}" data-path="${path}.pn" data-text="1" data-pn="1" placeholder="Manufacturer part number" autocomplete="off" spellcheck="false" value="${esc(r.pn||"")}"></span>
       <button class="btn pri" type="button" data-look="cap:${path}">Look up</button></div>
     <div class="meta">${mouserHTML(r.mouser)}<div class="status" id="st-${r.id}" role="status"></div></div>
@@ -2297,7 +2297,7 @@ async function lookup(spec,btn){
   const s0=st();s0.className="status";s0.textContent=`Searching Mouser for ${pn}…`;
   try{
     let res;
-    try{res=await fetch(MOUSER_API+encodeURIComponent(pn))}
+    try{res=await PL.mouserFetch(pn)}
     catch(e){throw {msg:IN_CLAUDE?"Mouser lookup works on the mxdesign.uk version of this tool. Here, enter values from the datasheet.":"Couldn't reach the lookup service. Check your connection and try again."}}
     const r=await res.json().catch(()=>({}));
     if(!res.ok)throw {msg:r.error?`Lookup failed: ${r.error}`:`Lookup service returned ${res.status}.`};
@@ -2324,7 +2324,7 @@ function saveToLib(spec){
   if(isCap){for(const k of ["c","esr","esl","vr","irmsC","tol","temp","eol","esrLo","esrHi","df","fs"])if(isFinite(o[k]))vals[k]=o[k]}
   else for(const k in o.vals)vals[k]=o.vals[k];
   const m=o.mouser||{};
-  const e={pn:o.pn,manufacturer:m.manufacturer||"",description:m.description||"",datasheet:m.datasheet||"",type:isCap?o.type:undefined,vals};
+  const e={pn:o.pn,manufacturer:m.manufacturer||"",description:m.description||"",datasheet:m.datasheet||"",type:isCap?o.type:undefined,verified:true,vals};
   const by=S.meta.designer||PL.getBy();if(S.meta.designer)PL.setBy(S.meta.designer);
   PL.save(t,e,by).then(r=>{refreshLib();renderLibStatus();renderDesign();toast(r.shared?`${o.pn} saved to the shared library`:`${o.pn} saved on this device and will be shared when the library is reachable`)})
     .catch(err=>toast("The shared library didn't accept it: "+(err&&err.message||"error")));
@@ -2335,8 +2335,8 @@ function useLib(kind,ref,pn){
   o.pn=e.pn;o.src=o.src||{};
   if(kind==="cap"){if(e.type)o.type=e.type;for(const k in e.vals){if(Model.CAP_KEYS.includes(k)&&k!=="n"&&k!=="dc"){o[k]=e.vals[k];o.src[k]="lib"}}
     const p=Core.CAP_TYPES[o.type]||{};if(e.vals.df==null)o.df=p.df;if(!(e.vals.fs>0))o.fs=p.fs;
-    o.verified=PL.capComplete(e)}
-  else{for(const k in e.vals){if(k in o.vals){o.vals[k]=e.vals[k];o.src[k]="lib"}}o.verified=true}
+    o.verified=e.verified===true&&PL.capComplete(e)}
+  else{for(const k in e.vals){if(k in o.vals){o.vals[k]=e.vals[k];o.src[k]="lib"}}o.verified=e.verified===true}
   o.mouser=e.datasheet||e.manufacturer?{mpn:e.pn,manufacturer:e.manufacturer,description:e.description,datasheet:e.datasheet,productUrl:"",lifecycle:"",priceBreaks:[],hints:["Loaded from the shared library. Look up again for current price, stock and lifecycle."].concat(kind==="cap"&&!PL.capComplete(e)?["This entry was saved from the compensation calculator and has no voltage or ripple-current rating yet. Enter them from the datasheet and save again."]:[])}:null;
   save();renderDesign();schedule();
 }

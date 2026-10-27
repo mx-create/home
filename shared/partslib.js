@@ -16,7 +16,7 @@ if(!Array.isArray(pending))pending=[];
 const persistCache=()=>ls.set(CK,JSON.stringify(cache)),persistPending=()=>ls.set(PK,JSON.stringify(pending));
 const up=s=>String(s||"").toUpperCase();
 
-function setCache(type,entry){const a=(cache[type]=cache[type]||[]).filter(x=>up(x.pn)!==up(entry.pn));a.push(entry);a.sort((x,y)=>x.pn.localeCompare(y.pn));persistCache()}
+function setCache(type,entry){const a=(cache[type]||[]).filter(x=>up(x.pn)!==up(entry.pn));a.push(entry);a.sort((x,y)=>x.pn.localeCompare(y.pn));cache[type]=a;persistCache()}
 function dropCache(type,pn){cache[type]=(cache[type]||[]).filter(x=>up(x.pn)!==up(pn));persistCache()}
 
 /* all parts of every type: the server copy, with anything still waiting to be saved laid over it */
@@ -68,6 +68,24 @@ async function save(type,entry,by){
 async function remove(type,pn){await req("DELETE",`/lib/part?type=${encodeURIComponent(type)}&pn=${encodeURIComponent(pn)}`);dropCache(type,pn);emit()}
 async function history(type,pn){return (await req("GET",`/lib/history?type=${encodeURIComponent(type)}&pn=${encodeURIComponent(pn)}`)).history}
 
+/* ---------- Mouser lookup: the worker only answers when it gets the owner's password ---------- */
+const LKK="mx.lookupkey";
+const getKey=()=>ls.get(LKK)||"",setKey=v=>ls.set(LKK,String(v||""));
+const mouserReq=(path,key)=>fetch(API+path,{headers:{"X-Lookup-Key":key}});
+async function mouserFetch(pn){
+  const path="/part?pn="+encodeURIComponent(pn);
+  let res=await mouserReq(path,getKey());
+  if(res.status===401&&typeof root.prompt==="function"){
+    const k=root.prompt(getKey()?"That password was not accepted. Enter the Mouser lookup password:":"Mouser lookups are password protected. Enter the lookup password:");
+    if(k){res=await mouserReq(path,k);if(res.ok)setKey(k)}
+  }
+  return res;
+}
+/* a verified tick on a library part; the server keeps the existing values */
+async function setVerified(type,e,flag,by){
+  return save(type,{pn:e.pn,type:e.type,verified:!!flag,vals:e.vals},by);
+}
+
 /* one-off: queue parts a device saved before the shared library existed */
 function adopt(oldLib){
   if(ls.get(ADK)||!oldLib||typeof oldLib!=="object")return 0;
@@ -109,5 +127,5 @@ function compToCap(g,mz){
   return e;
 }
 
-root.PartsLib={API,TYPES,all,get,status,onChange,pull,flush,save,remove,history,adopt,getBy,setBy,capToComp,compToCap,capComplete,CAP_REQ};
+root.PartsLib={API,TYPES,all,get,status,onChange,pull,flush,save,remove,history,adopt,getBy,setBy,capToComp,compToCap,capComplete,CAP_REQ,mouserFetch,setVerified,getKey,setKey};
 })(typeof window!=="undefined"?window:globalThis);
