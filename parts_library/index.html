@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parts Library | MX Tools</title>
+<meta name="description" content="Shared parts library for the MX buck converter tools: view, edit, import and verify parts.">
+<link rel="icon" href="../images/mx-mark.png">
+<style>
+:root{--paper:#e9eeed;--sheet:#f8faf9;--ink:#16201e;--muted:#5a6866;--rule:#cdd6d4;--field:#fff;--accent:#0c6a60;--accent-ink:#fff;--accent-soft:#d5ebe7;--warn:#9c4a0c;--warn-bg:#f8eadb;--bad:#ad2e27;--good:#2a7539;--good-bg:#dff0e1;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0d1312;--sheet:#141c1b;--ink:#e0e9e7;--muted:#92a19e;--rule:#293432;--field:#0f1615;--accent:#3fbfac;--accent-ink:#04201b;--accent-soft:#16332e;--warn:#eb9a5c;--warn-bg:#32220f;--bad:#f07f77;--good:#74c886;--good-bg:#132a18;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{padding:18px 16px 10px;max-width:1400px;margin:0 auto}
+h1{margin:0 0 4px;font-size:24px}
+.sub{color:var(--muted);margin:0 0 8px}
+.sub a{color:var(--accent)}
+main{max-width:1400px;margin:0 auto;padding:0 16px 40px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.tabs{display:flex;flex-wrap:wrap;gap:4px}
+.tabs button{border:1px solid var(--rule);background:var(--sheet);color:var(--ink);padding:7px 12px;border-radius:6px;cursor:pointer;font:inherit}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+input,select,button{font:inherit;color:var(--ink)}
+input[type=text],input[type=search],input[type=number],select{background:var(--field);border:1px solid var(--rule);border-radius:5px;padding:6px 8px;min-height:34px}
+.btn{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:7px 12px;cursor:pointer;min-height:34px}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+.grow{flex:1 1 200px}
+.status{color:var(--muted);font-size:13px}
+.msg{padding:10px 12px;border-radius:6px;background:var(--accent-soft);margin:8px 0;white-space:pre-wrap}
+.msg.err{background:var(--warn-bg);color:var(--warn)}
+.wrap{overflow:auto;border:1px solid var(--rule);border-radius:8px;background:var(--sheet);max-height:70vh}
+table{border-collapse:collapse;width:max-content;min-width:100%}
+th,td{padding:4px 6px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:middle;white-space:nowrap}
+th{position:sticky;top:0;background:var(--sheet);z-index:2;font-size:12px;color:var(--muted);font-weight:600}
+th small{display:block;font-weight:400}
+td input[type=text],td input[type=number],td select{width:100%;min-height:30px;padding:3px 6px;border-color:transparent;background:transparent}
+td input:hover,td input:focus,td select:hover,td select:focus{border-color:var(--rule);background:var(--field)}
+td input[type=number]{width:84px}
+td.pn{font-weight:600;position:sticky;left:0;background:var(--sheet);z-index:1}
+td.txt input{width:180px}
+td.desc input{width:300px}
+.badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:600}
+.badge.v{background:var(--good-bg);color:var(--good)}
+.badge.u{background:var(--warn-bg);color:var(--warn)}
+.vt{display:flex;gap:6px;align-items:center}
+.vt input{width:18px;height:18px}
+.rowst{font-size:12px;color:var(--muted);min-width:60px}
+.add{display:flex;flex-wrap:wrap;gap:8px;align-items:end;margin:10px 0;padding:10px;border:1px dashed var(--rule);border-radius:8px}
+.add label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:2px}
+.empty{padding:24px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Parts Library</h1>
+  <p class="sub">One shared library for <a href="../buck_designer/">Buck Designer</a> and <a href="../buck_compensation/">Buck Compensation</a>. Edit any cell and it saves for everyone. Tick <b>Verified</b> once you have checked a part against its datasheet.</p>
+  <div class="bar"><span id="st" class="status" role="status"></span><label class="status">Your name for edits <input type="text" id="by" maxlength="40" placeholder="optional" autocomplete="name"></label></div>
+</header>
+<main>
+  <div class="bar"><div class="tabs" role="tablist" id="tabs"></div></div>
+  <div class="bar">
+    <input type="search" id="q" class="grow" placeholder="Search part number, manufacturer or description" aria-label="Search">
+    <select id="vf" aria-label="Verified filter"><option value="">All parts</option><option value="v">Verified only</option><option value="u">Not verified only</option></select>
+    <button class="btn" id="imp" type="button">Import CSV</button><input type="file" id="file" accept=".csv,text/csv" hidden>
+    <button class="btn" id="tpl" type="button">Download template</button>
+    <button class="btn" id="exp" type="button">Export CSV</button>
+    <button class="btn" id="refresh" type="button">Refresh</button>
+  </div>
+  <div id="msg" role="status"></div>
+  <div class="add" id="add"></div>
+  <div class="wrap" id="tbl"></div>
+  <p class="status" id="count"></p>
+</main>
+<script src="../shared/partslib.js"></script>
+<script>
+(function(){
+"use strict";
+const PL=window.PartsLib;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const NAMES={cap:"Capacitors",ctrl:"Controllers",conv:"Converters",fet:"MOSFETs",ind:"Inductors"};
+const CAPTYPES=["mlcc","poly","tant","alu","film"];
+/* value columns per part type: key, heading, unit */
+const U=(k,h,u)=>({k,h,u});
+const COLS={
+ cap:[U("c","Capacitance","µF"),U("esr","ESR","mΩ"),U("esl","ESL","nH"),U("vr","Voltage rating","V"),U("irmsC","Ripple current","A rms"),U("tol","Tolerance","±%"),U("temp","Temp drift","%"),U("eol","EOL drift","%"),U("esrLo","ESR low","×"),U("esrHi","ESR high","×"),U("df","tanδ",""),U("fs","ESR spec freq","kHz")],
+ fet:[U("vds","Vds","V"),U("id","Id","A"),U("rds","Rds(on) max","mΩ"),U("rdsAlpha","Rds tempco","%/°C"),U("rdsEol","Rds EOL drift","%"),U("qg","Qg","nC"),U("qgs","Qgs","nC"),U("qgd","Qgd","nC"),U("vpl","Miller plateau","V"),U("coss","Coss","pF"),U("qrr","Qrr","nC"),U("vf","Body diode Vf","V"),U("rth","RθJA","°C/W"),U("tjmax","Tj max","°C")],
+ ind:[U("L","Inductance","µH"),U("ltol","Tolerance","±%"),U("ltemp","Temp drift","%"),U("lsat","Drop at peak","%"),U("isat","Isat","A"),U("isatHot","Isat hot loss","%"),U("irms","Irms","A"),U("dTr","Rise at Irms","°C"),U("dcr","DCR max","mΩ"),U("dcrTc","DCR tempco","%/°C"),U("pcore","Core loss","mW")]
+};
+const CTRLCOLS=[U("vinMaxIc","Max Vin","V"),U("fswMax","Max fsw","kHz"),U("fswTol","fsw tol","±%"),U("tonMin","Min on-time","ns"),U("ilim","Current limit","A"),U("ilimTol","Ilim tol","±%"),U("iq","Iq","mA"),U("vref","Vref","V"),U("vrefTol","Vref tol","±%"),U("eaAol","EA gain","dB"),U("eaGbw","EA GBW","MHz"),U("eaGm","EA gm","µS"),U("eaTol","EA tol","±%"),U("vramp","PWM ramp","V"),U("ri","Ri","V/A"),U("se","Slope comp","A/µs"),U("modTol","Mod tol","±%"),U("vdrv","Gate drive","V"),U("rdrv","Driver R","Ω"),U("tdead","Dead time","ns"),U("ibst","Boot leakage","µA"),U("ioutMaxIc","Rated Iout","A"),U("rdsHs","HS Rds(on)","mΩ"),U("rdsLs","LS Rds(on)","mΩ"),U("rdsAlpha","Rds tempco","%/°C"),U("tsw","Switch rise+fall","ns"),U("rthIc","RθJA","°C/W"),U("tjmaxIc","Tj max","°C"),U("iss","Soft-start I","µA"),U("issTol","SS tol","±%"),U("venR","EN threshold","V"),U("venTol","EN tol","±%"),U("ihys","EN hyst I","µA"),U("ihysTol","Hyst tol","±%")];
+COLS.ctrl=CTRLCOLS;COLS.conv=CTRLCOLS;
+const MAIN={cap:"c",fet:"vds",ind:"L",ctrl:"vinMaxIc",conv:"vinMaxIc"};
+let tab="cap";
+try{const t=localStorage.getItem("mx.plib.tab");if(NAMES[t])tab=t}catch(e){}
+
+/* ---------- helpers ---------- */
+function say(t,err){const m=$("msg");m.innerHTML=t?`<div class="msg${err?" err":""}">${esc(t)}</div>`:""}
+const by=()=>($("by").value||"").trim();
+function rowsFor(t){
+  const q=$("q").value.trim().toLowerCase(),f=$("vf").value;
+  return PL.get(t).filter(e=>{
+    if(f==="v"&&!e.verified)return false;if(f==="u"&&e.verified)return false;
+    return !q||[e.pn,e.manufacturer,e.description].some(x=>String(x||"").toLowerCase().includes(q));
+  });
+}
+function renderTabs(){
+  $("tabs").innerHTML=Object.keys(NAMES).map(t=>`<button type="button" role="tab" data-t="${t}" aria-selected="${t===tab}">${NAMES[t]} (${PL.get(t).length})</button>`).join("");
+}
+function renderAdd(){
+  const c=COLS[tab].find(x=>x.k===MAIN[tab]);
+  $("add").innerHTML=`<label>New part number<input type="text" id="a-pn" maxlength="60" autocomplete="off" spellcheck="false"></label>`+
+   (tab==="cap"?`<label>Type<select id="a-sub">${CAPTYPES.map(x=>`<option>${x}</option>`).join("")}</select></label>`:"")+
+   `<label>${esc(c.h)} ${c.u?"("+esc(c.u)+")":""}<input type="number" id="a-v" step="any"></label><button class="btn pri" type="button" id="a-go">Add ${esc(NAMES[tab].toLowerCase().replace(/s$/,""))}</button>
+   <span class="status">New parts start as not verified. Fill in the rest of the row after adding.</span>`;
+}
+function renderTable(){
+  const rows=rowsFor(tab),cols=COLS[tab];
+  if(!rows.length){$("tbl").innerHTML=`<div class="empty">${PL.get(tab).length?"No parts match the search.":"No parts here yet. Add one above or import a CSV file."}</div>`;$("count").textContent="";return}
+  $("tbl").innerHTML=`<table><thead><tr><th>Verified</th><th>Part number</th>${tab==="cap"?"<th>Type</th>":""}<th>Manufacturer</th><th>Description</th>${cols.map(c=>`<th>${esc(c.h)}<small>${esc(c.u)}</small></th>`).join("")}<th>Datasheet</th><th></th></tr></thead><tbody>`+
+   rows.map(e=>{const v=e.vals||{};
+    return `<tr data-pn="${esc(e.pn)}"><td><div class="vt"><input type="checkbox" data-f="verified" aria-label="Verified ${esc(e.pn)}" ${e.verified?"checked":""}><span class="badge ${e.verified?"v":"u"}">${e.verified?"✓ Verified":"○ Not verified"}</span></div></td>
+     <td class="pn">${esc(e.pn)}</td>
+     ${tab==="cap"?`<td><select data-f="type" aria-label="Type">${CAPTYPES.map(x=>`<option${x===e.type?" selected":""}>${x}</option>`).join("")}</select></td>`:""}
+     <td class="txt"><input type="text" data-f="manufacturer" maxlength="80" value="${esc(e.manufacturer)}" aria-label="Manufacturer"></td>
+     <td class="desc"><input type="text" data-f="description" maxlength="300" value="${esc(e.description)}" aria-label="Description"></td>
+     ${cols.map(c=>`<td><input type="number" step="any" data-v="${c.k}" value="${v[c.k]!=null?esc(v[c.k]):""}" aria-label="${esc(c.h)}"></td>`).join("")}
+     <td class="txt"><input type="text" data-f="datasheet" maxlength="400" value="${esc(e.datasheet)}" placeholder="https://" aria-label="Datasheet link">${/^https?:\/\//i.test(e.datasheet||"")?` <a href="${esc(e.datasheet)}" target="_blank" rel="noopener">open</a>`:""}</td>
+     <td><button class="btn" type="button" data-act="mouser">Mouser</button> <button class="btn" type="button" data-act="del" aria-label="Delete ${esc(e.pn)}">✕</button> <span class="rowst" data-rs></span></td></tr>`}).join("")+`</tbody></table>`;
+  $("count").textContent=`${rows.length} of ${PL.get(tab).length} shown`;
+}
+function renderStatus(){
+  const s=PL.status(),n=s.count;
+  const t={ok:`Shared library connected · ${n} part${n===1?"":"s"}`,loading:"Loading the shared library…",offline:`Shared library unreachable. Showing this device's copy (${n} parts).`,nosetup:"The shared library is not set up on the server yet.",idle:""}[s.state]||"";
+  $("st").textContent=t+(s.pending?` · ${s.pending} waiting to share`:"");
+}
+function renderAll(){renderStatus();renderTabs();renderTable()}
+const inTable=()=>{const a=document.activeElement;return a&&$("tbl").contains(a)&&/^(INPUT|SELECT)$/.test(a.tagName)};
+
+/* ---------- editing ---------- */
+const find=pn=>PL.get(tab).find(e=>e.pn===pn);
+async function saveEntry(pn,patch,rowEl){
+  const cur=find(pn);if(!cur)return;
+  const e=Object.assign({pn:cur.pn,type:cur.type},patch);
+  const rs=rowEl&&rowEl.querySelector("[data-rs]");
+  try{const r=await PL.save(tab,e,by());if(rs)rs.textContent=r.shared?"saved":"saved here";}
+  catch(err){if(rs)rs.textContent="";say(`Not saved: ${err.message}`,true)}
+}
+$("tbl").addEventListener("change",ev=>{
+  const t=ev.target,tr=t.closest("tr");if(!tr)return;const pn=tr.dataset.pn;
+  if(t.dataset.f==="verified"){const cur=find(pn);PL.setVerified(tab,cur,t.checked,by()).then(()=>{renderTable()}).catch(err=>{say(`Not saved: ${err.message}`,true);renderTable()});return}
+  if(t.dataset.f){
+    if(t.dataset.f==="datasheet"&&t.value.trim()&&!/^https?:\/\//i.test(t.value.trim())){say("The datasheet must be a web link starting with http:// or https://",true);t.value=find(pn).datasheet||"";return}
+    const p={};p[t.dataset.f]=t.value.trim();if(!p[t.dataset.f]&&t.dataset.f!=="verified"){return}
+    saveEntry(pn,p,tr);return}
+  if(t.dataset.v){if(t.value==="")return;const n=Number(t.value);if(!isFinite(n)){say("Values must be numbers.",true);return}
+    const vals={};vals[t.dataset.v]=n;saveEntry(pn,{vals},tr)}
+});
+$("tbl").addEventListener("click",async ev=>{
+  const b=ev.target.closest("[data-act]");if(!b)return;
+  const tr=b.closest("tr"),pn=tr.dataset.pn,rs=tr.querySelector("[data-rs]");
+  if(b.dataset.act==="del"){
+    if(!confirm(`Delete ${pn} from the shared library for everyone? The previous version is kept for 90 days.`))return;
+    try{await PL.remove(tab,pn);renderAll()}catch(err){say(`Not deleted: ${err.message}`,true)}
+    return}
+  if(b.dataset.act==="mouser"){b.disabled=true;rs.textContent="searching…";
+    try{
+      const res=await PL.mouserFetch(pn),r=await res.json().catch(()=>({}));
+      if(!res.ok)throw new Error(r.error||`Lookup returned ${res.status}`);
+      if(!r.found){rs.textContent="not on Mouser";return}
+      const cur=find(pn),patch={vals:{}};
+      if(!cur.manufacturer&&r.manufacturer)patch.manufacturer=r.manufacturer;
+      if(!cur.description&&r.description)patch.description=r.description;
+      if(!cur.datasheet&&r.datasheet&&/^https?:\/\//i.test(r.datasheet))patch.datasheet=r.datasheet;
+      const d=parse(tab,r.description||"");
+      for(const k in d.vals)if(cur.vals[k]==null)patch.vals[k]=d.vals[k];
+      if(d.type&&tab==="cap"&&!cur.type)patch.type=d.type;
+      const nv=Object.keys(patch.vals).length,nt=Object.keys(patch).length-1;
+      if(!nv&&!nt){rs.textContent="nothing new";return}
+      if(!nv)delete patch.vals;
+      await saveEntry(pn,patch,tr);renderTable();
+      say(`Mouser filled ${[nt?nt+" text field"+(nt>1?"s":""):"",nv?nv+" value"+(nv>1?"s":""):""].filter(Boolean).join(" and ")} for ${pn}. Check them against the datasheet, then tick Verified.`);
+    }catch(err){rs.textContent="";say(`Lookup failed: ${err.message||"could not reach the service"}`,true)}
+    finally{b.disabled=false}
+  }
+});
+/* only fills what Mouser's one-line description states plainly; everything else comes from the datasheet */
+function parse(kind,d){
+  const all=(re,sc)=>[...d.matchAll(re)].map(m=>parseFloat(m[1])*(sc||1));
+  const volts=all(/(\d+(?:\.\d+)?)\s*V(?:DC)?\b/g),amps=all(/(\d+(?:\.\d+)?)\s*A\b/g),mOhm=all(/(\d+(?:\.\d+)?)\s*m\s?Ohms?\b/gi);
+  const uH=[...all(/(\d+(?:\.\d+)?)\s*[uµ]H\b/gi),...all(/(\d+(?:\.\d+)?)\s*nH\b/gi,1e-3)];
+  const uF=[...all(/(\d+(?:\.\d+)?)\s*[uµ]F\b/gi),...all(/(\d+(?:\.\d+)?)\s*nF\b/gi,1e-3),...all(/(\d+(?:\.\d+)?)\s*pF\b/gi,1e-6)];
+  const pct=all(/(\d+(?:\.\d+)?)\s*%/g),vals={};let type=null;
+  if(kind==="fet"){if(volts.length)vals.vds=volts[0];if(amps.length)vals.id=amps[0]}
+  else if(kind==="ind"){if(uH.length)vals.L=uH[0];if(pct.length)vals.ltol=pct[0];if(mOhm.length)vals.dcr=mOhm[0]}
+  else if(kind==="cap"){if(uF.length)vals.c=uF[0];if(volts.length)vals.vr=volts[0];if(pct.length)vals.tol=pct[0];
+    if(/polymer/i.test(d))type="poly";else if(/tantalum/i.test(d))type="tant";else if(/alumin(i)?um|electrolytic/i.test(d))type="alu";else if(/film/i.test(d))type="film";else if(/ceramic|mlcc|X5R|X7R|C0G|NP0/i.test(d))type="mlcc"}
+  else if(volts.length)vals.vinMaxIc=Math.max.apply(null,volts);
+  return {vals,type};
+}
+
+/* ---------- add ---------- */
+$("add").addEventListener("click",async ev=>{
+  if(ev.target.id!=="a-go")return;
+  const pn=$("a-pn").value.trim().toUpperCase(),v=$("a-v").value;
+  if(!/^[A-Za-z0-9.\-\/#+_ ]{2,60}$/.test(pn)){say("Enter a part number (2 to 60 letters, numbers or . - / # + _).",true);return}
+  if(v===""||!isFinite(Number(v))){say("Enter the first value as a number.",true);return}
+  const vals={};vals[MAIN[tab]]=Number(v);
+  const e={pn,vals,verified:false};if(tab==="cap")e.type=$("a-sub").value;
+  try{const r=await PL.save(tab,e,by());say(r.shared?`Added ${pn}.`:`Added ${pn} on this device. It will be shared when the library is reachable.`);renderAll();renderAdd()}
+  catch(err){say(`Not added: ${err.message}`,true)}
+});
+
+/* ---------- CSV ---------- */
+function parseCSV(text){
+  text=text.replace(/^﻿/,"");const out=[];let row=[],f="",q=false;
+  for(let i=0;i<text.length;i++){const c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"')q=true;
+    else if(c===","){row.push(f);f=""}
+    else if(c==="\n"||c==="\r"){if(c==="\r"&&text[i+1]==="\n")i++;row.push(f);f="";if(row.some(x=>x.trim()!==""))out.push(row);row=[]}
+    else f+=c}
+  row.push(f);if(row.some(x=>x.trim()!==""))out.push(row);return out;
+}
+const csvCell=v=>{v=v==null?"":String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+const head=t=>["type","pn"].concat(t==="cap"?["subtype"]:[]).concat(["manufacturer","description","datasheet","verified"],COLS[t].map(c=>c.k));
+function download(name,text){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:"text/csv"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+$("tpl").addEventListener("click",()=>{
+  const ex={cap:["cap","GRM32ER71A476ME15L","mlcc","Murata","47uF 10V X7R 1210","","no","47","3","0.5","10","3"],fet:[],ind:[],ctrl:[],conv:[]};
+  const h=head(tab);const sample=ex[tab].length?ex[tab]:[tab,"EXAMPLE-PART-1"].concat(tab==="cap"?["mlcc"]:[]);
+  download(`parts-template-${tab}.csv`,[h,sample].map(r=>r.map(csvCell).join(",")).join("\r\n")+"\r\n");
+  say(`Template for ${NAMES[tab].toLowerCase()} downloaded. Delete the example row, add yours, and import it. Leave a value blank if you do not have it. Use plain numbers in the units shown in the column headings of this table.`);
+});
+$("exp").addEventListener("click",()=>{
+  const h=head(tab);
+  download(`parts-${tab}.csv`,[h].concat(PL.get(tab).map(e=>h.map(k=>k==="type"?tab:k==="subtype"?e.type:k==="verified"?(e.verified?"yes":"no"):(COLS[tab].some(c=>c.k===k)?(e.vals||{})[k]:e[k])))).map(r=>r.map(csvCell).join(",")).join("\r\n")+"\r\n");
+});
+$("imp").addEventListener("click",()=>$("file").click());
+$("file").addEventListener("change",async ev=>{
+  const f=ev.target.files[0];ev.target.value="";if(!f)return;
+  if(f.size>1e6){say("That file is too large. Split it into files of under 200 parts.",true);return}
+  const rows=parseCSV(await f.text());
+  if(rows.length<2){say("The file has no data rows.",true);return}
+  const hd=rows[0].map(x=>x.trim()),idx=k=>hd.indexOf(k);
+  if(idx("pn")<0){say("The file needs a column headed pn (the part number). Download the template to see the layout.",true);return}
+  const data=rows.slice(1);
+  if(data.length>200){say("That file has more than 200 parts. Split it and import in batches.",true);return}
+  const ok=[],skipped=[];
+  data.forEach((r,i)=>{
+    const line=i+2,g=k=>idx(k)>=0?(r[idx(k)]||"").trim():"";
+    const t=(g("type")||tab).toLowerCase(),pn=g("pn").toUpperCase();
+    if(!NAMES[t])return skipped.push(`Row ${line}: unknown type "${g("type")}"`);
+    if(!/^[A-Za-z0-9.\-\/#+_ ]{2,60}$/.test(pn))return skipped.push(`Row ${line}: part number "${g("pn")}" is empty or has characters the library does not accept`);
+    const e={pn,verified:/^(y|yes|true|1|x|✓)$/i.test(g("verified")),vals:{}};
+    for(const k of ["manufacturer","description"])if(g(k))e[k]=g(k);
+    if(g("datasheet")){if(!/^https?:\/\//i.test(g("datasheet")))return skipped.push(`Row ${line}: datasheet must start with http:// or https://`);e.datasheet=g("datasheet")}
+    if(t==="cap"){const s=(g("subtype")||g("type_cap")||"").toLowerCase();if(s){if(!CAPTYPES.includes(s))return skipped.push(`Row ${line}: capacitor subtype "${s}" is not one of ${CAPTYPES.join(", ")}`);e.type=s}else e.type="mlcc"}
+    for(const c of COLS[t]){const raw=g(c.k);if(raw==="")continue;const n=Number(raw);if(!isFinite(n))return skipped.push(`Row ${line}: ${c.k} "${raw}" is not a number`);e.vals[c.k]=n}
+    if(!Object.keys(e.vals).length)return skipped.push(`Row ${line}: ${pn} has no values`);
+    ok.push({t,e});
+  });
+  $("imp").disabled=true;let shared=0,local=0;
+  for(let i=0;i<ok.length;i++){
+    say(`Importing ${i+1} of ${ok.length}…`);
+    try{const r=await PL.save(ok[i].t,ok[i].e,by());r.shared?shared++:local++}catch(err){skipped.push(`${ok[i].e.pn}: ${err.message}`)}
+  }
+  $("imp").disabled=false;renderAll();
+  say(`Imported ${shared+local} part${shared+local===1?"":"s"}${local?` (${local} saved on this device only, they will be shared when the library is reachable)`:""}. They are marked not verified unless the file said yes.`+(skipped.length?`\n\nSkipped ${skipped.length}:\n`+skipped.slice(0,20).join("\n")+(skipped.length>20?`\n…and ${skipped.length-20} more`:""):""),skipped.length>0&&!shared&&!local);
+});
+
+/* ---------- wiring ---------- */
+$("tabs").addEventListener("click",ev=>{const b=ev.target.closest("[data-t]");if(!b)return;tab=b.dataset.t;try{localStorage.setItem("mx.plib.tab",tab)}catch(e){}say("");renderAll();renderAdd()});
+$("q").addEventListener("input",renderTable);$("vf").addEventListener("change",renderTable);
+$("refresh").addEventListener("click",()=>PL.pull().then(()=>{if(!inTable())renderAll()}));
+$("by").value=PL.getBy();$("by").addEventListener("change",()=>PL.setBy($("by").value.trim()));
+PL.onChange(()=>{renderStatus();renderTabs();if(!inTable())renderTable()});
+renderAll();renderAdd();
+PL.pull().then(()=>{if(!inTable())renderAll()});
+})();
+</script>
+</body>
+</html>

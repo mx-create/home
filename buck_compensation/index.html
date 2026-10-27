@@ -307,7 +307,7 @@ body.reporting .mxfoot{display:none}
 <fieldset>
   <legend>Output capacitor bank</legend>
   <div id="bank"></div>
-  <div class="libline"><span id="libStatus" role="status"></span><label>Your name for library edits <input id="libBy" type="text" maxlength="40" autocomplete="name" placeholder="optional"></label></div>
+  <div class="libline"><span id="libStatus" role="status"></span><a href="../parts_library/">Open the parts library</a> <label>Your name for library edits <input id="libBy" type="text" maxlength="40" autocomplete="name" placeholder="optional"></label></div>
   <div class="btnrow"><button type="button" id="addCap">+ Add capacitor group</button></div>
   <p class="hint">Pick a capacitor from the shared library, or enter its datasheet values and save it there so everyone can use it. Each group is N identical parts. Groups are combined as complex impedances in parallel, so ESR, ESL and anti-resonance all come through. Per part: ESR = (R<sub>S</sub> + tanδ/(2πfC))·k<sub>T</sub>. k<sub>C</sub> is the capacitance left after DC bias, temperature and ageing; k<sub>T</sub> is the cold-ESR multiplier.</p>
 </fieldset>
@@ -506,7 +506,7 @@ const DEFAULT_BANK=[
 let bank=JSON.parse(JSON.stringify(DEFAULT_BANK));
 const BK=[['c','C µF'],['n','Qty'],['kb','k<sub>C</sub> %'],['esr','ESR mΩ'],['fs','@ kHz'],['df','tanδ'],['esl','ESL nH'],['kt','k<sub>T</sub> ×']];
 const escA=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function libOpts(sel){return PartsLib.get('cap').map(e=>`<option value="${escA(e.pn)}"${e.pn===sel?' selected':''}>${escA(e.pn)}${e.description?' · '+escA(e.description.slice(0,36)):''}</option>`).join('')}
+function libOpts(sel){return PartsLib.get('cap').map(e=>`<option value="${escA(e.pn)}"${e.pn===sel?' selected':''}>${e.verified?'✓ ':'○ '}${escA(e.pn)}${e.description?' · '+escA(e.description.slice(0,36)):''}</option>`).join('')}
 function renderBank(){
   $('bank').innerHTML=bank.map((g,i)=>`<div class="cg" style="--bc:${BCOL[i%BCOL.length]}">
     <div class="cg-h"><b>C${i+1}</b><select id="bk${i}_type" data-i="${i}" data-k="type" aria-label="Technology of group ${i+1}">${Object.keys(CAPNAME).map(k=>`<option value="${k}"${k===g.type?' selected':''}>${CAPNAME[k]}</option>`).join('')}</select>
@@ -538,14 +538,15 @@ function applyLib(i,pn){
   const bits=[]; if(m.fromPreset.df||m.fromPreset.fs)bits.push('tanδ and the ESR spec frequency are the type preset, so check them in the datasheet');
   bits.push('k<sub>C</sub> (DC-bias loss) depends on your voltage, so set it for this design');
   const ds=m.mz.datasheet?` <a href="${escA(m.mz.datasheet)}" target="_blank" rel="noopener">Datasheet</a>`:'';
-  g.note=`Loaded ${escA(m.pn)}${m.mz.manufacturer?' ('+escA(m.mz.manufacturer)+')':''}. ${bits.join('; ')}.${ds}`;
+  const vb=e.verified?'<b style="color:var(--good)">✓ Verified</b>':'<b style="color:var(--warn)">○ Not verified yet</b>';
+  g.note=`${vb}. Loaded ${escA(m.pn)}${m.mz.manufacturer?' ('+escA(m.mz.manufacturer)+')':''}. ${bits.join('; ')}.${ds}`;
   renderBank(); compute();
 }
 async function lookupCap(i,btn){
   const g=bank[i], pn=(g.pn||'').trim(); if(!pn){stat(i,'Enter a part number first.',true);return;}
   btn.disabled=true; btn.textContent='Searching…'; stat(i,'Searching Mouser…');
   try{
-    const res=await fetch(PartsLib.API+'/part?pn='+encodeURIComponent(pn)); const r=await res.json().catch(()=>({}));
+    const res=await PartsLib.mouserFetch(pn); const r=await res.json().catch(()=>({}));
     if(!res.ok)throw new Error(r.error||('Lookup returned '+res.status));
     if(!r.found){stat(i,escA(pn)+' is not listed on Mouser. Enter the datasheet values and save it anyway.',true);return;}
     g.pn=String(r.mpn||pn).toUpperCase(); g.mz={manufacturer:r.manufacturer||'',description:r.description||'',datasheet:r.datasheet||''};

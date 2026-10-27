@@ -8,6 +8,7 @@
 //      Worker → Settings → Bindings → Add → KV namespace → variable name PARTS → pick mx-parts
 //   1. Cloudflare dashboard → Workers & Pages → Create → Worker → paste this file → Deploy
 //   2. Worker → Settings → Variables and Secrets → add Secret  MOUSER_KEY = <your Mouser Search API key>
+//   2b. Add Secret LOOKUP_PASS = the password that unlocks Mouser lookups (only you should know it)
 //   3. Test: https://<your-worker>.workers.dev/part?pn=BSC0902NS
 //
 // Usage from the page:  GET /part?pn=<part number>
@@ -25,13 +26,19 @@ export default {
       "Access-Control-Allow-Origin": ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
       "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",
       "Access-Control-Max-Age": "86400",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers": "Content-Type, X-Lookup-Key",
       "Vary": "Origin",
     };
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
 
     const url = new URL(request.url);
     if (url.pathname.startsWith("/lib")) return handleLib(request, env, url, cors, origin);
+    if (url.pathname === "/lookup-check" || url.pathname === "/part") {
+      // Mouser lookups use the shared API key, so only the owner (who knows LOOKUP_PASS) may trigger them
+      if (!env.LOOKUP_PASS) return json({ error: "LOOKUP_PASS secret not set" }, 500, cors);
+      if (!safeEq(request.headers.get("X-Lookup-Key") || "", env.LOOKUP_PASS)) return json({ error: "Lookup password needed" }, 401, cors);
+      if (url.pathname === "/lookup-check") return json({ ok: true }, 200, cors);
+    }
     if (url.pathname !== "/part") return json({ error: "Use /part?pn=... or /lib" }, 404, cors);
 
     const pn = (url.searchParams.get("pn") || "").trim();
@@ -92,6 +99,13 @@ export default {
     return withCors(response, cors);
   },
 };
+
+function safeEq(a, b) {
+  if (a.length !== b.length) return false;
+  let d = 0;
+  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
 
 function json(obj, status, headers) {
   return new Response(JSON.stringify(obj), {
@@ -192,6 +206,10 @@ function cleanEntry(type, pn, e, by, old) {
     const t = str(e.type, 8);
     if (t) { if (!["mlcc", "poly", "tant", "alu", "film"].includes(t)) return "Unknown capacitor type"; out.type = t; }
   }
+  if (typeof e.verified === "boolean") {
+    if (e.verified !== (old && old.verified === true)) out.verifiedAt = new Date().toISOString();
+    out.verified = e.verified;
+  } else if (typeof out.verified !== "boolean") out.verified = false;
   const vals = Object.assign({}, (old && old.vals) || {});
   if (e.vals && typeof e.vals === "object") {
     for (const [k, v] of Object.entries(e.vals)) {
@@ -210,7 +228,7 @@ function cleanEntry(type, pn, e, by, old) {
 
 /* KV metadata is limited to 1 KB: keep what the picker needs, drop long text first */
 function compact(e) {
-  const m = { pn: e.pn, type: e.type, dielectric: e.dielectric, manufacturer: e.manufacturer, datasheet: e.datasheet, description: e.description, vals: e.vals, by: e.by, at: e.at };
+  const m = { pn: e.pn, type: e.type, dielectric: e.dielectric, manufacturer: e.manufacturer, datasheet: e.datasheet, description: e.description, vals: e.vals, verified: e.verified === true, by: e.by, at: e.at };
   for (const drop of [null, "description", "datasheet", "manufacturer"]) {
     if (drop) delete m[drop];
     if (JSON.stringify(m).length <= 950) return m;

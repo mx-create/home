@@ -22,3 +22,15 @@ Notes
 - Every overwrite or delete keeps the previous version for 90 days: `GET /lib/history?type=cap&pn=<PN>`.
 - Saving merges fields, so the two tools never wipe each other's values. DC-bias loss is not stored because it depends on the design voltage.
 - Cloudflare free tier allows 1000 KV writes a day, plenty for a parts library.
+
+## Mouser lookup password
+
+Mouser lookups spend the shared API key, so the worker only answers when the request carries the owner's password.
+
+1. Worker → Settings → Variables and Secrets → add Secret `LOOKUP_PASS` with a password only you know.
+2. The first time you press a lookup button (in Designer, Compensation or the Parts Library page) the tool asks for it, then remembers it on that device. Anyone without it can still view, edit, import and verify parts, but cannot run Mouser lookups.
+3. Until `LOOKUP_PASS` is set, lookups return an error and do nothing.
+
+## Parts library page and CSV import
+
+`/parts_library/` is a live table of the shared library: search, filter by verified, edit any cell, tick Verified, add a part, delete a part. Import takes a CSV (use Download template on the page; the columns are `type, pn, subtype, manufacturer, description, datasheet, verified`, then one column per value). Imported parts are marked not verified unless the verified column says yes. Imports are limited to 200 parts per file, and each part is one KV write against the free tier's 1000 a day.
