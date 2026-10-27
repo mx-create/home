@@ -24,6 +24,7 @@ input,select,button{font:inherit;color:var(--ink)}
 input[type=text],input[type=search],input[type=number],select{background:var(--field);border:1px solid var(--rule);border-radius:5px;padding:6px 8px;min-height:34px}
 .btn{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:7px 12px;cursor:pointer;min-height:34px}
 .btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+a.btn{text-decoration:none;display:inline-block;color:var(--ink)}
 .btn:disabled{opacity:.5;cursor:default}
 .grow{flex:1 1 200px}
 .status{color:var(--muted);font-size:13px}
@@ -54,7 +55,7 @@ td.desc input{width:300px}
 <body>
 <header>
   <h1>Parts Library</h1>
-  <p class="sub">One shared library for <a href="../buck_designer/">Buck Designer</a> and <a href="../buck_compensation/">Buck Compensation</a>. Edit any cell and it saves for everyone. Tick <b>Verified</b> once you have checked a part against its datasheet.</p>
+  <p class="sub">One shared library for <a href="../buck_designer/">Buck Designer</a> and <a href="../buck_compensation/">Buck Compensation</a>. Edit any cell and it saves for everyone. Tick <b>Verified</b> once you have checked a part against its datasheet. The <b>Google</b> button opens a search asking for the part's values as a table; AI answers can be wrong, so treat them as a starting point only.</p>
   <div class="bar"><span id="st" class="status" role="status"></span><label class="status">Your name for edits <input type="text" id="by" maxlength="40" placeholder="optional" autocomplete="name"></label></div>
 </header>
 <main>
@@ -126,7 +127,7 @@ function renderTable(){
      <td class="desc"><input type="text" data-f="description" maxlength="300" value="${esc(e.description)}" aria-label="Description"></td>
      ${cols.map(c=>`<td><input type="number" step="any" data-v="${c.k}" value="${v[c.k]!=null?esc(v[c.k]):""}" aria-label="${esc(c.h)}"></td>`).join("")}
      <td class="txt"><input type="text" data-f="datasheet" maxlength="400" value="${esc(e.datasheet)}" placeholder="https://" aria-label="Datasheet link">${/^https?:\/\//i.test(e.datasheet||"")?` <a href="${esc(e.datasheet)}" target="_blank" rel="noopener">open</a>`:""}</td>
-     <td><button class="btn" type="button" data-act="mouser">Mouser</button> <button class="btn" type="button" data-act="del" aria-label="Delete ${esc(e.pn)}">✕</button> <span class="rowst" data-rs></span></td></tr>`}).join("")+`</tbody></table>`;
+     <td><a class="btn" href="${esc(PL.googleUrl(tab,e.pn))}" target="_blank" rel="noopener" title="Opens Google with a ready-made question. AI answers can be wrong: check values against the datasheet before ticking Verified.">Google</a> <button class="btn" type="button" data-act="mouser">Mouser</button> <button class="btn" type="button" data-act="del" aria-label="Delete ${esc(e.pn)}">✕</button> <span class="rowst" data-rs></span></td></tr>`}).join("")+`</tbody></table>`;
   $("count").textContent=`${rows.length} of ${PL.get(tab).length} shown`;
 }
 function renderStatus(){
