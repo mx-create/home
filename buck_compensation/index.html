@@ -436,6 +436,17 @@ body.reporting .mxfoot{display:none}
     <textarea id="mcText" class="mctext" readonly spellcheck="false" aria-label="Mathcad export text"></textarea>
     <p class="hint">Written to Mathcad's syntax but not tested against Prime here. Units are typed as <code>*kHz</code> style products and j is written <code>1i</code>. If a pasted line lands as text, retype the <code>:=</code> and it converts to a math region.</p>
   </section>
+  <section class="card" aria-labelledby="h-proj">
+    <h2 id="h-proj">Project file</h2>
+    <p class="sub">Save every input, the capacitor bank and the inductor to a small file on this device, and load it back later. The file is plain JSON, so you can keep it with your design notes or send it to a colleague.</p>
+    <div class="projrow" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <label style="display:flex;gap:6px;align-items:center;flex:1 1 220px">Project name <input id="projName" type="text" maxlength="60" placeholder="e.g. 12V to 3V3 POL" autocomplete="off" style="flex:1;min-width:0"></label>
+      <button type="button" id="projSave" class="btn-primary">Save project file</button>
+      <button type="button" id="projLoad">Load project file</button>
+      <input type="file" id="projFile" accept=".json,application/json" hidden>
+    </div>
+    <p class="cg-st" id="projSt" role="status"></p>
+  </section>
 </main>
 </div>
 
@@ -1983,7 +1994,8 @@ function drawMpDetail(){
 /* ---------- persistence & events ---------- */
 const FIELDS=['vin','vout','iout','fsw','L','dcr','mode','src','vramp','ri','se','gknown','amp','gm','vref','rtop','method','fc','pm','fz1','fz2','fp1','fp2','snap','nph','arch','tolr','vos'];
 const DEFAULTS={}; FIELDS.forEach(k=>{const el=$(k); DEFAULTS[k]=el.type==='checkbox'?el.checked:el.value;});
-function save(){try{const o={t:typeSel(),bank};FIELDS.forEach(k=>{const el=$(k);o[k]=el.type==='checkbox'?el.checked:el.value;o['u_'+k]=el.dataset.user||'';});localStorage.setItem('buckcomp.v1',JSON.stringify(o));}catch(e){}}
+function snapshot(){const o={t:typeSel(),bank};FIELDS.forEach(k=>{const el=$(k);o[k]=el.type==='checkbox'?el.checked:el.value;o['u_'+k]=el.dataset.user||'';});return o;}
+function save(){try{localStorage.setItem('buckcomp.v1',JSON.stringify(snapshot()));}catch(e){}}
 function restore(){try{const o=JSON.parse(localStorage.getItem('buckcomp.v1')||'null');if(!o)return;FIELDS.forEach(k=>{if(o[k]===undefined)return;const el=$(k);if(el.type==='checkbox')el.checked=o[k];else el.value=o[k];if(o['u_'+k])el.dataset.user=o['u_'+k];});
   if(Array.isArray(o.bank)&&o.bank.length) bank=o.bank;
   const r=document.querySelector(`input[name=ctypeSel][value="${o.t}"]`); if(r) r.checked=true;}catch(e){}}
@@ -2004,6 +2016,51 @@ $('copyBtn').addEventListener('click',async()=>{
   const txt=lines.join('\n');
   try{await navigator.clipboard.writeText(txt);$('copyMsg').textContent='Copied';}catch(e){$('copyMsg').textContent='Copy blocked here; values are in the table.';}
 });
+/* ---- project file: save and load everything as JSON on this device ---- */
+const BANK_NUM=['c','n','kb','esr','fs','df','esl','kt'];
+function cleanBank(b){
+  if(!Array.isArray(b))return null;
+  const out=b.slice(0,12).filter(g=>g&&typeof g==='object').map(g=>{
+    const o={type:(typeof g.type==='string'&&Object.prototype.hasOwnProperty.call(CAPNAME,g.type))?g.type:'x7r'};
+    BANK_NUM.forEach(k=>{const v=Number(g[k]); if(g[k]!==''&&g[k]!==null&&isFinite(v))o[k]=v;});
+    if(typeof g.pn==='string'&&g.pn.trim())o.pn=g.pn.trim().slice(0,60);
+    if(g.mz&&typeof g.mz==='object'){const s=x=>typeof x==='string'?x.slice(0,300):''; o.mz={manufacturer:s(g.mz.manufacturer),description:s(g.mz.description),datasheet:/^https?:\/\//i.test(g.mz.datasheet||'')?String(g.mz.datasheet).slice(0,400):''};}
+    return o;});
+  return out.length?out:null;
+}
+function projStat(t,err){const el=$('projSt'); el.textContent=t; el.className='cg-st'+(err?' err':'');}
+$('projSave').addEventListener('click',()=>{
+  const name=($('projName').value||'').trim(), s=snapshot();
+  const file={app:'buck-compensation',version:1,name,saved:new Date().toISOString(),state:s,inductor:{pn:($('indPn').value||'').trim(),mz:indMz}};
+  const slug=(name||'project').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'project';
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(file,null,2)],{type:'application/json'}));
+  a.download='buck-compensation-'+slug+'.json'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},500);
+  projStat('Saved '+a.download+'. Look in your downloads folder.');
+});
+$('projLoad').addEventListener('click',()=>$('projFile').click());
+$('projFile').addEventListener('change',async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f)return;
+  if(f.size>200000){projStat('That file is too large to be a project file.',true);return;}
+  let o; try{o=JSON.parse(await f.text());}catch(err){projStat('That file is not a valid project file (it could not be read as JSON).',true);return;}
+  if(!o||o.app!=='buck-compensation'||!o.state||typeof o.state!=='object'){projStat('That is not a Buck Compensation project file.',true);return;}
+  const s=o.state, skipped=[];
+  FIELDS.forEach(k=>{
+    if(s[k]===undefined)return; const el=$(k);
+    if(el.type==='checkbox'){el.checked=!!s[k];}
+    else if(el.tagName==='SELECT'){const v=String(s[k]); if([...el.options].some(op=>op.value===v))el.value=v; else skipped.push(k);}
+    else{const v=String(s[k]); if(el.type==='number'&&v!==''&&!isFinite(Number(v))){skipped.push(k);return;} el.value=v.slice(0,40);}
+    el.dataset.user=(s['u_'+k]==='1')?'1':'0';
+  });
+  const nb=cleanBank(s.bank); if(nb)bank=nb; else skipped.push('capacitor bank');
+  const r=document.querySelector(`input[name=ctypeSel][value="${+s.t}"]`); if(r)r.checked=true;
+  const ind=o.inductor||{}; $('indPn').value=(typeof ind.pn==='string'?ind.pn:'').slice(0,60);
+  const mz=ind.mz&&typeof ind.mz==='object'?ind.mz:{}; indMz={manufacturer:String(mz.manufacturer||'').slice(0,300),description:String(mz.description||'').slice(0,300),datasheet:/^https?:\/\//i.test(mz.datasheet||'')?String(mz.datasheet).slice(0,400):''};
+  indStat(''); indOpts();
+  $('projName').value=typeof o.name==='string'?o.name.slice(0,60):'';
+  renderBank(); compute(); save();
+  projStat('Loaded '+(o.name?'"'+o.name+'"':f.name)+(o.saved?' (saved '+new Date(o.saved).toLocaleString('en-GB')+')':'')+'.'+(skipped.length?' Skipped values that did not fit: '+skipped.join(', ')+'.':''));
+});
+
 restore();
 renderBank();
 compute();
