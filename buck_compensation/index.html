@@ -57,6 +57,9 @@ aside.rail{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;
 @media (max-width:960px){aside.rail{position:static;max-height:none}}
 fieldset{border:0;border-top:1px solid var(--rule);margin:0;padding:12px 14px 14px}
 fieldset:first-child{border-top:0}
+fieldset{min-width:0}
+.rail select,.rail .cg>*,.cg-lib>*,.cg-h select{min-width:0;max-width:100%}
+.rail{overflow-x:hidden}
 legend{font:600 .95rem/1 var(--f-disp);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);padding:0;margin-bottom:8px;float:left;width:100%}
 legend+*{clear:both}
 .row{display:grid;grid-template-columns:minmax(0,1fr) 96px 44px;align-items:center;gap:6px;margin-top:6px}
@@ -94,7 +97,7 @@ button:hover{border-color:var(--ink)}
 .cg-g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 6px;margin-top:6px}
 .cg-g label{display:grid;gap:2px;font-size:.68rem;color:var(--muted);line-height:1.2;min-width:0;white-space:nowrap}
 .cg-g input{padding:4px 5px;font-size:.8rem}
-.mctext{width:100%;height:340px;resize:vertical;font:.8rem/1.55 var(--f-mono);color:var(--ink);background:var(--field);border:1px solid var(--rule);border-radius:4px;padding:10px;white-space:pre;overflow:auto;tab-size:2}
+.mctext{width:100%;height:340px;resize:vertical;font:.8rem/1.55 var(--f-mono);color:var(--ink);background:var(--field);border:1px solid var(--rule);border-radius:4px;padding:10px;white-space:pre-wrap;overflow:auto;tab-size:2}
 code{font:.82em var(--f-mono);background:var(--grid2);padding:1px 4px;border-radius:3px}
 .chk{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:.83rem;color:var(--muted)}
 
@@ -103,6 +106,15 @@ main{display:grid;gap:18px;min-width:0}
 .card h2{font:700 1.3rem/1.1 var(--f-disp);letter-spacing:.02em;margin:0 0 4px;text-wrap:balance}
 .card h2 .tag{font:500 .72rem var(--f-mono);letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-left:8px;vertical-align:middle}
 .card h3.sh{font:700 .95rem var(--f-disp);letter-spacing:.07em;text-transform:uppercase;margin:16px 0 6px}
+#sugTbl{width:100%;border-collapse:collapse;font-size:.84rem;margin:8px 0}
+#sugTbl th,#sugTbl td{border:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+#sugTbl th{background:var(--grid2);font-weight:600}
+#sugTbl td.n{font-family:var(--f-mono)}
+#sugTbl .ok{color:var(--good)}#sugTbl .bad{color:var(--warn)}
+#sugTbl button,#sugIn button{font:inherit;cursor:pointer}
+.sugT{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0;border:1px solid var(--rule);margin:8px 0}
+.sugT div{padding:8px 10px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);font-size:.84rem}
+.sugT b{display:block;font:700 .72rem var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink2,inherit)}
 .mpd h3{font:700 1.05rem var(--f-disp);letter-spacing:.05em;text-transform:uppercase;margin:20px 0 4px}
 .mpd p,.mpd li{max-width:76ch;font-size:.92rem;margin:.4em 0}
 .mpd .eqn{font-family:var(--f-mono);font-size:.84rem;background:var(--grid2);border-left:3px solid var(--accent);padding:6px 10px;margin:6px 0;overflow-x:auto;white-space:pre-wrap}
@@ -171,6 +183,8 @@ td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:now
 td.n.std{color:var(--accent);font-weight:500}
 td .role{color:var(--muted);font-size:.78rem;display:block}
 .tblwrap{overflow-x:auto}
+@media(max-width:1100px){td.n,.mpd td.n,#mpArch td.n,#sugTbl td.n{white-space:normal;overflow-wrap:anywhere}.tblwrap th,.tblwrap td,.mpd th,.mpd td{padding:5px 6px}.mpd table{font-size:.78rem}.tblwrap th,.tblwrap td,.mpd th,.mpd td,#sugTbl th,#sugTbl td{overflow-wrap:anywhere}}
+@media(max-width:600px){#sugTbl,.mpd table,#mpArch,.tblwrap table{font-size:.7rem}#sugTbl th,#sugTbl td,.mpd th,.mpd td,.tblwrap th,.tblwrap td{padding:4px 4px}#sugTbl button{padding:3px 4px;font-size:.7rem}}
 .pz{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .chip{font:.76rem var(--f-mono);padding:3px 8px;border:1px solid var(--rule);border-radius:999px;color:var(--muted);white-space:nowrap}
 .chip b{color:var(--ink);font-weight:500}
@@ -409,6 +423,16 @@ body.reporting .mxfoot{display:none}
     <h3 style="font:700 1.05rem var(--f-disp);letter-spacing:.06em;text-transform:uppercase;margin:14px 0 6px">How the groups share the work</h3>
     <div class="tblwrap"><table><thead><tr><th>Group</th><th style="text-align:right">C<sub>eff</sub></th><th style="text-align:right">ESR @ f<sub>C</sub></th><th style="text-align:right">|Z| @ f<sub>SW</sub></th><th style="text-align:right">Ripple I<sub>rms</sub></th><th style="text-align:right">Share</th></tr></thead><tbody id="branchTbl"></tbody></table></div>
     <p class="hint">Ripple current divides by admittance at f<sub>SW</sub>: I<sub>i</sub> ≈ I<sub>C,rms</sub>·|Y<sub>i</sub>/Y<sub>bank</sub>|. Check each group against its rated ripple current. A dip-then-peak in |Z| between two groups is an anti-resonance between the ceramic ESL and the bulk capacitor.</p>
+  </section>
+
+  <section class="card" aria-labelledby="h-sug">
+    <h2 id="h-sug">Capacitor suggestion</h2>
+    <p class="sub">Starting values that meet typical good targets for this converter, checked against your current bank. Nothing to enter: the targets are fixed and listed below.</p>
+    <div id="sugTarget"></div>
+    <div class="tblwrap"><table id="sugTbl"></table></div>
+    <h3 class="sh">Input capacitor</h3>
+    <div id="sugIn"></div>
+    <p class="hint">Rules of thumb, not a substitute for the datasheets: ceramic capacitance is derated for DC bias with typical X7R figures, so enter the real bias curve (k<sub>C</sub>) for the part you pick. The load-step estimate assumes the loop crosses over at your target f<sub>C</sub>. Applying a suggestion replaces your capacitor groups and recomputes the loop.</p>
   </section>
 
   <section class="card" aria-labelledby="h-types">
@@ -1038,6 +1062,7 @@ function compute(){
   renderTypes(p.type,p.amp);
   drawEqs();
   drawMp();
+  drawCapSuggest();
   drawMpDetail();
   $('mcText').value=buildMathcad();
   save();
@@ -1798,6 +1823,69 @@ function drawCap(){
     ['Output ripple',fe(vEsr+vC,'V'),`ESR ${fe(vEsr,'V')} + C ${fe(vC,'V')}`],['ESL step',fe(vL,'V'),'V<sub>IN</sub>·ESL/L, edge spike']];
   $('capMetrics').innerHTML=C.map(m=>`<div class="metric"><div class="k">${m[0]}</div><div class="v">${m[1]}</div><div class="d">${m[2]}</div></div>`).join('');
 }
+
+/* ---------- capacitor suggestion ---------- */
+const SUG={ripple:0.01,droop:0.03,step:0.5,inRipple:0.01,rmsPer:2};
+function capUnit(vout){
+  if(vout<=3.6) return {c:22,kb:65,v:'6.3 V'};
+  if(vout<=6)   return {c:22,kb:55,v:'10 V'};
+  if(vout<=16)  return {c:10,kb:45,v:'25 V'};
+  return {c:4.7,kb:40,v:'50 V'};
+}
+function sugGroup(type,c,n,kb){const P=CAPS[type];return {type,c,n,kb,esr:P.esr,fs:P.fspec,df:P.df,esl:P.esl,kt:1,pn:''};}
+function sugToP(g){return {pn:'',type:g.type,c:g.c*1e-6,n:Math.max(1,g.n),kb:g.kb/100,esr:g.esr*1e-3,fs:g.fs*1e3,df:g.df,esl:g.esl*1e-9,kt:g.kt};}
+function sugEval(p,groups,info,mr){
+  const cap=capModel({...p,bank:groups.map(sugToP)});
+  const dIo=mr.dIout, fr=p.fe, vr=dIo*cap.esr(fr)+dIo/(8*fr*cap.Ceff);
+  const dI=p.iout*SUG.step, fc=p.fc;
+  const vLoop=dI/(TAU*fc*cap.Ceff), vE=info.Le*dI*dI/(2*p.vout*cap.Ceff);
+  return {cap,vr,droop:Math.max(vLoop,vE),f0:1/(TAU*Math.sqrt(info.Le*cap.Ceff)),esr:cap.esr(fr),n:groups.reduce((a,g)=>a+g.n,0)};
+}
+function drawCapSuggest(){
+  const {p,info,cap}=last, mr=last.rip.mr, N=p.N;
+  const Vr=SUG.ripple*p.vout, dV=SUG.droop*p.vout, dIo=mr.dIout, dIs=p.iout*SUG.step;
+  const Cr=dIo/(8*p.fe*(Vr/2)), ESRmax=(Vr/2)/Math.max(dIo,1e-12);
+  const CloopLoad=dIs/(TAU*p.fc*dV), CenLoad=info.Le*dIs*dIs/(2*p.vout*dV), Cl=Math.max(CloopLoad,CenLoad);
+  const u=capUnit(p.vout), Ce=u.c*u.kb/100;
+  /* A: all ceramic */
+  let nA=Math.max(1,Math.ceil(Math.max(Cr*1e6,Cl*1e6)/Ce));
+  while(nA<60&&sugEval(p,[sugGroup('x7r',u.c,nA,u.kb)],info,mr).esr>ESRmax)nA++;
+  const A=[sugGroup('x7r',u.c,nA,u.kb)];
+  /* B: ceramics for ripple, polymer bulk for the load step */
+  let nR=Math.max(1,Math.ceil(Cr*1e6/Ce));
+  while(nR<60&&sugEval(p,[sugGroup('x7r',u.c,nR,u.kb)],info,mr).esr>ESRmax)nR++;
+  const polyC=100, nP=Math.ceil(Math.max(0,Cl*1e6-nR*Ce)/polyC);
+  const B=nP>0?[sugGroup('x7r',u.c,nR,u.kb),sugGroup('poly',polyC,nP,100)]:null;
+  const cur=sugEval(p,p.bank.map(b=>({type:b.type,c:b.c*1e6,n:b.n,kb:b.kb*100,esr:b.esr*1e3,fs:b.fs/1e3,df:b.df,esl:b.esl*1e9,kt:b.kt})),info,mr);
+  const cands=[A,B].filter(Boolean).map(g=>({g,e:sugEval(p,g,info,mr)}));
+  last.capSug=cands.map(c=>c.g);
+  $('sugTarget').innerHTML='<div class="sugT">'
+   +`<div><b>Output ripple</b>≤ ${fd(SUG.ripple*100,0)}% of V<sub>OUT</sub> = ${fe(Vr,'V')} pk-pk, split evenly: C and ESR each ≤ ${fe(Vr/2,'V')}<br>C ≥ ${fe(Cr,'F')}, ESR ≤ ${fe(ESRmax,'Ω')} at ${fHz(p.fe)}</div>`
+   +`<div><b>Load step</b>${fd(SUG.step*100,0)}% of I<sub>OUT</sub> = ${fe(dIs,'A')}, droop ≤ ${fd(SUG.droop*100,0)}% = ${fe(dV,'V')}<br>C ≥ ${fe(Cl,'F')} (${CloopLoad>=CenLoad?'loop-limited: ΔI/(2π·f<sub>C</sub>·ΔV)':'energy-limited: L<sub>eff</sub>·ΔI²/(2·V<sub>OUT</sub>·ΔV)'})</div>`
+   +`<div><b>Resonance</b>f<sub>0</sub> well below crossover: ≤ f<sub>C</sub>/3 = ${fHz(p.fc/3)}<br>Capacitance count limited by ${fd(u.c,0)} µF × ${u.v} ceramics at ${u.kb}% bias retention</div></div>`;
+  if(nA>16) $('sugTarget').innerHTML+=`<p class="hint">All-ceramic needs ${nA} parts here, which is impractical. ${CenLoad>CloopLoad?'The load-step requirement is set by the inductor energy, so a smaller inductor or a higher switching frequency cuts it directly. ':''}The ceramic + polymer option is the realistic one; check it against your board space.</p>`;
+  const chk=(ok,txt)=>`<span class="${ok?'ok':'bad'}">${ok?'✓':'✗'}</span> ${txt}`;
+  const col=(e)=>[fe(e.cap.Ceff,'F'),fe(e.esr,'Ω'),chk(e.vr<=Vr*1.001,fe(e.vr,'V')),chk(e.droop<=dV*1.001,fe(e.droop,'V')),chk(e.f0<=p.fc/3,fHz(e.f0))];
+  const desc=g=>g.map(x=>`${x.n} × ${fe(x.c*1e-6,'F')} ${CAPNAME[x.type]}`).join('<br>');
+  const rows=['C effective',`ESR at ${p.N>1?'N·f<sub>SW</sub>':'f<sub>SW</sub>'}`,'Output ripple','Load-step droop','f<sub>0</sub>'];
+  const cols=[{h:'Your bank',d:p.bank.map(b=>`${b.n} × ${fe(b.c,'F')} ${CAPNAME[b.type]}`).join('<br>'),v:col(cur)}]
+    .concat(cands.map((c,i)=>({h:i===0?'Suggestion: all ceramic':'Suggestion: ceramic + polymer',d:desc(c.g)+`<br><span class="hint" style="margin:0">${c.e.n} parts</span>`,v:col(c.e),apply:i})));
+  $('sugTbl').innerHTML='<thead><tr><th></th>'+cols.map(c=>`<th>${c.h}</th>`).join('')+'</tr></thead><tbody>'
+    +'<tr><th>Groups</th>'+cols.map(c=>`<td>${c.d}</td>`).join('')+'</tr>'
+    +rows.map((r,i)=>`<tr><th>${r}</th>`+cols.map(c=>`<td class="n">${c.v[i]}</td>`).join('')+'</tr>').join('')
+    +'<tr><th></th>'+cols.map(c=>c.apply!==undefined?`<td><button type="button" data-sug="${c.apply}">Use this bank</button></td>`:'<td></td>').join('')+'</tr></tbody>';
+  /* input capacitor */
+  const Vin=p.vin, Cin=p.iout*mr.num/(N*N*p.fsw*SUG.inRipple*Vin);
+  const iu=Vin<=6.3?{c:22,kb:65,v:'10 V'}:Vin<=16?{c:10,kb:50,v:'25 V'}:Vin<=36?{c:4.7,kb:50,v:'63 V'}:Vin<=63?{c:2.2,kb:50,v:'100 V'}:{c:1,kb:50,v:'250 V'};
+  const nC=Math.ceil(Cin*1e6/(iu.c*iu.kb/100)), nI=Math.ceil(mr.irms/SUG.rmsPer), nIn=Math.max(nC,nI);
+  $('sugIn').innerHTML=`<div class="sugT">`
+   +`<div><b>Ripple</b>≤ ${fd(SUG.inRipple*100,0)}% of V<sub>IN</sub> = ${fe(SUG.inRipple*Vin,'V')}<br>C ≥ ${fe(Cin,'F')}${N>1?` (interleaving divides it by about ${fd(mr.ratio?mr.irms1/mr.irms:1,1)}×)`:''}</div>`
+   +`<div><b>RMS current</b>${fe(mr.irms,'A')}${N>1?` (one phase would give ${fe(mr.irms1,'A')})`:''}<br>about ${SUG.rmsPer} A rms per ceramic, so ≥ ${nI} parts</div>`
+   +`<div><b>Suggestion</b>${nIn} × ${fe(iu.c*1e-6,'F')} ceramic, rated ≥ ${iu.v} (1.5 × V<sub>IN</sub> = ${fd(1.5*Vin,0)} V)<br>${fe(nIn*iu.c*iu.kb/100*1e-6,'F')} after bias, limited by ${nC>=nI?'ripple':'rms current'}</div></div>`
+   +`<p class="hint">Put them at the switch's VIN and GND pins, with the smallest value closest. If the input comes through a long cable or a filter, add a bulk electrolytic or polymer in parallel to damp it. The input capacitor is not part of the loop model, so it is not applied automatically.</p>`;
+}
+$('sugTbl').addEventListener('click',e=>{const b=e.target.closest('[data-sug]'); if(!b||!last.capSug)return;
+  bank=JSON.parse(JSON.stringify(last.capSug[+b.dataset.sug])); renderBank(); compute();});
 
 function drawEqs(){
   const {p,cap,info,d,sw,comp}=last;
