@@ -57,6 +57,9 @@ aside.rail{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;
 @media (max-width:960px){aside.rail{position:static;max-height:none}}
 fieldset{border:0;border-top:1px solid var(--rule);margin:0;padding:12px 14px 14px}
 fieldset:first-child{border-top:0}
+fieldset{min-width:0}
+.rail select,.rail .cg>*,.cg-lib>*,.cg-h select{min-width:0;max-width:100%}
+.rail{overflow-x:hidden}
 legend{font:600 .95rem/1 var(--f-disp);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);padding:0;margin-bottom:8px;float:left;width:100%}
 legend+*{clear:both}
 .row{display:grid;grid-template-columns:minmax(0,1fr) 96px 44px;align-items:center;gap:6px;margin-top:6px}
@@ -94,7 +97,7 @@ button:hover{border-color:var(--ink)}
 .cg-g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 6px;margin-top:6px}
 .cg-g label{display:grid;gap:2px;font-size:.68rem;color:var(--muted);line-height:1.2;min-width:0;white-space:nowrap}
 .cg-g input{padding:4px 5px;font-size:.8rem}
-.mctext{width:100%;height:340px;resize:vertical;font:.8rem/1.55 var(--f-mono);color:var(--ink);background:var(--field);border:1px solid var(--rule);border-radius:4px;padding:10px;white-space:pre;overflow:auto;tab-size:2}
+.mctext{width:100%;height:340px;resize:vertical;font:.8rem/1.55 var(--f-mono);color:var(--ink);background:var(--field);border:1px solid var(--rule);border-radius:4px;padding:10px;white-space:pre-wrap;overflow:auto;tab-size:2}
 code{font:.82em var(--f-mono);background:var(--grid2);padding:1px 4px;border-radius:3px}
 .chk{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:.83rem;color:var(--muted)}
 
@@ -180,6 +183,8 @@ td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:now
 td.n.std{color:var(--accent);font-weight:500}
 td .role{color:var(--muted);font-size:.78rem;display:block}
 .tblwrap{overflow-x:auto}
+@media(max-width:1100px){td.n,.mpd td.n,#mpArch td.n,#sugTbl td.n{white-space:normal;overflow-wrap:anywhere}.tblwrap th,.tblwrap td,.mpd th,.mpd td{padding:5px 6px}.mpd table{font-size:.78rem}.tblwrap th,.tblwrap td,.mpd th,.mpd td,#sugTbl th,#sugTbl td{overflow-wrap:anywhere}}
+@media(max-width:600px){#sugTbl,.mpd table,#mpArch,.tblwrap table{font-size:.7rem}#sugTbl th,#sugTbl td,.mpd th,.mpd td,.tblwrap th,.tblwrap td{padding:4px 4px}#sugTbl button{padding:3px 4px;font-size:.7rem}}
 .pz{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .chip{font:.76rem var(--f-mono);padding:3px 8px;border:1px solid var(--rule);border-radius:999px;color:var(--muted);white-space:nowrap}
 .chip b{color:var(--ink);font-weight:500}
