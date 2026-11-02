@@ -63,7 +63,8 @@ td input.ph{border-color:var(--warn);background:var(--warn-bg)}
 <main>
   <div class="bar"><div class="tabs" role="tablist" id="tabs"></div></div>
   <div class="bar">
-    <input type="search" id="q" class="grow" placeholder="Search part number, manufacturer or description" aria-label="Search">
+    <input type="search" id="q" class="grow" placeholder="Search or filter: murata 47u 25V, esr<5, c>=10" aria-label="Search or filter" title="Words all have to match. Text matches part number, maker, description and type. A value with a unit (47u, 25V, 5m, 3A) finds that capacitance or inductance, at least that rating, or at most that resistance. key>=number compares any column, e.g. vr>=16 or dcr<20.">
+    <select id="kf" aria-label="Capacitor type filter" hidden><option value="">All types</option><option value="x7r">MLCC X7R/X5R</option><option value="c0g">MLCC C0G</option><option value="poly">Polymer</option><option value="tant">Tantalum</option><option value="alu">Aluminium</option><option value="film">Film</option></select>
     <select id="vf" aria-label="Verified filter"><option value="">All parts</option><option value="v">Verified only</option><option value="u">Not verified only</option></select>
     <button class="btn" id="imp" type="button">Import CSV</button><input type="file" id="file" accept=".csv,text/csv" hidden>
     <button class="btn" id="tpl" type="button">Download template</button>
@@ -79,7 +80,7 @@ td input.ph{border-color:var(--warn);background:var(--warn-bg)}
   <div class="wrap" id="tbl"></div>
   <p class="status" id="count"></p>
 </main>
-<script src="../shared/partslib.js?v=20261102a"></script>
+<script src="../shared/partslib.js?v=20261102b"></script>
 <script>
 (function(){
 "use strict";
@@ -105,10 +106,10 @@ try{const t=localStorage.getItem("mx.plib.tab");if(NAMES[t])tab=t}catch(e){}
 function say(t,err){const m=$("msg");m.innerHTML=t?`<div class="msg${err?" err":""}">${esc(t)}</div>`:""}
 const by=()=>($("by").value||"").trim();
 function rowsFor(t){
-  const q=$("q").value.trim().toLowerCase(),f=$("vf").value;
+  const q=$("q").value,f=$("vf").value,k=t==="cap"?$("kf").value:"";
   return PL.get(t).filter(e=>{
     if(f==="v"&&!e.verified)return false;if(f==="u"&&e.verified)return false;
-    return !q||[e.pn,e.manufacturer,e.description].some(x=>String(x||"").toLowerCase().includes(q));
+    return PL.ofKind(e,k)&&PL.matches(t,e,q);
   });
 }
 function renderTabs(){
@@ -122,7 +123,7 @@ function renderAdd(){
 }
 function renderTable(){
   const rows=rowsFor(tab),cols=COLS[tab];
-  if(!rows.length){$("tbl").innerHTML=`<div class="empty">${PL.get(tab).length?"No parts match the search.":"No parts here yet. Add one above or import a CSV file."}</div>`;$("count").textContent="";return}
+  if(!rows.length){$("tbl").innerHTML=`<div class="empty">${PL.get(tab).length?"No parts match the filter.":"No parts here yet. Add one above or import a CSV file."}</div>`;$("count").textContent="";return}
   $("tbl").innerHTML=`<table><thead><tr><th>Verified</th><th>Part number</th>${tab==="cap"?"<th>Type</th>":""}<th>Manufacturer</th><th>Description</th>${cols.map(c=>`<th>${esc(c.h)}<small>${esc(c.u)}</small></th>`).join("")}<th>Datasheet</th><th></th></tr></thead><tbody>`+
    rows.map(e=>{const v=e.vals||{};
     return `<tr data-pn="${esc(e.pn)}"><td><div class="vt"><input type="checkbox" data-f="verified" aria-label="Verified ${esc(e.pn)}" ${e.verified?"checked":""}><span class="badge ${e.verified?"v":"u"}">${e.verified?"✓ Verified":"○ Not verified"}</span></div></td>
@@ -140,7 +141,7 @@ function renderStatus(){
   const t={ok:`Shared library connected · ${n} part${n===1?"":"s"}`,loading:"Loading the shared library…",offline:`Shared library unreachable. Showing this device's copy (${n} parts).`,nosetup:"The shared library is not set up on the server yet.",idle:""}[s.state]||"";
   $("st").textContent=t+(s.pending?` · ${s.pending} waiting to share`:"");
 }
-function renderAll(){renderStatus();renderTabs();renderTable()}
+function renderAll(){$("kf").hidden=tab!=="cap";renderStatus();renderTabs();renderTable()}
 const inTable=()=>{const a=document.activeElement;return a&&$("tbl").contains(a)&&/^(INPUT|SELECT)$/.test(a.tagName)};
 
 /* ---------- editing ---------- */
@@ -295,7 +296,7 @@ $("file").addEventListener("change",async ev=>{
 
 /* ---------- wiring ---------- */
 $("tabs").addEventListener("click",ev=>{const b=ev.target.closest("[data-t]");if(!b)return;tab=b.dataset.t;try{localStorage.setItem("mx.plib.tab",tab)}catch(e){}say("");renderAll();renderAdd()});
-$("q").addEventListener("input",renderTable);$("vf").addEventListener("change",renderTable);
+$("q").addEventListener("input",renderTable);$("vf").addEventListener("change",renderTable);$("kf").addEventListener("change",renderTable);
 $("refresh").addEventListener("click",()=>PL.pull().then(()=>{if(!inTable())renderAll()}));
 $("by").value=PL.getBy();$("by").addEventListener("change",()=>PL.setBy($("by").value.trim()));
 PL.onChange(()=>{renderStatus();renderTabs();if(!inTable())renderTable()});

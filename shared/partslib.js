@@ -232,6 +232,56 @@ async function lookupPart(kind,pn){
   return {ok:false,errors};
 }
 
+/* ---------- filtering parts in the pickers ----------
+   kind narrows by technology: for capacitors "mlcc", "x7r" (MLCC X7R/X5R), "c0g", "poly", "tant", "alu", "film".
+   q is the little filter box. Its words all have to match:
+     plain text      murata, x7r, 0805, verified       part number, maker, description, type
+     value + unit    47u  10n  25V  5m  3A  4.7uH  500k  capacitance/inductance near that value, voltage and current
+                                                        at least that rating, mΩ at most that resistance
+     comparison      c>=10  vr>16  esr<5  L=4.7          any stored value by its key (as in the parts library columns)  */
+const UNITS={
+  cap:{u:["c","eq"],uf:["c","eq"],"µ":["c","eq"],"µf":["c","eq"],n:["c","eq",1e-3],nf:["c","eq",1e-3],p:["c","eq",1e-6],pf:["c","eq",1e-6],v:["vr","ge"],m:["esr","le"],mohm:["esr","le"],"mω":["esr","le"],a:["irmsC","ge"],nh:["esl","le"]},
+  ind:{u:["L","eq"],uh:["L","eq"],"µ":["L","eq"],"µh":["L","eq"],n:["L","eq",1e-3],nh:["L","eq",1e-3],a:["isat","ge"],m:["dcr","le"],mohm:["dcr","le"],"mω":["dcr","le"]},
+  fet:{v:["vds","ge"],a:["id","ge"],m:["rds","le"],mohm:["rds","le"],"mω":["rds","le"],nc:["qg","le"]},
+  ctrl:{v:["vinMaxIc","ge"],a:["ilim","ge"],k:["fswMax","ge"],khz:["fswMax","ge"],mhz:["fswMax","ge",1e3]},
+  conv:{v:["vinMaxIc","ge"],a:["ioutMaxIc","ge"],k:["fswMax","ge"],khz:["fswMax","ge"],mhz:["fswMax","ge",1e3]}
+};
+const near=(a,b)=>isFinite(a)&&Math.abs(a-b)<=Math.abs(b)*0.02+1e-12;
+function ofKind(e,kind){
+  if(!kind||kind==="custom"||kind==="all")return true;
+  if(kind==="x7r")return e.type==="mlcc"&&e.dielectric!=="c0g";
+  if(kind==="c0g")return (e.type==="mlcc"&&e.dielectric==="c0g")||e.type==="film";
+  return e.type===kind;
+}
+function textOf(e){
+  const t=[e.pn,e.manufacturer,e.description,e.type,e.dielectric,e.verified?"verified ✓":"unverified ○"];
+  if(e.type==="mlcc")t.push("ceramic",e.dielectric==="c0g"?"c0g np0":"x7r x5r");
+  return t.join(" ").toLowerCase();
+}
+function valOf(e,key){const v=e.vals||{},k=Object.keys(v).find(x=>x.toLowerCase()===key.toLowerCase());return k==null?NaN:+v[k]}
+function tokenOk(type,e,tok){
+  let m=tok.match(/^([a-z][a-z0-9_]*)(>=|<=|>|<|=)(-?\d*\.?\d+)$/i);
+  if(m){const x=valOf(e,m[1]),n=+m[3];if(!isFinite(x))return false;
+    return m[2]===">="?x>=n:m[2]==="<="?x<=n:m[2]===">"?x>n:m[2]==="<"?x<n:near(x,n)}
+  m=tok.match(/^(-?\d*\.?\d+)([a-zµω]+)$/i);
+  const u=m&&(UNITS[type]||{})[m[2].toLowerCase()];
+  if(u){const x=valOf(e,u[0]),n=+m[1]*(u[2]||1);
+    if(u[1]==="ge"?x>=n:u[1]==="le"?x<=n:near(x,n))return true}
+  if(/^-?\d*\.?\d+$/.test(tok)&&Object.values(e.vals||{}).some(x=>near(+x,+tok)))return true;
+  return textOf(e).includes(tok.toLowerCase());
+}
+function matches(type,e,q){
+  const toks=String(q||"").replace(/\s*(>=|<=|>|<|=)\s*/g,"$1").split(/[\s,;]+/).filter(Boolean);
+  return toks.every(t=>tokenOk(type,e,t));
+}
+/* parts of one type for a picker: {items, total, kindCount, kindMissing} — when no part is of the wanted kind, items
+   falls back to every kind (kindMissing true) so the picker never goes empty just because the library lacks that kind */
+function pickFor(type,opts){
+  opts=opts||{};const list=get(type),kinded=list.filter(e=>ofKind(e,opts.kind));
+  const base=kinded.length||!list.length?kinded:list;
+  return {items:base.filter(e=>matches(type,e,opts.q)),total:list.length,kindCount:kinded.length,kindMissing:!kinded.length&&!!list.length};
+}
+
 /* a verified tick on a library part; the server keeps the existing values */
 async function setVerified(type,e,flag,by){
   return save(type,{pn:e.pn,type:e.type,verified:!!flag,vals:e.vals},by);
@@ -278,5 +328,5 @@ function compToCap(g,mz){
   return e;
 }
 
-root.PartsLib={API,TYPES,all,get,status,onChange,pull,flush,save,remove,history,adopt,getBy,setBy,capToComp,compToCap,capComplete,CAP_REQ,mouserFetch,digikeyFetch,lookupPart,mouserMap,dkMap,dkNum,googleUrl,askKeys,setVerified,getKey,setKey};
+root.PartsLib={API,TYPES,all,get,pick:pickFor,matches,ofKind,status,onChange,pull,flush,save,remove,history,adopt,getBy,setBy,capToComp,compToCap,capComplete,CAP_REQ,mouserFetch,digikeyFetch,lookupPart,mouserMap,dkMap,dkNum,googleUrl,askKeys,setVerified,getKey,setKey};
 })(typeof window!=="undefined"?window:globalThis);
