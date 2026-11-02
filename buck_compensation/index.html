@@ -69,6 +69,7 @@ legend+*{clear:both}
 .row.wide{grid-template-columns:minmax(0,1fr) 146px}
 input[type=number],select{width:100%;font:500 .86rem var(--f-mono);color:var(--ink);background:var(--field);border:1px solid var(--rule);border-radius:4px;padding:5px 6px;font-variant-numeric:tabular-nums}
 select{font-family:var(--f-body);font-size:.84rem}
+input.libq{width:100%;font:500 .8rem var(--f-mono);color:var(--ink);background:var(--field);border:1px solid var(--rule);border-radius:4px;padding:4px 5px}
 input:disabled{color:var(--muted);background:var(--grid2)}
 input:focus-visible,select:focus-visible,button:focus-visible,.seg label:focus-within{outline:2px solid var(--accent);outline-offset:1px}
 .seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--ink);border-radius:5px;overflow:hidden;margin-top:4px}
@@ -311,7 +312,8 @@ body.reporting .mxfoot{display:none}
   <legend>Inductor (each phase)</legend>
   <div class="row"><label for="L"><span class="sym">L</span>Inductance</label><input id="L" type="number" step="any" value="4.7"><span class="u">µH</span></div>
   <div class="row"><label for="dcr"><span class="sym">DCR</span>Winding resistance</label><input id="dcr" type="number" step="any" value="15"><span class="u">mΩ</span></div>
-  <div class="cg-lib" id="indLib"><select id="indPick" aria-label="Pick an inductor from the shared library"></select>
+  <div class="cg-lib" id="indLib"><input type="search" class="libq" id="indQ" placeholder="Filter: 4.7u 10A, dcr<20" aria-label="Filter the inductor list" autocomplete="off" spellcheck="false">
+    <select id="indPick" aria-label="Pick an inductor from the shared library"></select>
     <div class="row1"><input type="text" id="indPn" placeholder="Manufacturer part number" autocomplete="off" autocapitalize="characters" spellcheck="false">
     <button type="button" id="indLook">Look up</button><button type="button" id="indSave">Save to library</button></div>
     <div class="cg-st" id="indSt" role="status"></div></div>
@@ -490,7 +492,7 @@ body.reporting .mxfoot{display:none}
 
 <footer class="mxfoot" style="max-width:1200px;margin:40px auto 0;padding:18px 16px 24px">Made by Manu R &middot; <a href="https://blog.mxdesign.uk">blog.mxdesign.uk</a> &middot; <a href="https://www.linkedin.com/in/manu-r-engineer" target="_blank" rel="noopener">LinkedIn</a> &middot; <a href="https://mxdesign.uk/RC_standard_finder/">RC Standard Finder</a></footer>
 <script src="vendor/katex/katex.min.js"></script>
-<script src="../shared/partslib.js?v=20261102a"></script>
+<script src="../shared/partslib.js?v=20261102b"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -545,12 +547,25 @@ const DEFAULT_BANK=[
 let bank=JSON.parse(JSON.stringify(DEFAULT_BANK));
 const BK=[['c','C µF'],['n','Qty'],['kb','k<sub>C</sub> %'],['esr','ESR mΩ'],['fs','@ kHz'],['df','tanδ'],['esl','ESL nH'],['kt','k<sub>T</sub> ×']];
 const escA=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function libOpts(sel){return PartsLib.get('cap').map(e=>`<option value="${escA(e.pn)}"${e.pn===sel?' selected':''}>${e.verified?'✓ ':'○ '}${escA(e.pn)}${e.description?' · '+escA(e.description.slice(0,36)):''}</option>`).join('')}
+/* library pickers: only parts of the group's technology, narrowed further by the filter box above the list */
+const libQ=[];
+const optOf=(e,sel)=>`<option value="${escA(e.pn)}"${e.pn===sel?' selected':''}>${e.verified?'✓ ':'○ '}${escA(e.pn)}${e.description?' · '+escA(e.description.slice(0,36)):''}</option>`;
+function pickHead(r,what,kindName){
+  if(!r.total)return `Nothing in the shared library yet`;
+  const n=r.items.length;
+  if(r.kindMissing)return `No ${kindName} yet · all ${n} shown`;
+  return `Pick a ${what} from the library (${n}${n<r.total?' of '+r.total:''})`;
+}
+function libOpts(sel,kind,q){
+  const r=PartsLib.pick('cap',{kind,q}),kn=kind&&kind!=='custom'?CAPNAME[kind]:'';
+  return `<option value="">${escA(pickHead(r,'capacitor',kn))}</option>`+r.items.map(e=>optOf(e,sel)).join('');
+}
 function renderBank(){
   $('bank').innerHTML=bank.map((g,i)=>`<div class="cg" style="--bc:${BCOL[i%BCOL.length]}">
     <div class="cg-h"><b>C${i+1}</b><select id="bk${i}_type" data-i="${i}" data-k="type" aria-label="Technology of group ${i+1}">${Object.keys(CAPNAME).map(k=>`<option value="${k}"${k===g.type?' selected':''}>${CAPNAME[k]}</option>`).join('')}</select>
     ${bank.length>1?`<button type="button" data-del="${i}" aria-label="Remove group ${i+1}">✕</button>`:''}</div>
-    <div class="cg-lib"><select data-i="${i}" data-lib="1" aria-label="Pick capacitor ${i+1} from the shared library"><option value="">Pick from the shared library…</option>${libOpts(g.pn)}</select>
+    <div class="cg-lib"><input type="search" class="libq" data-libq="${i}" value="${escA(libQ[i]||'')}" placeholder="Filter: 47u 25V murata, esr<5" aria-label="Filter the library list for group ${i+1}" autocomplete="off" spellcheck="false">
+      <select data-i="${i}" data-lib="1" aria-label="Pick capacitor ${i+1} from the shared library">${libOpts(g.pn,g.type,libQ[i])}</select>
       <div class="row1"><input type="text" id="bk${i}_pn" data-i="${i}" data-k="pn" placeholder="Manufacturer part number" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${escA(g.pn||'')}">
       <button type="button" data-look="${i}">Look up</button><button type="button" data-save="${i}">Save to library</button></div>
       <div class="cg-st" id="bkst${i}" role="status">${g.note||''}</div></div>
@@ -560,13 +575,15 @@ $('bank').addEventListener('input',e=>{const t=e.target,i=+t.dataset.i,k=t.datas
   if(k==='type'){bank[i].type=t.value; const c=CAPS[t.value]; if(c){bank[i].df=c.df;bank[i].fs=c.fspec;bank[i].esl=c.esl;bank[i].kb=c.kbias;bank[i].esr=c.esr;} renderBank(); compute(); return;}
   if(k==='pn'){bank[i].pn=t.value.toUpperCase();return;}
   bank[i][k]=parseFloat(t.value);});
+$('bank').addEventListener('input',e=>{const t=e.target; if(t.dataset.libq==null)return; const i=+t.dataset.libq; libQ[i]=t.value;
+  const sl=t.parentNode.querySelector('select[data-lib]'); if(sl&&bank[i])sl.innerHTML=libOpts(bank[i].pn,bank[i].type,t.value);});
 $('bank').addEventListener('change',e=>{const t=e.target;
   if(t.dataset.lib&&t.value){applyLib(+t.dataset.i,t.value);return;}
   if(t.dataset.k&&t.dataset.k!=='type'&&t.dataset.k!=='pn')compute();});
 $('bank').addEventListener('click',e=>{
   const lk=e.target.closest('[data-look]'); if(lk){lookupCap(+lk.dataset.look,lk);return;}
   const sv=e.target.closest('[data-save]'); if(sv){saveCap(+sv.dataset.save,sv);return;}
-  const d=e.target.closest('[data-del]'); if(!d)return; bank.splice(+d.dataset.del,1); renderBank(); compute();});
+  const d=e.target.closest('[data-del]'); if(!d)return; bank.splice(+d.dataset.del,1); libQ.splice(+d.dataset.del,1); renderBank(); compute();});
 function stat(i,html,err){const el=$('bkst'+i); if(el){el.innerHTML=html; el.className='cg-st'+(err?' err':'');} if(bank[i])bank[i].note=html;}
 function applyLib(i,pn){
   const e=PartsLib.get('cap').find(x=>x.pn===pn); if(!e)return;
@@ -622,12 +639,13 @@ PartsLib.onChange(()=>{libStatus(); indOpts(); const a=document.activeElement; i
 /* ---- inductor: shared library picker, DigiKey/Mouser lookup, save ---- */
 let indMz={manufacturer:'',description:'',datasheet:''};
 function indStat(html,err){const el=$('indSt'); el.innerHTML=html; el.className='cg-st'+(err?' err':'');}
-function indOpts(){const sel=$('indPn').value.trim().toUpperCase();
-  $('indPick').innerHTML='<option value="">Pick an inductor from the shared library…</option>'+PartsLib.get('ind').map(e=>`<option value="${escA(e.pn)}"${e.pn===sel?' selected':''}>${e.verified?'✓ ':'○ '}${escA(e.pn)}${e.description?' · '+escA(e.description.slice(0,36)):''}</option>`).join('');}
+function indOpts(){const sel=$('indPn').value.trim().toUpperCase(),r=PartsLib.pick('ind',{q:$('indQ').value});
+  $('indPick').innerHTML=`<option value="">${escA(pickHead(r,'inductor','').replace('a inductor','an inductor'))}</option>`+r.items.map(e=>optOf(e,sel)).join('');}
 function setInd(L,dcr){const out=[];
   if(isFinite(L)&&L>0){$('L').value=+(+L).toPrecision(6);out.push('L');}
   if(isFinite(dcr)&&dcr>0){$('dcr').value=+(+dcr).toPrecision(6);out.push('DCR');}
   $('L').dispatchEvent(new Event('input',{bubbles:true}));return out;}
+$('indQ').addEventListener('input',indOpts);
 $('indPn').addEventListener('input',()=>{indMz={manufacturer:'',description:'',datasheet:''};});
 $('indPick').addEventListener('change',e=>{const pn=e.target.value; if(!pn)return;
   const x=PartsLib.get('ind').find(y=>y.pn===pn); if(!x)return; const v=x.vals||{};

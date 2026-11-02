@@ -100,6 +100,8 @@ section.block{display:flex;flex-direction:column;gap:12px}
 .hint::before{content:"";position:absolute;left:2px;top:7px;width:4px;height:4px;border-radius:50%;background:var(--muted)}
 .links{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;align-items:center}
 .verify{display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px}
+.libbar{display:grid;gap:6px}
+.libbar .libq{width:100%;font:13px var(--f-mono);color:var(--ink);background:var(--sunk);border:1px solid var(--line);border-radius:4px;padding:6px 8px}
 .libbar select{width:100%;font:13px var(--f-body);color:var(--ink);background:var(--sunk);border:1px solid var(--line);border-radius:4px;padding:6px 8px}
 details.more>summary{cursor:pointer;font-size:12px;color:var(--solder);list-style:none;padding:2px 0}
 details.more>summary::-webkit-details-marker{display:none}
@@ -1180,7 +1182,7 @@ return {run,cornerText,PARAM_LABEL,snubberDesign};
 })();
 if(typeof module!=="undefined")module.exports=WCA;
 </script>
-<script src="../shared/partslib.js?v=20261102a"></script>
+<script src="../shared/partslib.js?v=20261102b"></script>
 <script>/* ===================== Formatting and SVG plots ===================== */
 "use strict";
 const Fmt=(function(){
@@ -2116,6 +2118,17 @@ function mouserHTML(m){
     ${(m.hints||[]).map(h=>`<div class="hint">${esc(h)}</div>`).join("")}</div>`;
 }
 const LIBTYPE={ctrl:"ctrl",conv:"conv",hs:"fet",ls:"fet",ind:"ind"};
+/* library pickers: capacitors only list parts of the row's technology; the filter box narrows by text and values */
+const LIBQ={},LIBHINT={cap:"47u 25V murata, esr<5",ind:"4.7u 10A, dcr<20",fet:"30V 20A, rds<5",ctrl:"36V 1MHz",conv:"20V 6A"};
+const NOUN={cap:"capacitor",ind:"inductor",fet:"MOSFET",ctrl:"controller",conv:"converter"};
+function libOptions(lt,key,kind){
+  const r=PL.pick(lt,{kind,q:LIBQ[key]}),n=r.items.length,kn=kind&&Core.CAP_TYPES[kind]?Core.CAP_TYPES[kind].label:"";
+  const head=r.kindMissing?`No ${kn} parts in the library yet · ${n} of other types`:`Use a ${NOUN[lt]} from the shared library… ${n}${kn?" "+kn:""} part${n===1?"":"s"}${n<r.total?` (of ${r.total})`:""}`;
+  return `<option value="">${esc(head)}</option>`+r.items.map(x=>`<option value="${esc(x.pn)}">${x.verified?"✓ ":"○ "}${esc(x.pn)}${lt==="cap"?(x.description?" · "+esc(x.description.slice(0,40)):""):(x.manufacturer?" · "+esc(x.manufacturer):"")}</option>`).join("");
+}
+function libBar(lt,key,kind,attr){
+  return `<div class="libbar"><input type="search" class="libq" data-libq="${esc(key)}" data-lt="${lt}" data-kind="${esc(kind||"")}" value="${esc(LIBQ[key]||"")}" placeholder="Filter: ${esc(LIBHINT[lt])}" aria-label="Filter the library list" autocomplete="off" spellcheck="false"><select ${attr}="${esc(key)}" aria-label="Use a part from the shared library">${libOptions(lt,key,kind)}</select></div>`;
+}
 
 /* ---------- design view ---------- */
 function partCard(slot,title,groups,more){
@@ -2127,7 +2140,7 @@ function partCard(slot,title,groups,more){
   if(more)body+=`<details class="more"><summary>Tolerances and drift</summary>${grid(more.map(f))}</details>`;
   return `<div class="panel part" id="card-${slot}">
     <div class="part-h"><h3>${esc(title)}</h3><span id="chip-${slot}">${chipFor(p)}</span></div>
-    ${items.length?`<div class="libbar"><select data-lib="${slot}" aria-label="Use a part from the shared library"><option value="">Use a part from the shared library…</option>${items.map((x,i)=>`<option value="${esc(x.pn)}">${x.verified?"✓ ":"○ "}${esc(x.pn)}${x.manufacturer?" · "+esc(x.manufacturer):""}</option>`).join("")}</select></div>`:""}
+    ${items.length?libBar(lt,slot,"","data-lib"):""}
     <div class="pn"><span class="fi"><input id="pn-${slot}" data-path="parts.${slot}.pn" data-text="1" data-pn="1" placeholder="Manufacturer part number" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc(p.pn)}"></span>
       <button class="btn pri" type="button" data-look="part:${slot}">Look up</button></div>
     <div class="meta">${mouserHTML(p.mouser)}<div class="status" id="st-${slot}" role="status"></div></div>
@@ -2144,7 +2157,7 @@ function capCard(bank,r,i){
       <span class="fi" style="flex:1 1 180px"><select data-captype="${path}" aria-label="Capacitor type">${Object.entries(Core.CAP_TYPES).map(([k,v])=>`<option value="${k}" ${r.type===k?"selected":""}>${esc(v.label)}</option>`).join("")}</select></span>
       <span id="chip-${r.id}">${chipFor(r)}</span>
       <button class="btn sm ghost" type="button" data-capdel="${path}" aria-label="Remove group C${i+1}">Remove</button></div>
-    ${items.length?`<div class="libbar"><select data-libcap="${path}" aria-label="Use a capacitor from the shared library"><option value="">Use a capacitor from the shared library…</option>${items.map((x,j)=>`<option value="${esc(x.pn)}">${x.verified?"✓ ":"○ "}${esc(x.pn)}${x.description?" · "+esc(x.description.slice(0,40)):""}</option>`).join("")}</select></div>`:""}
+    ${items.length?libBar("cap",path,r.type,"data-libcap"):""}
     <div class="pn"><span class="fi"><input id="pn-${r.id}" data-path="${path}.pn" data-text="1" data-pn="1" placeholder="Manufacturer part number" autocomplete="off" spellcheck="false" value="${esc(r.pn||"")}"></span>
       <button class="btn pri" type="button" data-look="cap:${path}">Look up</button></div>
     <div class="meta">${mouserHTML(r.mouser)}<div class="status" id="st-${r.id}" role="status"></div></div>
@@ -2217,7 +2230,9 @@ function renderCompPanel(){
 /* ---------- input handling ---------- */
 let rerunTimer=null;
 document.addEventListener("input",e=>{
-  const t=e.target,path=t.dataset&&t.dataset.path;if(!path)return;
+  const t=e.target,path=t.dataset&&t.dataset.path;
+  if(t.dataset&&t.dataset.libq!=null){const k=t.dataset.libq;LIBQ[k]=t.value;const sl=t.parentNode.querySelector("select");if(sl)sl.innerHTML=libOptions(t.dataset.lt,k,t.dataset.kind);return}
+  if(!path)return;
   if(path.startsWith("manual.")){S.manual=S.manual||{};const k=path.split(".")[1];S.manual[k]=num(t.value);save();schedule();return}
   const r=resolve(path);if(!r)return;
   r.obj[r.key]=t.dataset.text?(t.dataset.pn?t.value.trim().toUpperCase():t.value):num(t.value);
