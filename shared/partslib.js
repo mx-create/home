@@ -41,11 +41,46 @@ async function req(method,path,body){
   return j;
 }
 
-async function pull(){
-  state="loading";emit();
-  try{const j=await req("GET","/lib");cache=j.types||{};persistCache();state="ok";emit();await flush()}
-  catch(e){state=e.status===503?"nosetup":"offline"}
-  emit();return all();
+/* quiet:true is a background refresh: no "loading" flicker, and listeners only hear about it if something changed */
+let lastPull=0,pulling=null,live=false;
+function pull(opts){
+  if(pulling)return pulling;
+  const quiet=!!(opts&&opts.quiet),before=quiet?snap():null;
+  live=true;lastPull=Date.now();
+  if(!quiet){state="loading";emit()}
+  pulling=(async()=>{
+    try{const j=await req("GET","/lib");cache=j.types||{};persistCache();state="ok";await flush()}
+    catch(e){state=e.status===503?"nosetup":"offline"}
+    pulling=null;
+    if(!quiet||snap()!==before)emit();
+    return all();
+  })();
+  return pulling;
+}
+const snap=()=>state+"|"+JSON.stringify(all());
+
+/* ---------- live updates ----------
+   Another tab in this browser (e.g. the parts library page) changed the library: its localStorage write fires a
+   storage event here, so pick up the new copy straight away. Changes made on other devices arrive by re-asking the
+   server when the tab comes back into view, and every few minutes while it is open. The server lists the library
+   with a KV list call (1,000 a day on the free plan), so these refreshes are spaced out on purpose. */
+const POLL_MS=3*60*1000,MIN_GAP_MS=20*1000;
+function reloadLocal(){
+  const before=snap();
+  const c=jparse(ls.get(CK),{}),p=jparse(ls.get(PK),[]);
+  cache=c&&typeof c==="object"&&!Array.isArray(c)?c:{};pending=Array.isArray(p)?p:[];
+  if(snap()!==before)emit();
+}
+function refresh(){
+  const doc=root.document;
+  if(!live||(doc&&doc.hidden)||Date.now()-lastPull<MIN_GAP_MS)return;
+  pull({quiet:true});
+}
+if(typeof root.addEventListener==="function"){
+  root.addEventListener("storage",e=>{if(e.key===CK||e.key===PK)reloadLocal()});
+  root.addEventListener("focus",refresh);
+  if(root.document)root.document.addEventListener("visibilitychange",refresh);
+  setInterval(refresh,POLL_MS);
 }
 /* send queued saves; stop at the first network failure, drop ones the server rejects as invalid */
 async function flush(){

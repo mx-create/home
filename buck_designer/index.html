@@ -1180,7 +1180,7 @@ return {run,cornerText,PARAM_LABEL,snubberDesign};
 })();
 if(typeof module!=="undefined")module.exports=WCA;
 </script>
-<script src="../shared/partslib.js?v=20261027d"></script>
+<script src="../shared/partslib.js?v=20261102a"></script>
 <script>/* ===================== Formatting and SVG plots ===================== */
 "use strict";
 const Fmt=(function(){
@@ -2467,9 +2467,10 @@ window.addEventListener("hashchange",()=>{renderActive();window.scrollTo(0,0)});
 
 /* ---------- boot ---------- */
 renderDesign();renderActive();schedule(0);
-renderLibStatus();PL.onChange(()=>{refreshLib();renderLibStatus()});
+const typing=()=>{const a=document.activeElement;return !!(a&&a.id!=="gate-pw"&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))};
+renderLibStatus();PL.onChange(()=>{refreshLib();renderLibStatus();if(PL.status().state!=="loading"&&!typing())renderDesign()});
 document.addEventListener("click",e=>{if(e.target&&e.target.id==="btn-lib-r")PL.pull().then(()=>{refreshLib();renderLibStatus();renderDesign()})});
-PL.pull().then(()=>{PL.adopt(OLD_LIB);refreshLib();renderLibStatus();const a=document.activeElement;if(!(a&&a.id!=="gate-pw"&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)))renderDesign()});
+PL.pull().then(()=>{PL.adopt(OLD_LIB);refreshLib();renderLibStatus();if(!typing())renderDesign()});
 if(IN_CLAUDE&&window.claude.use){window.claude.use("downloads").then(d=>{downloads=d;if(route()==="report")renderReport()}).catch(()=>{})}
 })();
 </script>
