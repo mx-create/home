@@ -10,6 +10,7 @@
 :root{--paper:#e9eeed;--sheet:#f8faf9;--ink:#16201e;--muted:#5a6866;--rule:#cdd6d4;--field:#fff;--accent:#0c6a60;--accent-ink:#fff;--accent-soft:#d5ebe7;--warn:#9c4a0c;--warn-bg:#f8eadb;--bad:#ad2e27;--good:#2a7539;--good-bg:#dff0e1;color-scheme:light}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0d1312;--sheet:#141c1b;--ink:#e0e9e7;--muted:#92a19e;--rule:#293432;--field:#0f1615;--accent:#3fbfac;--accent-ink:#04201b;--accent-soft:#16332e;--warn:#eb9a5c;--warn-bg:#32220f;--bad:#f07f77;--good:#74c886;--good-bg:#132a18;color-scheme:dark}}
 *{box-sizing:border-box}
+td.vmain{background:var(--accent-soft)}td.vmain input{font-weight:600;border-color:var(--accent)}th.vmain{color:var(--accent)}
 body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
 header{padding:18px 16px 10px;max-width:1400px;margin:0 auto}
 h1{margin:0 0 4px;font-size:24px}
@@ -80,7 +81,7 @@ td input.ph{border-color:var(--warn);background:var(--warn-bg)}
   <div class="wrap" id="tbl"></div>
   <p class="status" id="count"></p>
 </main>
-<script src="../shared/partslib.js?v=20261105a"></script>
+<script src="../shared/partslib.js?v=20261105b"></script>
 <script>
 (function(){
 "use strict";
@@ -124,14 +125,14 @@ function renderAdd(){
 function renderTable(){
   const rows=rowsFor(tab),cols=COLS[tab];
   if(!rows.length){$("tbl").innerHTML=`<div class="empty">${PL.get(tab).length?"No parts match the filter.":"No parts here yet. Add one above or import a CSV file."}</div>`;$("count").textContent="";return}
-  $("tbl").innerHTML=`<table><thead><tr><th>Verified</th><th>Part number</th>${tab==="cap"?"<th>Type</th>":""}<th>Manufacturer</th><th>Description</th>${cols.map(c=>`<th>${esc(c.h)}<small>${esc(c.u)}</small></th>`).join("")}<th>Datasheet</th><th></th></tr></thead><tbody>`+
+  $("tbl").innerHTML=`<table><thead><tr><th>Verified</th><th>Part number</th>${tab==="cap"?"<th>Type</th>":""}<th>Manufacturer</th><th>Description</th>${cols.map(c=>`<th${c.k===MAIN[tab]?' class="vmain"':""}>${esc(c.h)}<small>${esc(c.u)}</small></th>`).join("")}<th>Datasheet</th><th></th></tr></thead><tbody>`+
    rows.map(e=>{const v=e.vals||{};
     return `<tr data-pn="${esc(e.pn)}"><td><div class="vt"><input type="checkbox" data-f="verified" aria-label="Verified ${esc(e.pn)}" ${e.verified?"checked":""}><span class="badge ${e.verified?"v":"u"}">${e.verified?"✓ Verified":"○ Not verified"}</span></div></td>
      <td class="pn">${esc(e.pn)}</td>
      ${tab==="cap"?`<td><select data-f="type" aria-label="Type">${CAPTYPES.map(x=>`<option${x===e.type?" selected":""}>${x}</option>`).join("")}</select></td>`:""}
      <td class="txt"><input type="text" data-f="manufacturer" maxlength="80" value="${esc(e.manufacturer)}" aria-label="Manufacturer"></td>
      <td class="desc"><input type="text" data-f="description" maxlength="300" value="${esc(e.description)}" aria-label="Description"></td>
-     ${cols.map(c=>`<td><input type="number" step="any" data-v="${c.k}" ${c.k===MAIN[tab]&&v[c.k]===0?'class="ph" title="Placeholder: enter the real value"':""} value="${v[c.k]!=null?esc(v[c.k]):""}" aria-label="${esc(c.h)}"></td>`).join("")}
+     ${cols.map(c=>`<td${c.k===MAIN[tab]?' class="vmain"':""}><input type="number" step="any" data-v="${c.k}" ${c.k===MAIN[tab]&&v[c.k]===0?'class="ph" title="Placeholder: enter the real value"':""} value="${v[c.k]!=null?esc(v[c.k]):""}" aria-label="${esc(c.h)}"></td>`).join("")}
      <td class="txt"><input type="text" data-f="datasheet" maxlength="400" value="${esc(e.datasheet)}" placeholder="https://" aria-label="Datasheet link">${/^https?:\/\//i.test(e.datasheet||"")?` <a href="${esc(e.datasheet)}" target="_blank" rel="noopener">open</a>`:""}</td>
      <td><a class="btn" href="${esc(PL.googleUrl(tab,e.pn))}" target="_blank" rel="noopener" title="Opens Google with a ready-made question that answers as one line to paste above. AI answers can be wrong: check values against the datasheet before ticking Verified.">Google</a> <button class="btn" type="button" data-act="look" title="DigiKey first, then Mouser. Fills blanks only. Needs the lookup password.">Look up</button> <button class="btn" type="button" data-act="del" aria-label="Delete ${esc(e.pn)}">✕</button> <span class="rowst" data-rs></span></td></tr>`}).join("")+`</tbody></table>`;
   $("count").textContent=`${rows.length} of ${PL.get(tab).length} shown`;
