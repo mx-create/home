@@ -93,6 +93,7 @@ button:hover{border-color:var(--ink)}
 .cg-lib button{padding:4px 8px;font-size:.78rem;white-space:nowrap}
 .cg-st{font-size:.72rem;color:var(--muted);line-height:1.35}.cg-st.err{color:#b3261e}
 .cg-st a{color:inherit}
+.cg-lib a.btnlink{flex:1;min-width:0;text-align:center;padding:4px 8px;font-size:.78rem;white-space:nowrap;color:var(--ink);text-decoration:none;border:1px solid var(--rule);border-radius:4px;background:var(--field)}
 .libline{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.76rem;color:var(--muted);margin-top:8px}
 .libline input{font-size:.8rem;padding:3px 6px;width:11em}
 .cg-g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 6px;margin-top:6px}
@@ -332,6 +333,15 @@ body.reporting .mxfoot{display:none}
   <p class="hint">Pick a capacitor from the shared library, or enter its datasheet values and save it there so everyone can use it. Each group is N identical parts. Groups are combined as complex impedances in parallel, so ESR, ESL and anti-resonance all come through. Per part: ESR = (R<sub>S</sub> + tanδ/(2πfC))·k<sub>T</sub>. k<sub>C</sub> is the capacitance left after DC bias, temperature and ageing; k<sub>T</sub> is the cold-ESR multiplier.</p>
 </fieldset>
 <fieldset>
+  <legend>Controller IC</legend>
+  <div class="cg-lib" id="icLib"><input type="search" class="libq" id="icQ" placeholder="Filter: tps, ti, 36V, eaGm>500" aria-label="Filter the IC list" autocomplete="off" spellcheck="false">
+    <select id="icPick" aria-label="Pick a controller or converter IC from the shared library"></select>
+    <div class="row1"><select id="icKind" aria-label="IC kind" style="flex:0 0 auto;width:auto"><option value="ctrl">Controller</option><option value="conv">Converter</option></select><input type="text" id="icPn" placeholder="Manufacturer part number" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
+    <div class="row1"><button type="button" id="icLook">Look up</button><a id="icAsk" class="btnlink" href="#" target="_blank" rel="noopener" title="Opens Google with a ready-made question for the loop values. Paste the one-line answer into the parts library page, then check it against the datasheet.">Ask Google</a><button type="button" id="icSave">Save to library</button></div>
+    <div class="cg-st" id="icSt" role="status"></div></div>
+  <p class="hint">Picking an IC fills the control method, error amplifier type, g<sub>m</sub>, V<sub>REF</sub>, PWM ramp, current-sense gain, slope compensation and EA offset from the library. Anything the library does not have for that part keeps the value you entered.</p>
+</fieldset>
+<fieldset>
   <legend>Control &amp; power stage</legend>
   <div class="row wide"><label for="mode">Control method</label>
     <select id="mode"><option value="vm">Voltage mode (PWM ramp)</option><option value="cm">Peak current mode</option></select></div>
@@ -492,7 +502,7 @@ body.reporting .mxfoot{display:none}
 
 <footer class="mxfoot" style="max-width:1200px;margin:40px auto 0;padding:18px 16px 24px">Made by Manu R &middot; <a href="https://blog.mxdesign.uk">blog.mxdesign.uk</a> &middot; <a href="https://www.linkedin.com/in/manu-r-engineer" target="_blank" rel="noopener">LinkedIn</a> &middot; <a href="https://mxdesign.uk/RC_standard_finder/">RC Standard Finder</a></footer>
 <script src="vendor/katex/katex.min.js"></script>
-<script src="../shared/partslib.js?v=20261102b"></script>
+<script src="../shared/partslib.js?v=20261105a"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -634,7 +644,7 @@ function libStatus(){
   $('libStatus').textContent=t+(s.pending?` · ${s.pending} waiting to share`:'');
 }
 $('libBy').value=PartsLib.getBy(); $('libBy').addEventListener('change',()=>PartsLib.setBy($('libBy').value.trim()));
-PartsLib.onChange(()=>{libStatus(); indOpts(); const a=document.activeElement; if(!(a&&$('bank').contains(a)))renderBank();});
+PartsLib.onChange(()=>{libStatus(); indOpts(); if(typeof icOpts==='function')icOpts(); const a=document.activeElement; if(!(a&&$('bank').contains(a)))renderBank();});
 
 /* ---- inductor: shared library picker, DigiKey/Mouser lookup, save ---- */
 let indMz={manufacturer:'',description:'',datasheet:''};
@@ -679,6 +689,95 @@ $('indSave').addEventListener('click',async()=>{
     indStat(r.shared?`Saved ${escA(pn)} to the shared library.`:`Saved ${escA(pn)} on this device. It will be shared when the library is reachable.`);
   }catch(err){indStat('The library did not accept it: '+escA(err.message||'error'),true);}});
 indOpts();
+/* ---- controller / converter IC: library picker fills the loop values the compensator needs ----
+   Library keys (same as Buck Designer and the parts library): vref V, eaGm µS, eaAol dB, eaGbw MHz, vramp V, ri V/A,
+   se A/µs (slope comp as an inductor-current slope), eaVos mV, fswMax kHz, vinMaxIc V, ioutMaxIc A.
+   This tool's Se is the ramp at the comparator in V/µs, so Se = se · Ri. */
+let icMz={manufacturer:'',description:'',datasheet:''},icExtra={};
+const ICNAME={ctrl:'Controller',conv:'Converter'};
+function icStat(html,err){const el=$('icSt'); el.innerHTML=html; el.className='cg-st'+(err?' err':'');}
+function icOpts(){
+  const sel=$('icKind').value+':'+$('icPn').value.trim().toUpperCase(),q=$('icQ').value;
+  const rs={ctrl:PartsLib.pick('ctrl',{q}),conv:PartsLib.pick('conv',{q})};
+  const total=rs.ctrl.total+rs.conv.total,n=rs.ctrl.items.length+rs.conv.items.length;
+  const head=!total?'No controller or converter ICs in the library yet':`Pick an IC from the library (${n}${n<total?' of '+total:''})`;
+  const grp=t=>rs[t].items.length?`<optgroup label="${ICNAME[t]}s">`+rs[t].items.map(e=>`<option value="${t}:${escA(e.pn)}"${t+':'+e.pn===sel?' selected':''}>${e.verified?'✓ ':'○ '}${escA(e.pn)}${e.description?' · '+escA(e.description.slice(0,36)):''}</option>`).join('')+'</optgroup>':'';
+  $('icPick').innerHTML=`<option value="">${escA(head)}</option>`+grp('ctrl')+grp('conv');
+}
+function icAskLink(){const pn=$('icPn').value.trim(),a=$('icAsk');a.href=pn?PartsLib.googleUrl($('icKind').value,pn):'#';}
+$('icAsk').addEventListener('click',e=>{icAskLink(); if(!$('icPn').value.trim()){e.preventDefault();icStat('Enter a part number first.',true);}});
+const icPos=x=>isFinite(x)&&+x>0;
+const icNum=x=>+(+x).toPrecision(6);
+function applyIc(type,x){
+  const v=x.vals||{},got=[],warn=[];
+  const set=(id,val,lab)=>{if(icPos(val)){$(id).value=icNum(val);got.push(lab);}};
+  set('vref',v.vref,'V<sub>REF</sub>');
+  if(icPos(v.eaGm)){$('amp').value='ota';got.push('transconductance EA');set('gm',v.eaGm,'g<sub>m</sub>');}
+  else if(icPos(v.eaAol)||icPos(v.eaGbw)){$('amp').value='opamp';got.push('voltage op-amp EA');}
+  const cm=icPos(v.ri),vm=icPos(v.vramp);
+  if(cm&&!vm){$('mode').value='cm';got.push('peak current mode');}
+  else if(vm&&!cm){$('mode').value='vm';got.push('voltage mode');}
+  else if(vm&&cm)warn.push('the library has both a PWM ramp and a current-sense gain, so the control method was left as it was');
+  set('vramp',v.vramp,'V<sub>RAMP</sub>');
+  set('ri',v.ri,'R<sub>i</sub>');
+  if(icPos(v.se)){const ri=icPos(v.ri)?+v.ri:parseFloat($('ri').value); if(icPos(ri)){$('se').value=icNum(v.se*ri);got.push('S<sub>e</sub>');}}
+  set('vos',v.eaVos,'V<sub>OS</sub>');
+  const p=read();
+  if(icPos(v.fswMax)&&p.fsw/1e3>v.fswMax)warn.push(`f<sub>SW</sub> ${icNum(p.fsw/1e3)} kHz is above this IC's ${icNum(v.fswMax)} kHz maximum`);
+  if(icPos(v.vinMaxIc)&&p.vin>v.vinMaxIc)warn.push(`V<sub>IN</sub> ${icNum(p.vin)} V is above this IC's ${icNum(v.vinMaxIc)} V maximum`);
+  if(type==='conv'&&icPos(v.ioutMaxIc)&&p.iout/(p.N||1)>v.ioutMaxIc)warn.push(`the load per phase is above this converter's ${icNum(v.ioutMaxIc)} A rating`);
+  const miss=[];
+  if(!icPos(v.vref))miss.push('V<sub>REF</sub>');
+  if(!icPos(v.eaGm)&&!icPos(v.eaAol)&&!icPos(v.eaGbw))miss.push('the error amplifier');
+  if(!cm&&!vm)miss.push('the PWM ramp or current-sense gain');
+  if(cm&&!icPos(v.se))miss.push('slope compensation');
+  return {got,warn,miss};
+}
+$('icQ').addEventListener('input',icOpts);
+$('icKind').addEventListener('change',()=>{icOpts();icAskLink();});
+$('icPn').addEventListener('input',()=>{icMz={manufacturer:'',description:'',datasheet:''};icExtra={};icAskLink();});
+$('icPick').addEventListener('change',e=>{const val=e.target.value; if(!val)return;
+  const i=val.indexOf(':'),type=val.slice(0,i),pn=val.slice(i+1);
+  const x=PartsLib.get(type).find(y=>y.pn===pn); if(!x)return;
+  $('icKind').value=type; $('icPn').value=x.pn; icAskLink(); icExtra={};
+  icMz={manufacturer:x.manufacturer||'',description:x.description||'',datasheet:x.datasheet||''};
+  const r=applyIc(type,x);
+  const vb=x.verified?'<b style="color:var(--good)">✓ Verified</b>':'<b style="color:var(--warn)">○ Not verified yet</b>';
+  const ds=icMz.datasheet?` <a href="${escA(icMz.datasheet)}" target="_blank" rel="noopener">Datasheet</a>`:'';
+  icStat(`${vb}. Loaded ${escA(x.pn)}${icMz.manufacturer?' ('+escA(icMz.manufacturer)+')':''}: ${r.got.length?r.got.join(', '):'no loop values'}.`+
+    (r.miss.length?` Not in the library: ${r.miss.join(', ')}; enter from the datasheet, then save.`:'')+
+    (r.warn.length?` <b style="color:var(--warn)">Check:</b> ${r.warn.join('; ')}.`:'')+ds);
+  compute();});
+$('icLook').addEventListener('click',async()=>{
+  const pn=$('icPn').value.trim(),type=$('icKind').value; if(!pn){icStat('Enter a part number first.',true);return;}
+  const b=$('icLook'); b.disabled=true; b.textContent='Searching…'; icStat('Searching DigiKey, then Mouser if needed…');
+  try{
+    const r=await PartsLib.lookupPart(type,pn);
+    if(r.needPassword){icStat('The lookup password is needed for DigiKey and Mouser lookups.',true);return;}
+    if(!r.ok){icStat(escA(r.errors.join('. '))+'. Use Ask Google or the datasheet for the loop values.',true);return;}
+    $('icPn').value=String(r.mpn||pn).toUpperCase(); icAskLink();
+    icMz={manufacturer:r.manufacturer||'',description:r.description||'',datasheet:r.datasheet||''};
+    icExtra={}; ['vinMaxIc','fswMax','ioutMaxIc'].forEach(k=>{if(icPos(r.vals[k]))icExtra[k]=r.vals[k];});
+    const ds=icMz.datasheet?` <a href="${escA(icMz.datasheet)}" target="_blank" rel="noopener">Datasheet</a>`:'';
+    const src=r.source==='digikey'?'DigiKey':r.source==='mouser'?'Mouser':'DigiKey and Mouser';
+    icStat(`<b>${escA(icMz.manufacturer)}</b> ${escA(icMz.description)}. From ${src}${r.exact?'':' (closest match, check the part number)'}. Distributors do not list the loop values (g<sub>m</sub>, V<sub>REF</sub>, ramp, R<sub>i</sub>, slope compensation): enter them from the datasheet or use Ask Google, then save.${ds}`);
+  }catch(err){icStat('Lookup failed: '+escA(err.message||'could not reach the service'),true);}
+  finally{b.disabled=false; b.textContent='Look up';}});
+$('icSave').addEventListener('click',async()=>{
+  const pn=$('icPn').value.trim().toUpperCase(),type=$('icKind').value,p=read();
+  if(!pn){icStat('Enter the part number first.',true);return;}
+  if(!/^[A-Za-z0-9.\-\/#+_ ]{2,60}$/.test(pn)){icStat('That part number has characters the library does not accept.',true);return;}
+  const vals=Object.assign({},icExtra);
+  if(icPos(p.vref))vals.vref=p.vref;
+  if(p.amp==='ota'&&icPos(p.gm))vals.eaGm=icNum(p.gm*1e6);
+  if(p.mode==='vm'&&icPos(p.vramp))vals.vramp=p.vramp;
+  if(p.mode==='cm'&&icPos(p.ri)){vals.ri=p.ri; if(icPos(p.se))vals.se=icNum(p.se/1e6/p.ri);}
+  if(!Object.keys(vals).length){icStat('Enter V<sub>REF</sub> and the error amplifier values first.',true);return;}
+  const by=($('libBy').value||'').trim(); if(by)PartsLib.setBy(by);
+  try{const r=await PartsLib.save(type,{pn,manufacturer:icMz.manufacturer,description:icMz.description,datasheet:icMz.datasheet,vals},by);
+    icStat((r.shared?`Saved ${escA(pn)} to the shared library as a ${ICNAME[type].toLowerCase()}.`:`Saved ${escA(pn)} on this device. It will be shared when the library is reachable.`)+' Values the library already had for it and this page does not use are kept.');
+  }catch(err){icStat('The library did not accept it: '+escA(err.message||'error'),true);}});
+icOpts(); icAskLink();
 libStatus(); PartsLib.pull();
 $('addCap').addEventListener('click',()=>{bank.push({type:'x7r',c:10,n:1,kb:70,esr:5,fs:1000,df:0.025,esl:0.4,kt:1}); renderBank(); compute();});
 
@@ -2098,7 +2197,7 @@ function drawMpDetail(){
 }
 
 /* ---------- persistence & events ---------- */
-const FIELDS=['vin','vout','iout','fsw','L','dcr','mode','src','vramp','ri','se','gknown','amp','gm','vref','rtop','method','fc','pm','fz1','fz2','fp1','fp2','snap','nph','arch','tolr','vos'];
+const FIELDS=['vin','vout','iout','fsw','L','dcr','mode','src','vramp','ri','se','gknown','amp','gm','vref','rtop','method','fc','pm','fz1','fz2','fp1','fp2','snap','nph','arch','tolr','vos','icKind','icPn'];
 const DEFAULTS={}; FIELDS.forEach(k=>{const el=$(k); DEFAULTS[k]=el.type==='checkbox'?el.checked:el.value;});
 function snapshot(){const o={t:typeSel(),bank};FIELDS.forEach(k=>{const el=$(k);o[k]=el.type==='checkbox'?el.checked:el.value;o['u_'+k]=el.dataset.user||'';});return o;}
 function save(){try{localStorage.setItem('buckcomp.v1',JSON.stringify(snapshot()));}catch(e){}}

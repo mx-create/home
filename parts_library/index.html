@@ -80,7 +80,7 @@ td input.ph{border-color:var(--warn);background:var(--warn-bg)}
   <div class="wrap" id="tbl"></div>
   <p class="status" id="count"></p>
 </main>
-<script src="../shared/partslib.js?v=20261102b"></script>
+<script src="../shared/partslib.js?v=20261105a"></script>
 <script>
 (function(){
 "use strict";
@@ -96,7 +96,7 @@ const COLS={
  fet:[U("vds","Vds","V"),U("id","Id","A"),U("rds","Rds(on) max","mΩ"),U("rdsAlpha","Rds tempco","%/°C"),U("rdsEol","Rds EOL drift","%"),U("qg","Qg","nC"),U("qgs","Qgs","nC"),U("qgd","Qgd","nC"),U("vpl","Miller plateau","V"),U("coss","Coss","pF"),U("qrr","Qrr","nC"),U("vf","Body diode Vf","V"),U("rth","RθJA","°C/W"),U("tjmax","Tj max","°C")],
  ind:[U("L","Inductance","µH"),U("ltol","Tolerance","±%"),U("ltemp","Temp drift","%"),U("lsat","Drop at peak","%"),U("isat","Isat","A"),U("isatHot","Isat hot loss","%"),U("irms","Irms","A"),U("dTr","Rise at Irms","°C"),U("dcr","DCR max","mΩ"),U("dcrTc","DCR tempco","%/°C"),U("pcore","Core loss","mW")]
 };
-const CTRLCOLS=[U("vinMaxIc","Max Vin","V"),U("fswMax","Max fsw","kHz"),U("fswTol","fsw tol","±%"),U("tonMin","Min on-time","ns"),U("ilim","Current limit","A"),U("ilimTol","Ilim tol","±%"),U("iq","Iq","mA"),U("vref","Vref","V"),U("vrefTol","Vref tol","±%"),U("eaAol","EA gain","dB"),U("eaGbw","EA GBW","MHz"),U("eaGm","EA gm","µS"),U("eaTol","EA tol","±%"),U("vramp","PWM ramp","V"),U("ri","Ri","V/A"),U("se","Slope comp","A/µs"),U("modTol","Mod tol","±%"),U("vdrv","Gate drive","V"),U("rdrv","Driver R","Ω"),U("tdead","Dead time","ns"),U("ibst","Boot leakage","µA"),U("ioutMaxIc","Rated Iout","A"),U("rdsHs","HS Rds(on)","mΩ"),U("rdsLs","LS Rds(on)","mΩ"),U("rdsAlpha","Rds tempco","%/°C"),U("tsw","Switch rise+fall","ns"),U("rthIc","RθJA","°C/W"),U("tjmaxIc","Tj max","°C"),U("iss","Soft-start I","µA"),U("issTol","SS tol","±%"),U("venR","EN threshold","V"),U("venTol","EN tol","±%"),U("ihys","EN hyst I","µA"),U("ihysTol","Hyst tol","±%")];
+const CTRLCOLS=[U("vinMaxIc","Max Vin","V"),U("fswMax","Max fsw","kHz"),U("fswTol","fsw tol","±%"),U("tonMin","Min on-time","ns"),U("ilim","Current limit","A"),U("ilimTol","Ilim tol","±%"),U("iq","Iq","mA"),U("vref","Vref","V"),U("vrefTol","Vref tol","±%"),U("eaAol","EA gain","dB"),U("eaGbw","EA GBW","MHz"),U("eaGm","EA gm","µS"),U("eaTol","EA tol","±%"),U("eaVos","EA offset","mV"),U("vramp","PWM ramp","V"),U("ri","Ri","V/A"),U("se","Slope comp","A/µs"),U("modTol","Mod tol","±%"),U("vdrv","Gate drive","V"),U("rdrv","Driver R","Ω"),U("tdead","Dead time","ns"),U("ibst","Boot leakage","µA"),U("ioutMaxIc","Rated Iout","A"),U("rdsHs","HS Rds(on)","mΩ"),U("rdsLs","LS Rds(on)","mΩ"),U("rdsAlpha","Rds tempco","%/°C"),U("tsw","Switch rise+fall","ns"),U("rthIc","RθJA","°C/W"),U("tjmaxIc","Tj max","°C"),U("iss","Soft-start I","µA"),U("issTol","SS tol","±%"),U("venR","EN threshold","V"),U("venTol","EN tol","±%"),U("ihys","EN hyst I","µA"),U("ihysTol","Hyst tol","±%")];
 COLS.ctrl=CTRLCOLS;COLS.conv=CTRLCOLS;
 const MAIN={cap:"c",fet:"vds",ind:"L",ctrl:"vinMaxIc",conv:"vinMaxIc"};
 let tab="cap";
