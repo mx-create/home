@@ -15,7 +15,7 @@
   --bg:#f4f6f8; --panel:#ffffff; --fg:#17202a; --muted:#5b6876; --line:#d6dde4; --grid:#e6ebf0;
   --accent:#0a7f93; --accent-ink:#ffffff; --warn:#b35a00; --err:#b3261e; --ok:#2e7d3e; --cell:#f9fafb;
   --ch1:#a87f00; --ch2:#0a8fa3; --ch3:#b0329a; --ch4:#2e8b3e; --ch5:#3561d6; --ch6:#c8661a;
-  --arrow-up:#3a4a5c; --arrow-dn:#b35a00;
+  --arrow-up:#3a4a5c; --arrow-dn:#b35a00; --rail:#0a7f93; --logic:#7a4fc9;
   --f-ui:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
 }
@@ -23,12 +23,12 @@
   --bg:#0f1418; --panel:#161d23; --fg:#e4eaef; --muted:#93a1ae; --line:#2a353f; --grid:#212b33;
   --accent:#3fd0e0; --accent-ink:#06262b; --warn:#ffa94d; --err:#ff7a70; --ok:#6fd77f; --cell:#1b232a;
   --ch1:#f2d13a; --ch2:#3fd0e0; --ch3:#e05ac8; --ch4:#5bd46a; --ch5:#7aa2ff; --ch6:#ff9a3c;
-  --arrow-up:#9fb0c0; --arrow-dn:#ffa94d; color-scheme:dark}}
+  --arrow-up:#9fb0c0; --arrow-dn:#ffa94d; --rail:#3fd0e0; --logic:#b48cff; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0f1418; --panel:#161d23; --fg:#e4eaef; --muted:#93a1ae; --line:#2a353f; --grid:#212b33;
   --accent:#3fd0e0; --accent-ink:#06262b; --warn:#ffa94d; --err:#ff7a70; --ok:#6fd77f; --cell:#1b232a;
   --ch1:#f2d13a; --ch2:#3fd0e0; --ch3:#e05ac8; --ch4:#5bd46a; --ch5:#7aa2ff; --ch6:#ff9a3c;
-  --arrow-up:#9fb0c0; --arrow-dn:#ffa94d; color-scheme:dark}
+  --arrow-up:#9fb0c0; --arrow-dn:#ffa94d; --rail:#3fd0e0; --logic:#b48cff; color-scheme:dark}
 
 body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:14px;line-height:1.45}
 .wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
@@ -60,7 +60,31 @@ table.grid td input:focus{background:var(--cell)}
 td.sw{width:14px}
 td.sw i{display:block;width:10px;height:10px;border-radius:2px;margin:auto}
 td.x button{border:none;background:none;color:var(--muted);padding:4px 6px;font-size:16px;line-height:1}
-td.x button:hover{color:var(--err)}
+table.grid td select{min-width:76px}
+td.x{white-space:nowrap;width:1%}
+td.x button.mv{font-size:13px;padding:4px 5px}
+td.x button.mv:hover{color:var(--accent)}
+td.x button:disabled{opacity:.25;cursor:default}
+td.x button.del:hover{color:var(--err)}
+/* type tint: rails one colour, logic another */
+tr.t-rail td{background:color-mix(in srgb,var(--rail) 7%,transparent)}
+tr.t-logic td{background:color-mix(in srgb,var(--logic) 9%,transparent)}
+tr.t-rail td:first-child{box-shadow:inset 3px 0 var(--rail)}
+tr.t-logic td:first-child{box-shadow:inset 3px 0 var(--logic)}
+tr.t-rail select{color:var(--rail);font-weight:500}
+tr.t-logic select{color:var(--logic);font-weight:500}
+.key{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 3px 0 6px;vertical-align:-1px}
+/* start/stop-after picker */
+td.dd{position:relative}
+td.dd::after{content:"";position:absolute;right:9px;top:50%;width:5px;height:5px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+td.dd input{padding-right:20px}
+.ac{position:fixed;z-index:30;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:4px;max-height:280px;overflow-y:auto;min-width:180px;font-size:13px}
+.ac .h{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:6px 8px 3px}
+.ac .o{display:flex;justify-content:space-between;gap:12px;padding:5px 8px;border-radius:4px;cursor:pointer;font-family:var(--f-mono)}
+.ac .o small{font-family:var(--f-ui);color:var(--muted);font-size:11px}
+.ac .o.on,.ac .o:hover{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.ac .o.sug b{font-weight:600;color:var(--accent)}
+.ac hr{border:none;border-top:1px solid var(--line);margin:4px 2px}
 .hint{font-size:12.5px;color:var(--muted)}
 .hint code{font-family:var(--f-mono);font-size:12px;background:var(--cell);border:1px solid var(--line);border-radius:3px;padding:0 4px;color:var(--fg)}
 textarea#pasteBox{width:100%;box-sizing:border-box;min-height:110px;font-family:var(--f-mono);font-size:12.5px;background:var(--cell);color:var(--fg);border:1px dashed var(--accent);border-radius:6px;padding:8px}
@@ -141,7 +165,7 @@ table.res td:first-child,table.res th:first-child{text-align:left}
         <tbody id="rows"></tbody>
       </table>
     </div>
-    <p class="hint">Click any cell and press <code>Ctrl+V</code> to paste a block from Excel; it fills from that cell and adds rows as needed. <code>VCCINT</code> in “Start after” waits for VCCINT to cross the PG threshold; <code>VCCINT.start</code> waits only for it to begin ramping. In “Stop after”, a name waits for that signal to fall below the off threshold. Times accept <code>ms</code>, <code>us</code> or <code>s</code>; levels accept <code>3V3</code>.</p>
+    <p class="hint">Rows are tinted by type:<span class="key" style="background:var(--rail)"></span>rail<span class="key" style="background:var(--logic)"></span>logic. Use <code>↑</code> <code>↓</code> (or <code>Alt</code>+arrow in a cell) to move a row. Click “Start after” or “Stop after” for a list: the rows just above and below come first. Click any cell and press <code>Ctrl+V</code> to paste a block from Excel; it fills from that cell and adds rows as needed. <code>VCCINT</code> in “Start after” waits for VCCINT to cross the PG threshold; <code>VCCINT.start</code> waits only for it to begin ramping. In “Stop after”, a name waits for that signal to fall below the off threshold. Times accept <code>ms</code>, <code>us</code> or <code>s</code>; levels accept <code>3V3</code>.</p>
   </section>
 
   <section class="panel" aria-labelledby="dgH">
@@ -193,23 +217,92 @@ function getSettingsRaw(){const o={};["title","pgPct","offPct","offAt","tEnd"].f
 /* ---------- table ---------- */
 function blankRow(){return ["","Rail","","1","","0","1","","0"]}
 function normType(t){t=String(t||"").trim().toLowerCase();return /^(l|d|s|sig|logic|digital|signal|en|pg)/.test(t)&&!/^(rail|r)$/.test(t)?"Logic":"Rail"}
+function typeClass(tr,t){tr.className=normType(t)==="Logic"?"t-logic":"t-rail"}
 function renderTable(){
-  tbody.innerHTML="";
+  closeAC();tbody.innerHTML="";
   data.forEach((r,i)=>{
-    const tr=document.createElement("tr");
+    const tr=document.createElement("tr");typeClass(tr,r[1]);
     const sw=document.createElement("td");sw.className="sw";sw.innerHTML=`<i style="background:var(--ch${(i%6)+1})"></i>`;tr.appendChild(sw);
     COLS.forEach((c,j)=>{
       const td=document.createElement("td");let el;
       if(c==="type"){el=document.createElement("select");["Rail","Logic"].forEach(o=>{const op=document.createElement("option");op.textContent=o;el.appendChild(op)});el.value=normType(r[j])}
       else{el=document.createElement("input");el.value=r[j]??"";el.spellcheck=false;el.autocomplete="off"}
+      if(c==="after"||c==="stopAfter"){td.className="dd";el.setAttribute("role","combobox");el.setAttribute("aria-autocomplete","list");el.setAttribute("aria-expanded","false")}
       el.id=`c_${i}_${j}`;el.dataset.r=i;el.dataset.c=j;el.setAttribute("aria-label",`${HEAD[j]} row ${i+1}`);
-      el.addEventListener("input",()=>{data[i][j]=el.value;schedule()});
-      el.addEventListener("change",()=>{data[i][j]=el.value;schedule()});
+      el.addEventListener("input",()=>{data[i][j]=el.value;if(c==="type")typeClass(tr,el.value);schedule()});
+      el.addEventListener("change",()=>{data[i][j]=el.value;if(c==="type")typeClass(tr,el.value);schedule()});
       td.appendChild(el);tr.appendChild(td)});
-    const x=document.createElement("td");x.className="x";const b=document.createElement("button");b.textContent="×";b.title="Delete row";b.setAttribute("aria-label",`Delete row ${i+1}`);
-    b.onclick=()=>{data.splice(i,1);renderTable();schedule()};x.appendChild(b);tr.appendChild(x);
+    const x=document.createElement("td");x.className="x";
+    const mk=(txt,cls,title,fn,dis)=>{const b=document.createElement("button");b.textContent=txt;b.className=cls;b.title=title;b.setAttribute("aria-label",`${title} (row ${i+1})`);b.disabled=!!dis;b.onclick=fn;x.appendChild(b);return b};
+    mk("↑","mv up","Move row up",()=>moveRow(i,-1,"up"),i===0);
+    mk("↓","mv dn","Move row down",()=>moveRow(i,1,"dn"),i===data.length-1);
+    mk("×","del","Delete row",()=>{data.splice(i,1);renderTable();schedule()});
+    tr.appendChild(x);
     tbody.appendChild(tr)});
 }
+function moveRow(i,d,focusCls,focusCol){
+  const j=i+d;if(j<0||j>=data.length)return;
+  [data[i],data[j]]=[data[j],data[i]];renderTable();schedule();
+  const tr=tbody.children[j];if(!tr)return;
+  let el=focusCol!=null?$(`c_${j}_${focusCol}`):tr.querySelector(`button.${focusCls}`);
+  if(el&&el.disabled)el=tr.querySelector(`button.${focusCls==="up"?"dn":"up"}`);
+  el&&el.focus();
+}
+tbody.addEventListener("keydown",e=>{
+  if(!e.altKey||(e.key!=="ArrowUp"&&e.key!=="ArrowDown"))return;
+  const t=e.target;if(!t.dataset||t.dataset.r===undefined)return;
+  e.preventDefault();closeAC();moveRow(+t.dataset.r,e.key==="ArrowUp"?-1:1,null,+t.dataset.c);
+});
+
+/* ---------- start/stop-after picker ---------- */
+let ac=null,acEl=null,acItems=[],acIdx=-1,acTyped=false;
+function closeAC(){if(ac){ac.remove();ac=null}if(acEl)acEl.setAttribute("aria-expanded","false");acEl=null;acItems=[];acIdx=-1}
+function acOptions(r,c){
+  const name=k=>String((data[k]||[])[0]||"").trim();
+  const self=name(r).toUpperCase();
+  const sug=[],seen=new Set([self,""]);
+  [[r-1,"row above"],[r+1,"row below"]].forEach(([k,lab])=>{const n=name(k);if(n&&!seen.has(n.toUpperCase())){seen.add(n.toUpperCase());sug.push({v:n,lab})}});
+  const rest=[];data.forEach((row,k)=>{const n=name(k);if(n&&!seen.has(n.toUpperCase())){seen.add(n.toUpperCase());rest.push({v:n,lab:normType(row[1]).toLowerCase()})}});
+  const blank={v:"",lab:c===4?"start at t0":"power-off time"};
+  return{sug,rest,blank};
+}
+function openAC(el){
+  if(acEl!==el){closeAC();acEl=el;acTyped=false}
+  const r=+el.dataset.r,c=+el.dataset.c;const {sug,rest,blank}=acOptions(r,c);
+  const q=acTyped?el.value.trim().toUpperCase():"";
+  const m=o=>!q||o.v.toUpperCase().includes(q.replace(/\.(START|PG|END|OFF)?$/,""));
+  const S=sug.filter(m),R=rest.filter(m);
+  if(!ac){ac=document.createElement("div");ac.className="ac";ac.setAttribute("role","listbox");document.body.appendChild(ac);
+    ac.addEventListener("mousedown",e=>{e.preventDefault();const o=e.target.closest(".o");if(o)pickAC(+o.dataset.k)})}
+  acItems=[];const html=[];
+  const add=(o,cls)=>{const k=acItems.length;acItems.push(o);html.push(`<div class="o ${cls}" role="option" data-k="${k}"><span>${o.v?(cls==="sug"?`<b>${esc(o.v)}</b>`:esc(o.v)):"<em>blank</em>"}</span><small>${esc(o.lab)}</small></div>`)};
+  if(S.length){html.push(`<div class="h">Suggested</div>`);S.forEach(o=>add(o,"sug"))}
+  if(R.length){if(S.length)html.push("<hr>");html.push(`<div class="h">Other signals</div>`);R.forEach(o=>add(o,""))}
+  if(!q){html.push("<hr>");add(blank,"")}
+  if(!acItems.length){closeAC();return}
+  ac.innerHTML=html.join("");el.setAttribute("aria-expanded","true");
+  acIdx=Math.min(acIdx,acItems.length-1);hiAC();placeAC();
+}
+function placeAC(){if(!ac||!acEl)return;const b=acEl.getBoundingClientRect();ac.style.minWidth=Math.max(180,b.width)+"px";
+  const below=innerHeight-b.bottom;ac.style.left=Math.min(b.left,innerWidth-ac.offsetWidth-8)+"px";
+  if(below<200&&b.top>below){ac.style.top="";ac.style.bottom=(innerHeight-b.top+2)+"px"}else{ac.style.bottom="";ac.style.top=(b.bottom+2)+"px"}}
+function hiAC(){if(!ac)return;ac.querySelectorAll(".o").forEach(o=>o.classList.toggle("on",+o.dataset.k===acIdx));const on=ac.querySelector(".o.on");on&&on.scrollIntoView({block:"nearest"})}
+function pickAC(k){const o=acItems[k];if(!o||!acEl)return;const el=acEl;el.value=o.v;data[+el.dataset.r][+el.dataset.c]=o.v;closeAC();schedule();el.focus()}
+tbody.addEventListener("focusin",e=>{const t=e.target;if(t.closest&&t.closest("td.dd"))openAC(t)});
+tbody.addEventListener("focusout",e=>{if(e.target===acEl)setTimeout(()=>{if(document.activeElement!==acEl)closeAC()},0)});
+tbody.addEventListener("click",e=>{const t=e.target;if(t.closest&&t.closest("td.dd")&&!ac){acEl=null;openAC(t)}});
+tbody.addEventListener("input",e=>{const t=e.target;if(!t.closest||!t.closest("td.dd"))return;if(t!==acEl){closeAC();acEl=t}acTyped=true;acIdx=-1;openAC(t)});
+tbody.addEventListener("keydown",e=>{
+  if(e.altKey||!e.target.closest||!e.target.closest("td.dd"))return;
+  if(!ac&&e.key==="ArrowDown"){acEl=null;openAC(e.target);e.preventDefault();return}
+  if(!ac)return;
+  if(e.key==="ArrowDown"){acIdx=(acIdx+1)%acItems.length;hiAC();e.preventDefault()}
+  else if(e.key==="ArrowUp"){acIdx=acIdx<=0?acItems.length-1:acIdx-1;hiAC();e.preventDefault()}
+  else if(e.key==="Enter"&&acIdx>=0){pickAC(acIdx);e.preventDefault()}
+  else if(e.key==="Escape"){closeAC();e.preventDefault()}
+  else if(e.key==="Tab")closeAC();
+});
+addEventListener("resize",placeAC);document.addEventListener("scroll",placeAC,true);
 function parseTSV(text){
   const lines=text.replace(/\r/g,"").split("\n");
   while(lines.length&&lines[lines.length-1].trim()==="")lines.pop();
