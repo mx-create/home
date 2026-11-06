@@ -57,8 +57,18 @@ table.grid td{padding:2px;border-bottom:1px solid var(--grid)}
 table.grid td input,table.grid td select{width:100%;box-sizing:border-box;font-family:var(--f-mono);font-size:13px;background:transparent;color:var(--fg);border:1px solid transparent;border-radius:4px;padding:5px 6px}
 table.grid td input:hover,table.grid td select:hover{border-color:var(--line);background:var(--cell)}
 table.grid td input:focus{background:var(--cell)}
-td.sw{width:14px}
-td.sw i{display:block;width:10px;height:10px;border-radius:2px;margin:auto}
+td.sw{width:34px;white-space:nowrap}
+td.sw .grip{display:inline-flex;align-items:center;justify-content:center;width:18px;height:26px;margin-left:2px;vertical-align:middle;color:var(--muted);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:4px;font-size:15px;line-height:1}
+td.sw .grip:hover,td.sw .grip:focus-visible{color:var(--accent);background:var(--cell)}
+td.sw i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:3px;vertical-align:middle}
+body.dragging,body.dragging *{cursor:grabbing!important;user-select:none}
+tr.drag-src td{opacity:.45}
+tr.drop-before td{box-shadow:inset 0 2px var(--accent)!important}
+tr.drop-after td{box-shadow:inset 0 -2px var(--accent)!important}
+tr.t-rail.drop-before td:first-child{box-shadow:inset 3px 0 var(--rail),inset 0 2px var(--accent)!important}
+tr.t-rail.drop-after td:first-child{box-shadow:inset 3px 0 var(--rail),inset 0 -2px var(--accent)!important}
+tr.t-logic.drop-before td:first-child{box-shadow:inset 3px 0 var(--logic),inset 0 2px var(--accent)!important}
+tr.t-logic.drop-after td:first-child{box-shadow:inset 3px 0 var(--logic),inset 0 -2px var(--accent)!important}
 td.x button{border:none;background:none;color:var(--muted);padding:4px 6px;font-size:16px;line-height:1}
 table.grid td select{min-width:76px}
 td.x{white-space:nowrap;width:1%}
@@ -165,7 +175,7 @@ table.res td:first-child,table.res th:first-child{text-align:left}
         <tbody id="rows"></tbody>
       </table>
     </div>
-    <p class="hint">Rows are tinted by type:<span class="key" style="background:var(--rail)"></span>rail<span class="key" style="background:var(--logic)"></span>logic. Use <code>↑</code> <code>↓</code> (or <code>Alt</code>+arrow in a cell) to move a row. Click “Start after” or “Stop after” for a list: the rows just above and below come first. Click any cell and press <code>Ctrl+V</code> to paste a block from Excel; it fills from that cell and adds rows as needed. <code>VCCINT</code> in “Start after” waits for VCCINT to cross the PG threshold; <code>VCCINT.start</code> waits only for it to begin ramping. In “Stop after”, a name waits for that signal to fall below the off threshold. Times accept <code>ms</code>, <code>us</code> or <code>s</code>; levels accept <code>3V3</code>.</p>
+    <p class="hint">Rows are tinted by type:<span class="key" style="background:var(--rail)"></span>rail<span class="key" style="background:var(--logic)"></span>logic. Drag the <code>⠿</code> handle to move a row, or use <code>↑</code> <code>↓</code> (or <code>Alt</code>+arrow in a cell). Click “Start after” or “Stop after” for a list: the rows just above and below come first. Click any cell and press <code>Ctrl+V</code> to paste a block from Excel; it fills from that cell and adds rows as needed. <code>VCCINT</code> in “Start after” waits for VCCINT to cross the PG threshold; <code>VCCINT.start</code> waits only for it to begin ramping. In “Stop after”, a name waits for that signal to fall below the off threshold. Times accept <code>ms</code>, <code>us</code> or <code>s</code>; levels accept <code>3V3</code>.</p>
   </section>
 
   <section class="panel" aria-labelledby="dgH">
@@ -222,7 +232,7 @@ function renderTable(){
   closeAC();tbody.innerHTML="";
   data.forEach((r,i)=>{
     const tr=document.createElement("tr");typeClass(tr,r[1]);
-    const sw=document.createElement("td");sw.className="sw";sw.innerHTML=`<i style="background:var(--ch${(i%6)+1})"></i>`;tr.appendChild(sw);
+    const sw=document.createElement("td");sw.className="sw";sw.innerHTML=`<span class="grip" tabindex="0" role="button" title="Drag to reorder (or focus and use ↑ ↓)" aria-label="Reorder row ${i+1}">⠿</span><i style="background:var(--ch${(i%6)+1})"></i>`;tr.appendChild(sw);
     COLS.forEach((c,j)=>{
       const td=document.createElement("td");let el;
       if(c==="type"){el=document.createElement("select");["Rail","Logic"].forEach(o=>{const op=document.createElement("option");op.textContent=o;el.appendChild(op)});el.value=normType(r[j])}
@@ -240,6 +250,36 @@ function renderTable(){
     tr.appendChild(x);
     tbody.appendChild(tr)});
 }
+/* drag handle */
+let drag=null;
+function clearDropMarks(){tbody.querySelectorAll(".drop-before,.drop-after").forEach(r=>r.classList.remove("drop-before","drop-after"))}
+tbody.addEventListener("pointerdown",e=>{
+  const g=e.target.closest&&e.target.closest(".grip");if(!g||e.button>0)return;
+  e.preventDefault();closeAC();const tr=g.closest("tr");const from=[...tbody.children].indexOf(tr);
+  drag={from,to:from,tr,id:e.pointerId};g.setPointerCapture(e.pointerId);tr.classList.add("drag-src");document.body.classList.add("dragging");
+});
+tbody.addEventListener("pointermove",e=>{
+  if(!drag||e.pointerId!==drag.id)return;
+  const rows=[...tbody.children];let to=rows.length;
+  for(let k=0;k<rows.length;k++){const b=rows[k].getBoundingClientRect();if(e.clientY<b.top+b.height/2){to=k;break}}
+  clearDropMarks();
+  if(to<rows.length)rows[to].classList.add("drop-before");else rows[rows.length-1].classList.add("drop-after");
+  drag.to=to>drag.from?to-1:to;
+  if(e.clientY<40)scrollBy(0,-12);else if(e.clientY>innerHeight-40)scrollBy(0,12);
+});
+function endDrag(e){
+  if(!drag||(e&&e.pointerId!==drag.id))return;const{from,to}=drag;drag=null;
+  document.body.classList.remove("dragging");clearDropMarks();
+  if(e&&e.type==="pointerup"&&to!==from){const [r]=data.splice(from,1);data.splice(to,0,r);renderTable();schedule();
+    const g=tbody.children[to]&&tbody.children[to].querySelector(".grip");g&&g.focus()}
+  else tbody.querySelectorAll(".drag-src").forEach(r=>r.classList.remove("drag-src"));
+}
+tbody.addEventListener("pointerup",endDrag);tbody.addEventListener("pointercancel",endDrag);
+tbody.addEventListener("keydown",e=>{
+  const g=e.target.closest&&e.target.closest(".grip");if(!g||(e.key!=="ArrowUp"&&e.key!=="ArrowDown"))return;
+  e.preventDefault();const i=[...tbody.children].indexOf(g.closest("tr"));const j=i+(e.key==="ArrowUp"?-1:1);
+  if(j<0||j>=data.length)return;[data[i],data[j]]=[data[j],data[i]];renderTable();schedule();tbody.children[j].querySelector(".grip").focus();
+});
 function moveRow(i,d,focusCls,focusCol){
   const j=i+d;if(j<0||j>=data.length)return;
   [data[i],data[j]]=[data[j],data[i]];renderTable();schedule();
