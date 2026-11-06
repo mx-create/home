@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Draw power-up and power-down sequence timing diagrams from a table. Paste rails straight from Excel, export PNG or SVG.">
+<link rel="icon" href="../images/mx-mark.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>Power Sequence Plotter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one working column — controls strip, editable rails table, live scope-style diagram, solved timing table */
+:root{
+  --bg:#f4f6f8; --panel:#ffffff; --fg:#17202a; --muted:#5b6876; --line:#d6dde4; --grid:#e6ebf0;
+  --accent:#0a7f93; --accent-ink:#ffffff; --warn:#b35a00; --err:#b3261e; --ok:#2e7d3e; --cell:#f9fafb;
+  --ch1:#a87f00; --ch2:#0a8fa3; --ch3:#b0329a; --ch4:#2e8b3e; --ch5:#3561d6; --ch6:#c8661a;
+  --arrow-up:#3a4a5c; --arrow-dn:#b35a00;
+  --f-ui:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1418; --panel:#161d23; --fg:#e4eaef; --muted:#93a1ae; --line:#2a353f; --grid:#212b33;
+  --accent:#3fd0e0; --accent-ink:#06262b; --warn:#ffa94d; --err:#ff7a70; --ok:#6fd77f; --cell:#1b232a;
+  --ch1:#f2d13a; --ch2:#3fd0e0; --ch3:#e05ac8; --ch4:#5bd46a; --ch5:#7aa2ff; --ch6:#ff9a3c;
+  --arrow-up:#9fb0c0; --arrow-dn:#ffa94d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1418; --panel:#161d23; --fg:#e4eaef; --muted:#93a1ae; --line:#2a353f; --grid:#212b33;
+  --accent:#3fd0e0; --accent-ink:#06262b; --warn:#ffa94d; --err:#ff7a70; --ok:#6fd77f; --cell:#1b232a;
+  --ch1:#f2d13a; --ch2:#3fd0e0; --ch3:#e05ac8; --ch4:#5bd46a; --ch5:#7aa2ff; --ch6:#ff9a3c;
+  --arrow-up:#9fb0c0; --arrow-dn:#ffa94d; color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:14px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin:0;max-width:68ch}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0;font-weight:600}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bar .grow{flex:1}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+label.f input{font-family:var(--f-mono);font-size:13px;text-transform:none;letter-spacing:0;color:var(--fg);background:var(--cell);border:1px solid var(--line);border-radius:5px;padding:6px 8px;width:110px}
+label.f input.wide{width:220px}
+button{font-family:var(--f-ui);font-size:13px;font-weight:600;border-radius:5px;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.scroll{overflow-x:auto;min-width:0}
+table.grid{border-collapse:collapse;width:100%;min-width:900px;font-variant-numeric:tabular-nums}
+table.grid th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;font-weight:600;padding:6px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.grid th small{display:block;text-transform:none;letter-spacing:0;font-weight:400;font-size:10.5px}
+table.grid th.grp-up{border-top:2px solid var(--arrow-up)}
+table.grid th.grp-dn{border-top:2px solid var(--arrow-dn)}
+table.grid td{padding:2px;border-bottom:1px solid var(--grid)}
+table.grid td input,table.grid td select{width:100%;box-sizing:border-box;font-family:var(--f-mono);font-size:13px;background:transparent;color:var(--fg);border:1px solid transparent;border-radius:4px;padding:5px 6px}
+table.grid td input:hover,table.grid td select:hover{border-color:var(--line);background:var(--cell)}
+table.grid td input:focus{background:var(--cell)}
+td.sw{width:14px}
+td.sw i{display:block;width:10px;height:10px;border-radius:2px;margin:auto}
+td.x button{border:none;background:none;color:var(--muted);padding:4px 6px;font-size:16px;line-height:1}
+td.x button:hover{color:var(--err)}
+.hint{font-size:12.5px;color:var(--muted)}
+.hint code{font-family:var(--f-mono);font-size:12px;background:var(--cell);border:1px solid var(--line);border-radius:3px;padding:0 4px;color:var(--fg)}
+textarea#pasteBox{width:100%;box-sizing:border-box;min-height:110px;font-family:var(--f-mono);font-size:12.5px;background:var(--cell);color:var(--fg);border:1px dashed var(--accent);border-radius:6px;padding:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;background:var(--cell)}
+.chip b{font-weight:500;color:var(--accent)}
+.msgs{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.msgs div{padding:5px 9px;border-radius:5px;border-left:3px solid}
+.msgs .e{border-color:var(--err);color:var(--err);background:color-mix(in srgb,var(--err) 8%,transparent)}
+.msgs .w{border-color:var(--warn);color:var(--warn);background:color-mix(in srgb,var(--warn) 8%,transparent)}
+#diagram svg{display:block;width:100%;min-width:720px;height:auto}
+#imgOut img{max-width:100%;border:1px solid var(--line);border-radius:6px;background:#fff}
+table.res{border-collapse:collapse;font-family:var(--f-mono);font-size:12.5px;font-variant-numeric:tabular-nums;min-width:520px}
+table.res th,table.res td{padding:4px 12px 4px 0;text-align:right;border-bottom:1px solid var(--grid);white-space:nowrap}
+table.res th{font-family:var(--f-ui);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+table.res td:first-child,table.res th:first-child{text-align:left}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;font-weight:600;z-index:20}
+.chk{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+@media (max-width:640px){label.f input{width:90px} label.f input.wide{width:100%} label.f:has(.wide){flex:1 1 100%}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<style>
+.mxbar{background:#0d1210;color:#e4ebe6;border-bottom:1px solid #2a3631;font:500 14px/1.2 "IBM Plex Sans",Archivo,system-ui,sans-serif}
+.mxbar-in{max-width:1180px;margin:0 auto;padding:10px max(16px,env(safe-area-inset-left));display:flex;align-items:center;gap:6px 18px;flex-wrap:wrap}
+.mxbar a{color:#e4ebe6;text-decoration:none}
+.mxbar a:hover,.mxbar a:focus-visible{color:#e39a5f;text-decoration:underline}
+.mxbar .mxlogo{font-weight:700;letter-spacing:.06em;margin-right:auto;display:inline-flex;align-items:center;gap:8px}
+.mxbar .mxlogo b{color:#4fbf87}
+.mxfoot{border-top:1px solid var(--line);margin-top:24px;padding:18px 0 0;font-size:13px;color:var(--muted);text-align:center}
+.mxfoot a{color:var(--accent);text-decoration:none}.mxfoot a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<nav class="mxbar" aria-label="MX Design"><div class="mxbar-in"><a class="mxlogo" href="https://blog.mxdesign.uk" title="Back to blog.mxdesign.uk">&larr; <span>MX <b>DESIGN</b>.uk</span></a><a href="https://blog.mxdesign.uk">Blog</a><a href="https://blog.mxdesign.uk/tools/">Tools</a><a href="https://mxdesign.uk/buck_compensation/">Buck Compensation Designer</a><a href="https://www.linkedin.com/in/manu-r-engineer" target="_blank" rel="noopener">LinkedIn</a></div></nav>
+<div class="wrap">
+  <header>
+    <h1>Power Sequence <span>Plotter</span></h1>
+    <p class="sub">Fill the table or paste rows straight from Excel. The diagram resolves each rail's dependencies and redraws as you type.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="setH">
+    <h2 id="setH">Settings</h2>
+    <div class="bar">
+      <label class="f">Diagram title<input id="title" class="wide" value="FPGA board — power-up / power-down"></label>
+      <label class="f">PG threshold %<input id="pgPct" value="90"></label>
+      <label class="f">Off threshold %<input id="offPct" value="10"></label>
+      <label class="f">Power-off at (ms)<input id="offAt" value="30" placeholder="blank = none"></label>
+      <label class="f">Axis end (ms)<input id="tEnd" placeholder="auto"></label>
+      <label class="chk"><input type="checkbox" id="showArrows" checked> Dependency arrows</label>
+      <label class="chk"><input type="checkbox" id="showPG" checked> Threshold marks</label>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="tblH">
+    <div class="bar">
+      <h2 id="tblH" class="grow">Rails &amp; signals</h2>
+      <button id="addRow">+ Row</button>
+      <button id="togglePaste">Paste block</button>
+      <button id="copyTemplate">Copy Excel header</button>
+      <button id="copyTable">Copy table</button>
+      <button id="loadSample">Load example</button>
+      <button id="clearAll">Clear</button>
+    </div>
+    <div id="pasteWrap" hidden>
+      <textarea id="pasteBox" placeholder="Paste rows copied from Excel here (tab-separated). A header row is detected and skipped."></textarea>
+      <div class="bar" style="margin-top:8px"><button class="primary" id="pasteReplace">Replace table</button><button id="pasteAppend">Append rows</button><span class="hint">Column order matches the table below.</span></div>
+    </div>
+    <div class="scroll">
+      <table class="grid" id="grid">
+        <thead>
+          <tr>
+            <th></th><th>Name</th><th>Type</th><th>Level<small>V</small></th>
+            <th class="grp-up">Rise<small>ms</small></th><th class="grp-up">Start after<small>signal / blank = t0</small></th><th class="grp-up">Up delay<small>ms</small></th>
+            <th class="grp-dn">Fall<small>ms</small></th><th class="grp-dn">Stop after<small>signal / blank = off</small></th><th class="grp-dn">Down delay<small>ms</small></th><th></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="hint">Click any cell and press <code>Ctrl+V</code> to paste a block from Excel; it fills from that cell and adds rows as needed. <code>VCCINT</code> in “Start after” waits for VCCINT to cross the PG threshold; <code>VCCINT.start</code> waits only for it to begin ramping. In “Stop after”, a name waits for that signal to fall below the off threshold. Times accept <code>ms</code>, <code>us</code> or <code>s</code>; levels accept <code>3V3</code>.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="dgH">
+    <div class="bar">
+      <h2 id="dgH" class="grow">Sequence diagram</h2>
+      <button id="makePng" class="primary">Make image</button>
+      <button id="copyPng">Copy image</button>
+      <button id="copySvg">Copy SVG</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="msgs" id="msgs"></div>
+    <div class="scroll" id="diagram"></div>
+    <div id="imgOut" hidden>
+      <p class="hint">Right-click (or long-press) the image and choose Save or Copy. White background, 2× resolution, ready for a datasheet or Word doc.</p>
+      <img id="pngImg" alt="Exported power sequence diagram">
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="resH">
+    <div class="bar"><h2 id="resH" class="grow">Solved timing</h2><button id="copyRes">Copy to Excel</button></div>
+    <div class="scroll"><table class="res" id="res"></table></div>
+  </section>
+  <footer class="mxfoot">Made by Manu R &middot; <a href="https://blog.mxdesign.uk">blog.mxdesign.uk</a> &middot; <a href="https://blog.mxdesign.uk/tools/">More tools</a> &middot; <a href="https://www.linkedin.com/in/manu-r-engineer" target="_blank" rel="noopener">LinkedIn</a></footer>
+</div>
+
+<script>
+(function(){
+const COLS=["name","type","v","rise","after","delay","fall","stopAfter","dDelay"];
+const HEAD=["Name","Type","Level (V)","Rise (ms)","Start after","Up delay (ms)","Fall (ms)","Stop after","Down delay (ms)"];
+const SAMPLE=[
+ ["VIN","Rail","12","2","","0","3","","4"],
+ ["EN_MAIN","Logic","3.3","0","VIN","1","0","3V3","0.5"],
+ ["3V3","Rail","3.3","1.2","EN_MAIN","0.5","1.5","VCCINT","0.5"],
+ ["VCCINT","Rail","1.0","0.8","3V3","1","1","VCCAUX","0.5"],
+ ["VCCAUX","Rail","1.8","0.8","VCCINT","0.5","1","VCCO","0.5"],
+ ["VCCO","Rail","2.5","1","VCCAUX","0.5","1","PG_ALL","1"],
+ ["PG_ALL","Logic","3.3","0","VCCO","2","0","POR_N","0.5"],
+ ["POR_N","Logic","3.3","0","PG_ALL","5","0","","0"]
+];
+const $=id=>document.getElementById(id);
+const tbody=$("rows");
+let data=[];
+
+/* ---------- storage ---------- */
+function save(){try{localStorage.setItem("psp_v1",JSON.stringify({data,set:getSettingsRaw()}))}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem("psp_v1")||"null");if(s&&Array.isArray(s.data)){data=s.data;if(s.set)for(const k in s.set){const el=$(k);if(!el)continue;if(el.type==="checkbox")el.checked=s.set[k];else el.value=s.set[k]}return true}}catch(e){}return false}
+function getSettingsRaw(){const o={};["title","pgPct","offPct","offAt","tEnd"].forEach(k=>o[k]=$(k).value);o.showArrows=$("showArrows").checked;o.showPG=$("showPG").checked;return o}
+
+/* ---------- table ---------- */
+function blankRow(){return ["","Rail","","1","","0","1","","0"]}
+function normType(t){t=String(t||"").trim().toLowerCase();return /^(l|d|s|sig|logic|digital|signal|en|pg)/.test(t)&&!/^(rail|r)$/.test(t)?"Logic":"Rail"}
+function renderTable(){
+  tbody.innerHTML="";
+  data.forEach((r,i)=>{
+    const tr=document.createElement("tr");
+    const sw=document.createElement("td");sw.className="sw";sw.innerHTML=`<i style="background:var(--ch${(i%6)+1})"></i>`;tr.appendChild(sw);
+    COLS.forEach((c,j)=>{
+      const td=document.createElement("td");let el;
+      if(c==="type"){el=document.createElement("select");["Rail","Logic"].forEach(o=>{const op=document.createElement("option");op.textContent=o;el.appendChild(op)});el.value=normType(r[j])}
+      else{el=document.createElement("input");el.value=r[j]??"";el.spellcheck=false;el.autocomplete="off"}
+      el.id=`c_${i}_${j}`;el.dataset.r=i;el.dataset.c=j;el.setAttribute("aria-label",`${HEAD[j]} row ${i+1}`);
+      el.addEventListener("input",()=>{data[i][j]=el.value;schedule()});
+      el.addEventListener("change",()=>{data[i][j]=el.value;schedule()});
+      td.appendChild(el);tr.appendChild(td)});
+    const x=document.createElement("td");x.className="x";const b=document.createElement("button");b.textContent="×";b.title="Delete row";b.setAttribute("aria-label",`Delete row ${i+1}`);
+    b.onclick=()=>{data.splice(i,1);renderTable();schedule()};x.appendChild(b);tr.appendChild(x);
+    tbody.appendChild(tr)});
+}
+function parseTSV(text){
+  const lines=text.replace(/\r/g,"").split("\n");
+  while(lines.length&&lines[lines.length-1].trim()==="")lines.pop();
+  let rows=lines.map(l=>l.split("\t").map(s=>s.trim().replace(/^"(.*)"$/,"$1")));
+  if(rows.length&&/^name$/i.test(rows[0][0]||""))rows.shift();
+  return rows;
+}
+tbody.addEventListener("paste",e=>{
+  const t=e.target;if(!t.dataset||t.dataset.r===undefined)return;
+  const text=(e.clipboardData||window.clipboardData).getData("text");
+  if(!/[\t\n]/.test(text.trim()))return;
+  e.preventDefault();
+  const rows=parseTSV(text);const r0=+t.dataset.r,c0=+t.dataset.c;
+  rows.forEach((row,ri)=>{const r=r0+ri;while(data.length<=r)data.push(blankRow());
+    row.forEach((v,ci)=>{const c=c0+ci;if(c<COLS.length)data[r][c]=COLS[c]==="type"?normType(v):v})});
+  renderTable();schedule();toast(`Pasted ${rows.length} row${rows.length===1?"":"s"}`);
+});
+function fromBlock(text,append){
+  const rows=parseTSV(text).filter(r=>r.some(v=>v!==""));
+  const mapped=rows.map(r=>{const o=blankRow();r.forEach((v,i)=>{if(i<COLS.length)o[i]=i===1?normType(v):v});return o});
+  data=append?data.concat(mapped):mapped;renderTable();schedule();toast(`Loaded ${mapped.length} rows`);
+}
+
+/* ---------- parsing ---------- */
+function pTime(s,def){s=String(s??"").trim().toLowerCase();if(s==="")return def;
+  const m=s.match(/^(-?[\d.]+)\s*(ms|us|µs|s|ns)?$/);if(!m)return NaN;let v=parseFloat(m[1]);
+  const u=m[2]||"ms";if(u==="us"||u==="µs")v/=1000;else if(u==="ns")v/=1e6;else if(u==="s")v*=1000;return v}
+function pVolt(s){s=String(s??"").trim();let m=s.match(/^(\d+)[vV](\d+)$/);if(m)return parseFloat(m[1]+"."+m[2]);
+  m=s.match(/^(-?[\d.]+)\s*(m?)[vV]?$/);if(!m)return NaN;let v=parseFloat(m[1]);if(m[2])v/=1000;return v}
+function pRef(s){s=String(s??"").trim();if(s==="")return null;
+  if(/^-?[\d.]+\s*(ms|us|µs|s|ns)?$/i.test(s))return{abs:pTime(s)};
+  const m=s.match(/^(.+?)(?:\.(start|pg|end|off))?$/i);return{name:m[1].trim().toUpperCase(),edge:(m[2]||"").toLowerCase()}}
+
+/* ---------- solver ---------- */
+function solve(){
+  const set=getSettingsRaw();
+  const pg=Math.min(99,Math.max(1,parseFloat(set.pgPct)||90))/100;
+  const off=Math.min(99,Math.max(1,parseFloat(set.offPct)||10))/100;
+  const offAt=String(set.offAt).trim()===""?null:pTime(set.offAt);
+  const errs=[],warns=[];
+  const sigs=[];const byName={};
+  data.forEach((r,i)=>{const name=String(r[0]||"").trim();if(!name)return;
+    const s={i,name,key:name.toUpperCase(),type:normType(r[1]),v:pVolt(r[2]),rise:pTime(r[3],0),after:pRef(r[4]),delay:pTime(r[5],0),
+      fall:pTime(r[6],0),stopAfter:pRef(r[7]),dDelay:pTime(r[8],0),color:(i%6)+1};
+    if(s.type==="Logic"&&isNaN(s.v))s.v=3.3;
+    [["rise","Rise"],["delay","Up delay"],["fall","Fall"],["dDelay","Down delay"]].forEach(([k,l])=>{if(isNaN(s[k])){errs.push(`${name}: “${l}” isn't a time. Use a number in ms, or add us / s.`);s[k]=0}else if(s[k]<0){errs.push(`${name}: “${l}” can't be negative.`);s[k]=0}});
+    if(isNaN(s.v)){warns.push(`${name}: level is blank or unreadable, drawn as 1 V.`);s.v=1}
+    if(byName[s.key])errs.push(`Duplicate name “${name}”. Each row needs a unique name.`);
+    byName[s.key]=s;sigs.push(s)});
+  // power-up
+  const stUp={};
+  function up(s,stack){
+    if(stUp[s.key]==="done")return true;
+    if(stUp[s.key]==="busy"){errs.push(`Loop in start dependencies: ${stack.concat(s.name).join(" → ")}`);return false}
+    stUp[s.key]="busy";let t0=0;s.upSrc=null;
+    if(s.after){
+      if(s.after.abs!==undefined){t0=isNaN(s.after.abs)?0:s.after.abs}
+      else{const src=byName[s.after.name];
+        if(!src){errs.push(`${s.name}: “Start after” names ${s.after.name}, which isn't in the table.`)}
+        else if(up(src,stack.concat(s.name))){const useStart=s.after.edge==="start";t0=useStart?src.tStart:src.tPG;s.upSrc={src,edge:useStart?"start":"pg",t:t0}}}}
+    s.tStart=t0+s.delay;s.tPG=s.tStart+s.rise*(s.type==="Logic"?0.5:pg);s.tUp=s.tStart+s.rise;
+    stUp[s.key]="done";return true}
+  sigs.forEach(s=>up(s,[]));
+  // power-down
+  const stDn={};
+  function dn(s,stack){
+    if(stDn[s.key]==="done")return true;
+    if(stDn[s.key]==="busy"){errs.push(`Loop in stop dependencies: ${stack.concat(s.name).join(" → ")}`);return false}
+    stDn[s.key]="busy";let t0=offAt;s.dnSrc=null;
+    if(s.stopAfter){
+      if(s.stopAfter.abs!==undefined)t0=s.stopAfter.abs;
+      else{const src=byName[s.stopAfter.name];
+        if(!src)errs.push(`${s.name}: “Stop after” names ${s.stopAfter.name}, which isn't in the table.`);
+        else if(dn(src,stack.concat(s.name))){const useStart=s.stopAfter.edge==="start";t0=useStart?src.tFall:src.tOff;s.dnSrc={src,edge:useStart?"start":"off",t:t0}}}}
+    s.tFall=t0+s.dDelay;s.tOff=s.tFall+s.fall*(s.type==="Logic"?0.5:(1-off));s.tDown=s.tFall+s.fall;
+    stDn[s.key]="done";return true}
+  if(offAt!==null&&!isNaN(offAt)){sigs.forEach(s=>dn(s,[]));
+    sigs.forEach(s=>{if(s.tFall<s.tUp)warns.push(`${s.name} starts falling at ${fmt(s.tFall)} ms, before it finishes rising at ${fmt(s.tUp)} ms. Move “Power-off at” later.`)})}
+  else{if(offAt!==null)errs.push("“Power-off at” isn't a time.");sigs.forEach(s=>{s.tFall=null;s.tOff=null;s.tDown=null})}
+  return{sigs,errs:[...new Set(errs)],warns,pg,off,offAt:(offAt!==null&&!isNaN(offAt))?offAt:null,set}
+}
+
+/* ---------- rendering ---------- */
+function fmt(v){if(v==null||isNaN(v))return"–";const a=Math.abs(v);return a>=100?v.toFixed(0):a>=10?v.toFixed(1):v.toFixed(2).replace(/\.?0+$/,"")||"0"}
+function niceStep(range,target){const raw=range/target;const p=Math.pow(10,Math.floor(Math.log10(raw)));const n=raw/p;return(n<1.5?1:n<3?2:n<7?5:10)*p}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function themeFrom(el){const cs=getComputedStyle(el);const g=k=>cs.getPropertyValue(k).trim();
+  return{bg:g("--panel"),fg:g("--fg"),muted:g("--muted"),grid:g("--grid"),line:g("--line"),up:g("--arrow-up"),dn:g("--arrow-dn"),
+    ch:[1,2,3,4,5,6].map(i=>g("--ch"+i)),font:"Archivo, system-ui, sans-serif",mono:"JetBrains Mono, ui-monospace, monospace"}}
+const LIGHT={bg:"#ffffff",fg:"#17202a",muted:"#5b6876",grid:"#e6ebf0",line:"#c9d1d9",up:"#3a4a5c",dn:"#b35a00",
+  ch:["#a87f00","#0a8fa3","#b0329a","#2e8b3e","#3561d6","#c8661a"],font:"Arial, Helvetica, sans-serif",mono:"Consolas, 'Courier New', monospace"};
+
+function buildSVG(S,T){
+  const sigs=S.sigs;const W=1000,L=150,R=24,TOP=S.set.title?54:28,AX=34;
+  if(!sigs.length)return`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} 120"><rect width="${W}" height="120" fill="${T.bg}"/><text x="${W/2}" y="64" text-anchor="middle" font-family="${T.font}" font-size="14" fill="${T.muted}">Add a row or paste from Excel to draw the sequence.</text></svg>`;
+  let tMax=0;sigs.forEach(s=>{tMax=Math.max(tMax,s.tUp,s.tDown||0)});
+  const userEnd=pTime(S.set.tEnd,NaN);
+  tMax=!isNaN(userEnd)&&userEnd>0?userEnd:(tMax*1.08||10);
+  const x=t=>L+Math.max(0,Math.min(1,t/tMax))*(W-L-R);
+  let y=TOP;const rows=sigs.map(s=>{const h=s.type==="Rail"?62:32;const r={s,y,h};y+=h+12;return r});
+  const H=y+AX;const out=[];
+  out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" font-family="${T.font}">`);
+  out.push(`<defs>${["up","dn"].map(k=>`<marker id="ar_${k}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="${T[k]}"/></marker>`).join("")}</defs>`);
+  out.push(`<rect width="${W}" height="${H}" fill="${T.bg}"/>`);
+  if(S.set.title)out.push(`<text x="16" y="30" font-size="17" font-weight="700" fill="${T.fg}">${esc(S.set.title)}</text>`);
+  // grid
+  const step=niceStep(tMax,10);
+  for(let t=0;t<=tMax+1e-9;t+=step){const X=x(t);
+    out.push(`<line x1="${X}" y1="${TOP-6}" x2="${X}" y2="${H-AX+4}" stroke="${T.grid}" stroke-width="1"/>`);
+    out.push(`<text x="${X}" y="${H-AX+20}" text-anchor="middle" font-family="${T.mono}" font-size="11" fill="${T.muted}">${fmt(t)}</text>`)}
+  out.push(`<text x="${W-R}" y="${H-4}" text-anchor="end" font-size="11" fill="${T.muted}">time (ms)</text>`);
+  if(S.offAt!==null){const X=x(S.offAt);out.push(`<line x1="${X}" y1="${TOP-10}" x2="${X}" y2="${H-AX+4}" stroke="${T.dn}" stroke-width="1.2" stroke-dasharray="2 3"/><text x="${X+4}" y="${TOP-12}" font-size="11" font-weight="600" fill="${T.dn}">power off ${fmt(S.offAt)} ms</text>`)}
+  // rows
+  const lv={};
+  rows.forEach(({s,y,h})=>{
+    const c=T.ch[(s.color-1)%6];const base=y+h,top=y+6;const Y=f=>base-f*(h-6);lv[s.key]={Y,base,top,y,h};
+    out.push(`<line x1="${L}" y1="${base}" x2="${W-R}" y2="${base}" stroke="${T.line}" stroke-width="1"/>`);
+    out.push(`<rect x="12" y="${y+h/2-12}" width="4" height="24" rx="1" fill="${c}"/>`);
+    out.push(`<text x="24" y="${y+h/2-1}" font-size="13" font-weight="700" fill="${T.fg}">${esc(s.name)}</text>`);
+    out.push(`<text x="24" y="${y+h/2+14}" font-family="${T.mono}" font-size="11" fill="${T.muted}">${s.type==="Rail"?fmt(s.v)+" V":"logic "+fmt(s.v)+" V"}</text>`);
+    const pts=[[0,0],[s.tStart,0],[s.tUp,1]];
+    if(s.tFall!=null){pts.push([s.tFall,1],[s.tDown,0],[tMax,0])}else pts.push([tMax,1]);
+    const d=pts.map((p,k)=>`${k?"L":"M"}${x(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(" ");
+    out.push(`<path d="${d} L${x(tMax)},${base} L${L},${base} Z" fill="${c}" fill-opacity="0.13" stroke="none"/>`);
+    out.push(`<path d="${d}" fill="none" stroke="${c}" stroke-width="2.2" stroke-linejoin="round"/>`);
+    if(S.set.showPG&&s.type==="Rail"){
+      out.push(`<circle cx="${x(s.tPG)}" cy="${Y(S.pg)}" r="3" fill="${c}" stroke="${T.bg}" stroke-width="1"/>`);
+      if(s.tOff!=null)out.push(`<circle cx="${x(s.tOff)}" cy="${Y(S.off)}" r="3" fill="${T.bg}" stroke="${c}" stroke-width="1.5"/>`)}
+  });
+  // arrows
+  if(S.set.showArrows){
+    rows.forEach(({s})=>{
+      [["upSrc","up",s.tStart,s.delay,S.pg],["dnSrc","dn",s.tFall,s.dDelay,S.off]].forEach(([k,kind,tDst,dly,thr])=>{
+        const src=s[k];if(!src)return;const a=lv[src.src.key],b=lv[s.key];
+        const fr=src.edge==="start"?(kind==="up"?0:1):(src.src.type==="Logic"?0.5:thr);
+        const x1=x(src.t),y1=a.Y(fr),x2=x(tDst);const down=b.y>a.y;const yb=down?b.base-2:b.top;
+        const col=T[kind];
+        if(Math.abs(x2-x1)<2){out.push(`<path d="M${x1},${y1} L${x1},${yb}" fill="none" stroke="${col}" stroke-width="1.1" stroke-dasharray="3 2" marker-end="url(#ar_${kind})"/>`)}
+        else{out.push(`<path d="M${x1},${y1} L${x1},${yb} L${x2},${yb}" fill="none" stroke="${col}" stroke-width="1.1" stroke-dasharray="3 2" marker-end="url(#ar_${kind})"/>`);
+          if(dly>0&&x2-x1>26)out.push(`<text x="${(x1+x2)/2}" y="${yb-4}" text-anchor="middle" font-family="${T.mono}" font-size="10" fill="${col}">${fmt(dly)} ms</text>`)}
+        out.push(`<circle cx="${x1}" cy="${y1}" r="2.2" fill="${col}"/>`)})})}
+  // legend
+  out.push(`<g font-size="10.5" fill="${T.muted}"><line x1="${L}" y1="${H-8}" x2="${L+22}" y2="${H-8}" stroke="${T.up}" stroke-dasharray="3 2"/><text x="${L+28}" y="${H-4}">power-up dependency</text><line x1="${L+160}" y1="${H-8}" x2="${L+182}" y2="${H-8}" stroke="${T.dn}" stroke-dasharray="3 2"/><text x="${L+188}" y="${H-4}">power-down dependency</text></g>`);
+  out.push(`</svg>`);return out.join("")
+}
+
+let last=null,timer=null;
+function schedule(){clearTimeout(timer);timer=setTimeout(update,120)}
+function update(){
+  const S=solve();last=S;save();
+  $("diagram").innerHTML=buildSVG(S,themeFrom(document.body));
+  const m=$("msgs");m.innerHTML=S.errs.map(e=>`<div class="e">${esc(e)}</div>`).join("")+S.warns.map(w=>`<div class="w">${esc(w)}</div>`).join("");
+  const sigs=S.sigs;const chips=[];
+  if(sigs.length){const allUp=Math.max(...sigs.map(s=>s.tUp));chips.push(`<span class="chip">${sigs.length} signals</span>`,`<span class="chip">all up <b>${fmt(allUp)} ms</b></span>`);
+    if(S.offAt!==null){const allDn=Math.max(...sigs.map(s=>s.tDown));chips.push(`<span class="chip">all off <b>${fmt(allDn)} ms</b></span>`,`<span class="chip">off sequence <b>${fmt(allDn-S.offAt)} ms</b></span>`)}
+    chips.push(`<span class="chip">${S.errs.length?`<b style="color:var(--err)">${S.errs.length} error${S.errs.length>1?"s":""}</b>`:`<b style="color:var(--ok)">no errors</b>`}</span>`)}
+  $("chips").innerHTML=chips.join("");
+  const order=[...sigs].sort((a,b)=>a.tStart-b.tStart);
+  $("res").innerHTML=`<thead><tr><th>Signal</th><th>Starts</th><th>PG / edge</th><th>Fully up</th><th>Falls</th><th>Below off</th><th>Fully off</th></tr></thead><tbody>`+
+    order.map(s=>`<tr><td>${esc(s.name)}</td><td>${fmt(s.tStart)}</td><td>${fmt(s.tPG)}</td><td>${fmt(s.tUp)}</td><td>${fmt(s.tFall)}</td><td>${fmt(s.tOff)}</td><td>${fmt(s.tDown)}</td></tr>`).join("")+`</tbody>`;
+  $("imgOut").hidden=true;
+}
+
+/* ---------- export ---------- */
+function exportSVG(){return buildSVG(last||solve(),LIGHT)}
+function toPNG(){return new Promise((res,rej)=>{const svg=exportSVG();const vb=svg.match(/viewBox="0 0 (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)"/);const w=+vb[1],h=+vb[2],k=2;
+  const img=new Image();img.onload=()=>{const c=document.createElement("canvas");c.width=w*k;c.height=h*k;const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);res(c)};
+  img.onerror=rej;img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)})}
+async function copyText(t,msg){try{await navigator.clipboard.writeText(t);toast(msg)}catch(e){const ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand("copy")}catch(_){ }ta.remove();toast(ok?msg:"Copy was blocked here. Use Make image instead.")}}
+$("makePng").onclick=async()=>{try{const c=await toPNG();$("pngImg").src=c.toDataURL("image/png");$("imgOut").hidden=false;$("imgOut").scrollIntoView({block:"nearest",behavior:"smooth"})}catch(e){toast("Couldn't render the image")}};
+$("copyPng").onclick=async()=>{try{const c=await toPNG();const blob=await new Promise(r=>c.toBlob(r,"image/png"));await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);toast("Image copied. Paste into Word or PowerPoint.")}catch(e){$("makePng").click();toast("Direct copy is blocked here. Right-click the image below instead.")}};
+$("copySvg").onclick=()=>copyText(exportSVG(),"SVG copied");
+$("copyTemplate").onclick=()=>copyText(HEAD.join("\t")+"\n","Header copied. Paste into Excel row 1.");
+$("copyTable").onclick=()=>copyText([HEAD.join("\t")].concat(data.map(r=>r.join("\t"))).join("\n"),"Table copied for Excel");
+$("copyRes").onclick=()=>{const S=last||solve();const rows=[["Signal","Starts (ms)","PG/edge (ms)","Fully up (ms)","Falls (ms)","Below off (ms)","Fully off (ms)"]].concat([...S.sigs].sort((a,b)=>a.tStart-b.tStart).map(s=>[s.name,s.tStart,s.tPG,s.tUp,s.tFall,s.tOff,s.tDown].map((v,i)=>i?(v==null?"":+v.toFixed(4)):v)));copyText(rows.map(r=>r.join("\t")).join("\n"),"Timing copied for Excel")};
+
+/* ---------- controls ---------- */
+$("addRow").onclick=()=>{data.push(blankRow());renderTable();schedule();const el=$(`c_${data.length-1}_0`);el&&el.focus()};
+$("loadSample").onclick=()=>{data=SAMPLE.map(r=>r.slice());renderTable();schedule()};
+let clearArmed=false;$("clearAll").onclick=e=>{if(!clearArmed){clearArmed=true;e.target.textContent="Click again to clear";setTimeout(()=>{clearArmed=false;e.target.textContent="Clear"},2500);return}
+  clearArmed=false;e.target.textContent="Clear";data=[blankRow()];renderTable();schedule()};
+$("togglePaste").onclick=()=>{const w=$("pasteWrap");w.hidden=!w.hidden;if(!w.hidden)$("pasteBox").focus()};
+$("pasteReplace").onclick=()=>{fromBlock($("pasteBox").value,false);$("pasteBox").value="";$("pasteWrap").hidden=true};
+$("pasteAppend").onclick=()=>{fromBlock($("pasteBox").value,true);$("pasteBox").value="";$("pasteWrap").hidden=true};
+["title","pgPct","offPct","offAt","tEnd","showArrows","showPG"].forEach(k=>$(k).addEventListener("input",schedule));
+try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",update)}catch(e){}
+new MutationObserver(update).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+let tt;function toast(m){let t=document.querySelector(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");document.body.appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2200)}
+
+if(!load()||!data.length)data=SAMPLE.map(r=>r.slice());
+renderTable();update();
+})();
+</script>
+
+</body>
+</html>
