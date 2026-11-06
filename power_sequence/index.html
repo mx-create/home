@@ -95,6 +95,15 @@ td.dd input{padding-right:20px}
 .ac .o.on,.ac .o:hover{background:color-mix(in srgb,var(--accent) 14%,transparent)}
 .ac .o.sug b{font-weight:600;color:var(--accent)}
 .ac hr{border:none;border-top:1px solid var(--line);margin:4px 2px}
+.pv{position:sticky;top:0;z-index:5;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px 4px;box-shadow:0 6px 12px -10px rgba(0,0,0,.35)}
+.pv-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.pv-h b{color:var(--fg);text-transform:none;letter-spacing:0;font-family:var(--f-mono);font-weight:500}
+.pv-h .hint{text-transform:none;letter-spacing:0;font-weight:400}
+.pv-k{font-size:10.5px;padding:1px 7px;border-radius:999px;border:1px solid}
+.pv-k.up{color:var(--arrow-up);border-color:var(--arrow-up)}
+.pv-k.dn{color:var(--arrow-dn);border-color:var(--arrow-dn)}
+#preview svg{display:block;width:100%;min-width:720px;height:auto;max-height:300px}
+@media (max-width:640px){.pv{position:static}}
 .hint{font-size:12.5px;color:var(--muted)}
 .hint code{font-family:var(--f-mono);font-size:12px;background:var(--cell);border:1px solid var(--line);border-radius:3px;padding:0 4px;color:var(--fg)}
 textarea#pasteBox{width:100%;box-sizing:border-box;min-height:110px;font-family:var(--f-mono);font-size:12.5px;background:var(--cell);color:var(--fg);border:1px dashed var(--accent);border-radius:6px;padding:8px}
@@ -162,6 +171,10 @@ table.res td:first-child,table.res th:first-child{text-align:left}
     <div id="pasteWrap" hidden>
       <textarea id="pasteBox" placeholder="Paste rows copied from Excel here (tab-separated). A header row is detected and skipped."></textarea>
       <div class="bar" style="margin-top:8px"><button class="primary" id="pasteReplace">Replace table</button><button id="pasteAppend">Append rows</button><span class="hint">Column order matches the table below.</span></div>
+    </div>
+    <div class="pv" id="pvWrap" aria-live="polite">
+      <div class="pv-h"><span id="pvT">Preview</span><span class="hint" id="pvW"></span></div>
+      <div class="scroll" id="preview"></div>
     </div>
     <div class="scroll">
       <table class="grid" id="grid">
@@ -430,34 +443,39 @@ function fmt(v){if(v==null||isNaN(v))return"–";const a=Math.abs(v);return a>=1
 function niceStep(range,target){const raw=range/target;const p=Math.pow(10,Math.floor(Math.log10(raw)));const n=raw/p;return(n<1.5?1:n<3?2:n<7?5:10)*p}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 function themeFrom(el){const cs=getComputedStyle(el);const g=k=>cs.getPropertyValue(k).trim();
-  return{bg:g("--panel"),fg:g("--fg"),muted:g("--muted"),grid:g("--grid"),line:g("--line"),up:g("--arrow-up"),dn:g("--arrow-dn"),
+  return{bg:g("--panel"),fg:g("--fg"),accent:g("--accent"),muted:g("--muted"),grid:g("--grid"),line:g("--line"),up:g("--arrow-up"),dn:g("--arrow-dn"),
     ch:[1,2,3,4,5,6].map(i=>g("--ch"+i)),font:"Archivo, system-ui, sans-serif",mono:"JetBrains Mono, ui-monospace, monospace"}}
-const LIGHT={bg:"#ffffff",fg:"#17202a",muted:"#5b6876",grid:"#e6ebf0",line:"#c9d1d9",up:"#3a4a5c",dn:"#b35a00",
+const LIGHT={bg:"#ffffff",fg:"#17202a",accent:"#0a7f93",muted:"#5b6876",grid:"#e6ebf0",line:"#c9d1d9",up:"#3a4a5c",dn:"#b35a00",
   ch:["#a87f00","#0a8fa3","#b0329a","#2e8b3e","#3561d6","#c8661a"],font:"Arial, Helvetica, sans-serif",mono:"Consolas, 'Courier New', monospace"};
 
-function buildSVG(S,T){
-  const sigs=S.sigs;const W=1000,L=150,R=24,TOP=S.set.title?54:28,AX=34;
+function buildSVG(S,T,o={}){
+  const P=!!o.preview,pre=o.id||"m";
+  const sigs=o.only?S.sigs.filter(o.only):S.sigs;const W=1000,L=150,R=24,TOP=P?28:(S.set.title?54:28),AX=P?26:34;
   if(!sigs.length)return`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} 120"><rect width="${W}" height="120" fill="${T.bg}"/><text x="${W/2}" y="64" text-anchor="middle" font-family="${T.font}" font-size="14" fill="${T.muted}">Add a row or paste from Excel to draw the sequence.</text></svg>`;
   let tMax=0;sigs.forEach(s=>{tMax=Math.max(tMax,s.tUp,s.tDown||0)});
   const userEnd=pTime(S.set.tEnd,NaN);
   tMax=!isNaN(userEnd)&&userEnd>0?userEnd:(tMax*1.08||10);
-  const x=t=>L+Math.max(0,Math.min(1,t/tMax))*(W-L-R);
-  let y=TOP;const rows=sigs.map(s=>{const h=s.type==="Rail"?62:32;const r={s,y,h};y+=h+12;return r});
+  const t0=P?o.t0:0;if(P)tMax=o.t1;
+  const x=t=>L+(P?(t-t0)/(tMax-t0):Math.max(0,Math.min(1,(t-t0)/(tMax-t0))))*(W-L-R);
+  const cp=P?` clip-path="url(#${pre}clip)"`:"";
+  let y=TOP;const rows=sigs.map(s=>{const h=s.type==="Rail"?(P?46:62):(P?24:32);const r={s,y,h};y+=h+(P?10:12);return r});
   const H=y+AX;const out=[];
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" font-family="${T.font}">`);
-  out.push(`<defs>${["up","dn"].map(k=>`<marker id="ar_${k}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="${T[k]}"/></marker>`).join("")}</defs>`);
+  out.push(`<defs>${["up","dn"].map(k=>`<marker id="${pre}ar_${k}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="${T[k]}"/></marker>`).join("")}</defs>`);
   out.push(`<rect width="${W}" height="${H}" fill="${T.bg}"/>`);
-  if(S.set.title)out.push(`<text x="16" y="30" font-size="17" font-weight="700" fill="${T.fg}">${esc(S.set.title)}</text>`);
+  if(P)out.push(`<clipPath id="${pre}clip"><rect x="${L}" y="0" width="${W-L-R+1}" height="${H}"/></clipPath>`);
+  if(S.set.title&&!P)out.push(`<text x="16" y="30" font-size="17" font-weight="700" fill="${T.fg}">${esc(S.set.title)}</text>`);
   // grid
-  const step=niceStep(tMax,10);
-  for(let t=0;t<=tMax+1e-9;t+=step){const X=x(t);
+  const step=niceStep(tMax-t0,P?8:10);
+  for(let t=Math.ceil(t0/step-1e-9)*step;t<=tMax+1e-9;t+=step){const X=x(t);
     out.push(`<line x1="${X}" y1="${TOP-6}" x2="${X}" y2="${H-AX+4}" stroke="${T.grid}" stroke-width="1"/>`);
-    out.push(`<text x="${X}" y="${H-AX+20}" text-anchor="middle" font-family="${T.mono}" font-size="11" fill="${T.muted}">${fmt(t)}</text>`)}
+    if(!P||X<W-R-70)out.push(`<text x="${X}" y="${H-AX+20}" text-anchor="middle" font-family="${T.mono}" font-size="11" fill="${T.muted}">${fmt(t)}</text>`)}
   out.push(`<text x="${W-R}" y="${H-4}" text-anchor="end" font-size="11" fill="${T.muted}">time (ms)</text>`);
-  if(S.offAt!==null){const X=x(S.offAt);out.push(`<line x1="${X}" y1="${TOP-10}" x2="${X}" y2="${H-AX+4}" stroke="${T.dn}" stroke-width="1.2" stroke-dasharray="2 3"/><text x="${X+4}" y="${TOP-12}" font-size="11" font-weight="600" fill="${T.dn}">power off ${fmt(S.offAt)} ms</text>`)}
+  if(S.offAt!==null&&(!P||o.kind==="dn")){const X=x(S.offAt);out.push(`<line x1="${X}" y1="${TOP-10}" x2="${X}" y2="${H-AX+4}" stroke="${T.dn}" stroke-width="1.2" stroke-dasharray="2 3"/><text x="${X+4}" y="${TOP-12}" font-size="11" font-weight="600" fill="${T.dn}">power off ${fmt(S.offAt)} ms</text>`)}
   // rows
   const lv={};
   rows.forEach(({s,y,h})=>{
+    if(P&&s.i===o.focus)out.push(`<rect x="0" y="${y-4}" width="${W}" height="${h+8}" fill="${T.accent}" fill-opacity="0.09"/><rect x="0" y="${y-4}" width="3" height="${h+8}" fill="${T.accent}"/>`);
     const c=T.ch[(s.color-1)%6];const base=y+h,top=y+6;const Y=f=>base-f*(h-6);lv[s.key]={Y,base,top,y,h};
     out.push(`<line x1="${L}" y1="${base}" x2="${W-R}" y2="${base}" stroke="${T.line}" stroke-width="1"/>`);
     out.push(`<rect x="12" y="${y+h/2-12}" width="4" height="24" rx="1" fill="${c}"/>`);
@@ -466,26 +484,26 @@ function buildSVG(S,T){
     const pts=[[0,0],[s.tStart,0],[s.tUp,1]];
     if(s.tFall!=null){pts.push([s.tFall,1],[s.tDown,0],[tMax,0])}else pts.push([tMax,1]);
     const d=pts.map((p,k)=>`${k?"L":"M"}${x(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(" ");
-    out.push(`<path d="${d} L${x(tMax)},${base} L${L},${base} Z" fill="${c}" fill-opacity="0.13" stroke="none"/>`);
-    out.push(`<path d="${d}" fill="none" stroke="${c}" stroke-width="2.2" stroke-linejoin="round"/>`);
+    out.push(`<path d="${d} L${x(tMax)},${base} L${L},${base} Z" fill="${c}" fill-opacity="0.13" stroke="none"${cp}/>`);
+    out.push(`<path d="${d}" fill="none" stroke="${c}" stroke-width="2.2" stroke-linejoin="round"${cp}/>`);
     if(S.set.showPG&&s.type==="Rail"){
-      out.push(`<circle cx="${x(s.tPG)}" cy="${Y(S.pg)}" r="3" fill="${c}" stroke="${T.bg}" stroke-width="1"/>`);
-      if(s.tOff!=null)out.push(`<circle cx="${x(s.tOff)}" cy="${Y(S.off)}" r="3" fill="${T.bg}" stroke="${c}" stroke-width="1.5"/>`)}
+      out.push(`<circle cx="${x(s.tPG)}" cy="${Y(S.pg)}" r="3" fill="${c}" stroke="${T.bg}" stroke-width="1"${cp}/>`);
+      if(s.tOff!=null)out.push(`<circle cx="${x(s.tOff)}" cy="${Y(S.off)}" r="3" fill="${T.bg}" stroke="${c}" stroke-width="1.5"${cp}/>`)}
   });
   // arrows
   if(S.set.showArrows){
     rows.forEach(({s})=>{
       [["upSrc","up",s.tStart,s.delay,S.pg],["dnSrc","dn",s.tFall,s.dDelay,S.off]].forEach(([k,kind,tDst,dly,thr])=>{
-        const src=s[k];if(!src)return;const a=lv[src.src.key],b=lv[s.key];
+        const src=s[k];if(!src||(P&&kind!==o.kind))return;const a=lv[src.src.key],b=lv[s.key];if(!a||!b)return;
         const fr=src.edge==="start"?(kind==="up"?0:1):(src.src.type==="Logic"?0.5:thr);
         const x1=x(src.t),y1=a.Y(fr),x2=x(tDst);const down=b.y>a.y;const yb=down?b.base-2:b.top;
         const col=T[kind];
-        if(Math.abs(x2-x1)<2){out.push(`<path d="M${x1},${y1} L${x1},${yb}" fill="none" stroke="${col}" stroke-width="1.1" stroke-dasharray="3 2" marker-end="url(#ar_${kind})"/>`)}
-        else{out.push(`<path d="M${x1},${y1} L${x1},${yb} L${x2},${yb}" fill="none" stroke="${col}" stroke-width="1.1" stroke-dasharray="3 2" marker-end="url(#ar_${kind})"/>`);
+        if(Math.abs(x2-x1)<2){out.push(`<path d="M${x1},${y1} L${x1},${yb}" fill="none" stroke="${col}" stroke-width="1.1" stroke-dasharray="3 2" marker-end="url(#${pre}ar_${kind})"${cp}/>`)}
+        else{out.push(`<path d="M${x1},${y1} L${x1},${yb} L${x2},${yb}" fill="none" stroke="${col}" stroke-width="1.1" stroke-dasharray="3 2" marker-end="url(#${pre}ar_${kind})"${cp}/>`);
           if(dly>0&&x2-x1>26)out.push(`<text x="${(x1+x2)/2}" y="${yb-4}" text-anchor="middle" font-family="${T.mono}" font-size="10" fill="${col}">${fmt(dly)} ms</text>`)}
-        out.push(`<circle cx="${x1}" cy="${y1}" r="2.2" fill="${col}"/>`)})})}
+        out.push(`<circle cx="${x1}" cy="${y1}" r="2.2" fill="${col}"${cp}/>`)})})}
   // legend
-  out.push(`<g font-size="10.5" fill="${T.muted}"><line x1="${L}" y1="${H-8}" x2="${L+22}" y2="${H-8}" stroke="${T.up}" stroke-dasharray="3 2"/><text x="${L+28}" y="${H-4}">power-up dependency</text><line x1="${L+160}" y1="${H-8}" x2="${L+182}" y2="${H-8}" stroke="${T.dn}" stroke-dasharray="3 2"/><text x="${L+188}" y="${H-4}">power-down dependency</text></g>`);
+  if(!P)out.push(`<g font-size="10.5" fill="${T.muted}"><line x1="${L}" y1="${H-8}" x2="${L+22}" y2="${H-8}" stroke="${T.up}" stroke-dasharray="3 2"/><text x="${L+28}" y="${H-4}">power-up dependency</text><line x1="${L+160}" y1="${H-8}" x2="${L+182}" y2="${H-8}" stroke="${T.dn}" stroke-dasharray="3 2"/><text x="${L+188}" y="${H-4}">power-down dependency</text></g>`);
   out.push(`</svg>`);return out.join("")
 }
 
@@ -504,7 +522,37 @@ function update(){
   $("res").innerHTML=`<thead><tr><th>Signal</th><th>Starts</th><th>PG / edge</th><th>Fully up</th><th>Falls</th><th>Below off</th><th>Fully off</th></tr></thead><tbody>`+
     order.map(s=>`<tr><td>${esc(s.name)}</td><td>${fmt(s.tStart)}</td><td>${fmt(s.tPG)}</td><td>${fmt(s.tUp)}</td><td>${fmt(s.tFall)}</td><td>${fmt(s.tOff)}</td><td>${fmt(s.tDown)}</td></tr>`).join("")+`</tbody>`;
   $("imgOut").hidden=true;
+  renderPreview();
 }
+
+/* ---------- focused preview: edited row ± 2 ---------- */
+let focusRow=0,focusKind="up";
+function renderPreview(){
+  const S=last,box=$("preview");if(!S||!box)return;
+  const n=data.length;if(!n||!S.sigs.length){box.innerHTML="";$("pvT").textContent="Preview";$("pvW").textContent="Add a row to see the preview.";return}
+  const r=Math.max(0,Math.min(focusRow,n-1));
+  const lo=Math.max(0,Math.min(r-2,n-5)),hi=Math.min(n-1,lo+4);
+  const only=s=>s.i>=lo&&s.i<=hi;const sub=S.sigs.filter(only);
+  const kind=focusKind==="dn"&&S.offAt!==null?"dn":"up";
+  let a=Infinity,b=-Infinity;
+  sub.forEach(s=>{if(kind==="up"){a=Math.min(a,s.tStart,s.upSrc?s.upSrc.t:Infinity);b=Math.max(b,s.tUp)}
+    else{a=Math.min(a,s.tFall,s.dnSrc?s.dnSrc.t:Infinity);b=Math.max(b,s.tDown)}});
+  if(!isFinite(a)||!isFinite(b)){a=0;b=10}
+  const span=Math.max(b-a,0.5),pad=span*0.12;let t0=a-pad,t1=b+pad;if(kind==="up"&&t0<0)t0=0;if(t1-t0<0.5)t1=t0+0.5;
+  box.innerHTML=buildSVG(S,themeFrom(document.body),{preview:true,id:"pv",only,focus:r,kind,t0,t1});
+  const me=S.sigs.find(s=>s.i===r);const nm=me?me.name:`row ${r+1} (no name yet)`;
+  $("pvT").innerHTML=`Preview · <b>${esc(nm)}</b> <span class="pv-k ${kind}">${kind==="up"?"power-up":"power-down"}</span>`;
+  let note=`Rows ${lo+1}–${hi+1}, ${fmt(t0)} to ${fmt(t1)} ms.`;
+  const src=me&&(kind==="up"?me.upSrc:me.dnSrc);
+  if(src&&!only(src.src))note+=` ${me.name} waits for ${src.src.name} (row ${src.src.i+1}, outside this view).`;
+  $("pvW").textContent=note;
+}
+tbody.addEventListener("focusin",e=>{
+  const tr=e.target.closest&&e.target.closest("tr");if(!tr)return;
+  const r=[...tbody.children].indexOf(tr);const c=e.target.dataset&&e.target.dataset.c!==undefined?+e.target.dataset.c:null;
+  const k=c===null?focusKind:(c>=6?"dn":c>=3?"up":focusKind);
+  if(r!==focusRow||k!==focusKind){focusRow=r;focusKind=k;renderPreview()}
+});
 
 /* ---------- export ---------- */
 function exportSVG(){return buildSVG(last||solve(),LIGHT)}
