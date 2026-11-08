@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Read rise and fall times from IBIS models or SPICE waveforms and get the critical trace length for every pin, with the shortest highlighted.">
+<link rel="icon" href="../images/mx-mark.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>IBIS to Critical Length</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: lab-instrument page. Header + formula strip, shared board settings, then a tabbed workspace:
+   model table on top, waveform plot and derived design numbers side by side below. */
+:root{
+  --bg:#eef2ef; --panel:#ffffff; --ink:#15201a; --muted:#56665e; --line:#d3dcd6; --tint:#e2ebe5;
+  --mask:#1b6646; --mask-ink:#ffffff; --copper:#9c5a14; --warn:#9e3b25; --over-bg:#f7e2da; --near-bg:#f5ebdc;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0d1310; --panel:#141c18; --ink:#e1e9e4; --muted:#93a39a; --line:#2a3630; --tint:#1a2822;
+  --mask:#5cc391; --mask-ink:#08130d; --copper:#e39b4e; --warn:#ef8b6d; --over-bg:#3b2019; --near-bg:#33291b; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0d1310; --panel:#141c18; --ink:#e1e9e4; --muted:#93a39a; --line:#2a3630; --tint:#1a2822;
+  --mask:#5cc391; --mask-ink:#08130d; --copper:#e39b4e; --warn:#ef8b6d; --over-bg:#3b2019; --near-bg:#33291b; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body)}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 72px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+h1{font-size:clamp(28px,4.4vw,40px);font-weight:750;font-stretch:85%;letter-spacing:-.01em;line-height:1.05}
+h2{font-size:19px;font-weight:700;font-stretch:90%}
+h3{font-size:15px;font-weight:650}
+p{margin:0}
+code,.mono{font-family:var(--f-mono);font-size:.92em}
+.lab{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)}
+
+header{display:flex;flex-direction:column;gap:10px}
+header p{max-width:68ch;color:var(--muted)}
+.formula{display:flex;flex-wrap:wrap;gap:6px 22px;font-family:var(--f-mono);font-size:13px;color:var(--copper);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding-block:8px}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;min-width:0}
+
+/* board settings */
+.board{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field input,.field select,.search{font:14px var(--f-mono);color:var(--ink);background:var(--bg);border:1px solid var(--line);
+  border-radius:4px;padding:7px 9px}
+.field input[type=number]{width:96px}
+.field select{min-width:220px;max-width:100%;font-family:var(--f-body)}
+.readout{font-family:var(--f-mono);font-size:14px;padding:7px 0}
+:focus-visible{outline:2px solid var(--mask);outline-offset:2px}
+
+/* tabs */
+.tabs{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel);align-self:flex-start;max-width:100%}
+.tabs button{font:600 14px var(--f-body);color:var(--muted);background:none;border:0;padding:9px 16px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--mask);color:var(--mask-ink)}
+
+/* loader */
+.loader{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.drop{flex:1 1 360px;border:1.5px dashed var(--line);border-radius:6px;padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;min-width:0}
+.drop.over{border-color:var(--mask);background:var(--tint)}
+.drop .fname{font-family:var(--f-mono);font-size:13px;word-break:break-all}
+.btn{font:600 13px var(--f-body);border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:4px;padding:7px 12px;cursor:pointer}
+.btn:hover{border-color:var(--mask)}
+.btn.primary{background:var(--mask);border-color:var(--mask);color:var(--mask-ink)}
+.btn[aria-pressed="true"]{background:var(--tint);border-color:var(--mask)}
+details.paste summary{cursor:pointer;font-size:13px;color:var(--muted)}
+details.paste textarea{width:100%;min-height:120px;margin-top:8px;font:12px/1.4 var(--f-mono);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px}
+.sample-flag{font-size:12px;font-weight:600;color:var(--copper);border:1px solid currentColor;border-radius:3px;padding:1px 6px}
+.err{color:var(--warn);font-weight:500}
+
+/* summary strip */
+.summary{display:flex;flex-wrap:wrap;gap:8px 28px}
+.summary div{display:flex;flex-direction:column}
+.summary .v{font-family:var(--f-mono);font-size:15px}
+
+/* table */
+.tbl-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.search{min-width:0;width:220px;font-family:var(--f-body)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:4px;max-height:420px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13.5px}
+th,td{padding:7px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--panel);position:sticky;top:0;z-index:1}
+thead tr:nth-child(2) th{top:31px}
+th.grp{text-align:center;border-bottom:1px solid var(--line)}
+td{font-family:var(--f-mono);font-size:13px}
+td.name,th.name{text-align:left;font-family:var(--f-body)}
+td.name{font-weight:500}
+td.type{text-align:left;font-family:var(--f-body);color:var(--muted)}
+#tbl tbody tr{cursor:pointer}
+#tbl tbody tr:hover{background:var(--tint)}
+#tbl tbody tr.sel{background:var(--tint)}
+#tbl tbody tr.sel td.name{font-weight:700}
+/* pin checker */
+.cfg{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end}
+.cfg select{min-width:0}
+#ptbl td.name{font-family:var(--f-mono)}
+#ptbl td.sig{text-align:left;font-family:var(--f-body);font-weight:500}
+#ptbl input,#ptbl select,#sp-len,#sp-lay{font:13px var(--f-mono);width:88px;padding:4px 6px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:3px;text-align:right}
+#ptbl select,#sp-lay{width:auto;text-align:left;font-family:var(--f-body)}
+#ptbl input::placeholder{color:var(--muted)}
+#ptbl td.lc{font-weight:600}
+#ptbl tr.row-over td{background:var(--over-bg)}
+#ptbl tr.row-near td{background:var(--near-bg)}
+.st{display:inline-block;font:600 11.5px var(--f-body);padding:2px 8px;border-radius:3px;white-space:nowrap}
+.st-over{background:var(--warn);color:var(--panel)}
+.st-near{border:1px solid var(--copper);color:var(--copper)}
+.st-ok{border:1px solid var(--mask);color:var(--mask)}
+.st-none,.st-nodrv{color:var(--muted)}
+.counts{display:flex;flex-wrap:wrap;gap:10px 26px}
+.counts div{display:flex;flex-direction:column}
+.counts .n{font-family:var(--f-display);font-stretch:85%;font-weight:750;font-size:30px;line-height:1.05;font-variant-numeric:tabular-nums}
+.counts .n.over{color:var(--warn)} .counts .n.near{color:var(--copper)} .counts .n.ok{color:var(--mask)}
+#bulk textarea{width:100%;min-height:110px;margin-top:8px;font:12px/1.4 var(--f-mono);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px}
+.trace-check{display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
+.est{color:var(--copper)}
+.chip{display:inline-block;font:600 10.5px var(--f-body);letter-spacing:.05em;text-transform:uppercase;border-radius:3px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+.chip.fast{background:var(--mask);color:var(--mask-ink)}
+.chip.ramp{border:1px solid var(--copper);color:var(--copper)}
+.legend{font-size:12.5px;color:var(--muted);margin-top:8px;display:flex;flex-wrap:wrap;gap:4px 18px}
+
+/* detail */
+.detail{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.detail{grid-template-columns:minmax(0,1fr)}}
+.stack{display:flex;flex-direction:column;gap:14px;min-width:0}
+.dhead{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline}
+.dhead h2{word-break:break-all}
+.pins{font-size:13px;color:var(--muted)}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctrl select{font:13px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:6px 8px;max-width:100%}
+.chart{width:100%;overflow-x:auto}
+.chart svg{display:block;width:100%;height:auto;min-width:420px}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .axis{fill:var(--muted);font:10.5px var(--f-mono)}
+.chart .s{fill:none;stroke-width:1.8;stroke-linejoin:round}
+.chart .s-typ{stroke:var(--mask)}
+.chart .s-min{stroke:var(--muted);stroke-dasharray:5 3}
+.chart .s-max{stroke:var(--copper)}
+.chart .mk{stroke:var(--ink);stroke-width:1;stroke-dasharray:3 3;opacity:.6}
+.chart .mkl{fill:var(--ink);font:600 11px var(--f-mono)}
+.chart .lvl{stroke:var(--muted);stroke-width:1;stroke-dasharray:2 4}
+.keys{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12.5px;color:var(--muted)}
+.keys i{display:inline-block;width:18px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+.k-typ{border-color:var(--mask)} .k-min{border-color:var(--muted);border-top-style:dashed!important} .k-max{border-color:var(--copper)}
+.mini{width:100%;border-collapse:collapse;font-size:13px}
+.mini th,.mini td{padding:5px 8px;border-bottom:1px solid var(--line)}
+.mini th{position:static;background:none}
+.mini td:first-child,.mini th:first-child{text-align:left;font-family:var(--f-body)}
+.small-wrap{overflow-x:auto}
+
+/* design numbers */
+.design{display:flex;flex-direction:column;gap:14px}
+.edge-used{display:flex;flex-direction:column;gap:2px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.big{font-family:var(--f-display);font-stretch:85%;font-weight:750;font-size:42px;line-height:1;font-variant-numeric:tabular-nums}
+.edge-used .sub{font-size:13px;color:var(--muted);word-break:break-word}
+dl.rules{margin:0;display:flex;flex-direction:column}
+dl.rules div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);align-items:baseline;flex-wrap:wrap}
+dl.rules dt{font-size:13.5px}
+dl.rules dt code{color:var(--muted);font-size:12px;margin-left:4px}
+dl.rules dd{margin:0;font-family:var(--f-mono);font-size:14px;font-weight:500;text-align:right}
+dl.rules div.key dd{color:var(--mask);font-weight:600}
+.note{font-size:13px;color:var(--muted);max-width:60ch}
+.note.warn{color:var(--copper)}
+.findings{display:flex;flex-direction:column;gap:6px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);font-size:13px;padding:8px 14px;border-radius:4px}
+.copybox{width:100%;min-height:90px;font:12px var(--f-mono);margin-top:8px;color:var(--ink);background:var(--bg);border:1px solid var(--line)}
+@media (prefers-reduced-motion:no-preference){.drop{transition:background .15s,border-color .15s}}
+</style>
+
+<style>
+.mxbar{background:#0d1210;color:#e4ebe6;border-bottom:1px solid #2a3631;font:500 14px/1.2 "IBM Plex Sans",Archivo,system-ui,sans-serif}
+.mxbar-in{max-width:1180px;margin:0 auto;padding:10px max(16px,env(safe-area-inset-left));display:flex;align-items:center;gap:6px 18px;flex-wrap:wrap}
+.mxbar a{color:#e4ebe6;text-decoration:none}
+.mxbar a:hover,.mxbar a:focus-visible{color:#e39a5f;text-decoration:underline}
+.mxbar .mxlogo{font-weight:700;letter-spacing:.06em;margin-right:auto;display:inline-flex;align-items:center;gap:8px}
+.mxbar .mxlogo b{color:#4fbf87}
+.mxfoot{border-top:1px solid var(--line);margin-top:24px;padding:18px 0 0;font-size:13px;color:var(--muted);text-align:center}
+.mxfoot a{color:var(--mask);text-decoration:none}.mxfoot a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<nav class="mxbar" aria-label="MX Design"><div class="mxbar-in"><a class="mxlogo" href="https://blog.mxdesign.uk" title="Back to blog.mxdesign.uk">&larr; <span>MX <b>DESIGN</b>.uk</span></a><a href="https://blog.mxdesign.uk">Blog</a><a href="https://blog.mxdesign.uk/tools/">Tools</a><a href="https://mxdesign.uk/power_sequence/">Power Sequence Plotter</a><a href="https://www.linkedin.com/in/manu-r-engineer" target="_blank" rel="noopener">LinkedIn</a></div></nav>
+<div class="wrap">
+  <header>
+    <span class="lab">Signal integrity · edge-rate check</span>
+    <h1>IBIS to Critical Length</h1>
+    <p>Load an IBIS file and every signal pin gets a critical length from the fastest edge of its driver. Enter or paste your routed trace lengths to see which nets have become transmission lines and need controlled impedance and termination. A SPICE waveform export works too.</p>
+    <div class="formula" aria-label="Rules used">
+      <span>f<sub>knee</sub> = 0.35 / t<sub>r</sub></span>
+      <span>f<sub>EMI</sub> = 0.5 / t<sub>r</sub></span>
+      <span>L<sub>crit</sub> = ¼ · t<sub>r</sub> · c / √ε<sub>r</sub></span>
+      <span>t<sub>r</sub> ≤ 15 % of clock period</span>
+    </div>
+  </header>
+
+  <section class="panel board" aria-label="Board settings">
+    <div class="field"><label class="lab" for="er">Board ε<sub>r</sub> (Dk)</label><input id="er" type="number" step="0.05" min="1" max="15" value="4.0"></div>
+    <div class="field"><label class="lab" for="wh">Outer trace W / H</label><input id="wh" type="number" step="0.1" min="0.1" max="20" value="2.0"></div>
+    <div class="field"><span class="lab">Outer ε<sub>r,eff</sub></span><span class="readout" id="ereff">—</span></div>
+    <div class="field"><label class="lab" for="basis">Edge used for design numbers</label>
+      <select id="basis">
+        <option value="fast1090">Fastest corner, 10–90 % (worst case)</option>
+        <option value="typ1090">Typical, 10–90 %</option>
+        <option value="fast2080">Fastest corner, 20–80 %</option>
+      </select></div>
+  </section>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-ibis" aria-selected="true">IBIS model</button>
+    <button role="tab" id="tab-spice" aria-selected="false">SPICE waveform / netlist</button>
+  </div>
+
+  <!-- IBIS -->
+  <section id="view-ibis" class="stack">
+    <div class="panel stack">
+      <div class="loader">
+        <div class="drop" id="drop-ibis">
+          <button class="btn primary" id="pick-ibis">Open .ibs file</button>
+          <input type="file" id="file-ibis" accept=".ibs,.ibis,.txt,.pkg,.ebd" hidden>
+          <span class="muted">or drop it here</span>
+          <span class="fname" id="name-ibis"></span>
+        </div>
+        <button class="btn" id="sample-ibis">Load sample</button>
+      </div>
+      <details class="paste"><summary>Paste IBIS text instead</summary>
+        <textarea id="paste-ibis" spellcheck="false" placeholder="[IBIS Ver] 5.1 …"></textarea>
+        <button class="btn" id="read-ibis" style="margin-top:8px">Read pasted text</button>
+      </details>
+      <p class="err" id="err-ibis" hidden></p>
+      <div class="summary" id="sum-ibis"></div>
+    </div>
+
+    <div class="panel stack" id="checker">
+      <div class="stack" style="gap:6px">
+        <h2>Critical length check by pin</h2>
+        <p class="note">Each pin takes the fastest edge of its driver model. That sets its max frequency, f = 0.5 / t<sub>r</sub>, and its critical length, L<sub>crit</sub> = v / 8f, the same as ¼ · t<sub>r</sub> · v. Type over the frequency to set your own, for example on input pins driven by another part.</p>
+      </div>
+      <div class="cfg">
+        <div class="field"><label class="lab" for="unit">Length units</label><select id="unit"><option value="mm">mm</option><option value="mil">mil</option><option value="in">inch</option></select></div>
+        <div class="field"><label class="lab" for="deflayer">Default layer</label><select id="deflayer"><option value="inner">Inner (stripline)</option><option value="outer">Outer (microstrip)</option></select></div>
+        <div class="field"><label class="lab" for="show">Show</label><select id="show"><option value="all">All signal pins</option><option value="flag">Shortest and short only</option><option value="drv">Pins with a frequency</option></select></div>
+        <div class="field"><label class="lab" for="sort">Sort by</label><select id="sort"><option value="pin">Pin order</option><option value="lc">Critical length, shortest first</option></select></div>
+        <div class="ctrl"><button class="btn" id="copy-pins">Copy pin table as CSV</button></div>
+      </div>
+      <div class="counts" id="counts"></div>
+      <div class="tbl-wrap" style="max-height:560px"><table id="ptbl"></table></div>
+      <div class="legend">
+        <span><span class="st st-over">Shortest</span> within 10 % of the shortest critical length on the part. Route these first, as controlled impedance.</span>
+        <span><span class="st st-near">Short</span> up to 2× the shortest</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="tbl-head">
+        <h2>Driver models</h2>
+        <div class="ctrl">
+          <label class="lab" for="filter" style="position:absolute;left:-9999px">Filter models</label>
+          <input class="search" id="filter" type="search" placeholder="Filter models">
+          <button class="btn" id="copy-csv">Copy table as CSV</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table id="tbl"></table></div>
+      <div class="legend">
+        <span>Times are 10–90 % of the swing into the IBIS test fixture.</span>
+        <span><span class="est">≈</span> estimated from <code>[Ramp]</code>: 20–80 % time × 4/3</span>
+        <span>min = slow corner, max = fast corner</span>
+      </div>
+      <div id="copy-fallback"></div>
+    </div>
+
+    <div class="detail">
+      <div class="panel stack" id="detail"></div>
+      <div class="panel design" id="design-ibis"></div>
+    </div>
+  </section>
+
+  <!-- SPICE -->
+  <section id="view-spice" class="stack" hidden>
+    <div class="panel stack">
+      <div class="loader">
+        <div class="drop" id="drop-spice">
+          <button class="btn primary" id="pick-spice">Open waveform or netlist</button>
+          <input type="file" id="file-spice" accept=".txt,.csv,.tsv,.dat,.cir,.sp,.spi,.net,.lib,.mod,.inc,.ckt" hidden>
+          <span class="muted">or drop it here</span>
+          <span class="fname" id="name-spice"></span>
+        </div>
+        <button class="btn" id="sample-spice">Load sample</button>
+      </div>
+      <details class="paste"><summary>Paste text instead</summary>
+        <textarea id="paste-spice" spellcheck="false" placeholder="time	V(out)&#10;0.000000e+00	0.000000e+00 …"></textarea>
+        <button class="btn" id="read-spice" style="margin-top:8px">Read pasted text</button>
+      </details>
+      <p class="note">SPICE models do not store a rise time. Simulate the driver into a load, such as 50 Ω to ground or your real trace and receiver. Then export the output node. In LTspice, use File › Export data as text. Paste the exported columns here. If you load a netlist or model file instead, the page lists any <code>PULSE</code> source and <code>tr</code>/<code>tf</code> parameter it finds.</p>
+      <p class="err" id="err-spice" hidden></p>
+    </div>
+    <div class="detail">
+      <div class="panel stack" id="spice-main"></div>
+      <div class="panel design" id="design-spice"></div>
+    </div>
+  </section>
+  <footer class="mxfoot">Made by Manu R &middot; <a href="https://blog.mxdesign.uk">blog.mxdesign.uk</a> &middot; <a href="https://blog.mxdesign.uk/tools/">More tools</a> &middot; <a href="https://www.linkedin.com/in/manu-r-engineer" target="_blank" rel="noopener">LinkedIn</a></footer>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const C0=299792458;
+const state={tab:'ibis',ib:null,sel:0,fastest:-1,dir:'rise',wi:0,filter:'',er:4.0,wh:2.0,basis:'fast1090',sp:null,col:1,
+  unit:'mm',defLayer:'inner',show:'all',sort:'pin',pd:{},lenKey:'',spPk:null,spLen:null,spLay:'inner'};
+try{const s=JSON.parse(localStorage.getItem('ibis-edge-settings')||'{}');
+  if(s.er>0)state.er=s.er; if(s.wh>0)state.wh=s.wh; if(s.basis)state.basis=s.basis;
+  if(s.unit)state.unit=s.unit; if(s.defLayer)state.defLayer=s.defLayer;}catch(e){}
+function saveSettings(){try{localStorage.setItem('ibis-edge-settings',JSON.stringify({er:state.er,wh:state.wh,basis:state.basis,unit:state.unit,defLayer:state.defLayer}))}catch(e){}}
+const UNIT={mm:1e-3,mil:25.4e-6,in:0.0254};
+function toUnit(m){const x=m/UNIT[state.unit]; return state.unit==='mil'?Math.round(x):state.unit==='in'?+x.toFixed(3):+x.toFixed(x<10?2:1);}
+const fLen=m=>m==null||!isFinite(m)?'—':toUnit(m)+' '+(state.unit==='in'?'in':state.unit);
+const vLayer=l=>C0/Math.sqrt(l==='outer'?erEff(state.er,state.wh):state.er);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- number formats ---------- */
+const SC={T:1e12,G:1e9,M:1e6,k:1e3,m:1e-3,u:1e-6,n:1e-9,p:1e-12,f:1e-15};
+function ibNum(s){ if(s==null)return null; s=String(s).trim(); if(!s||/^NA$/i.test(s))return null;
+  const m=s.match(/^([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)([A-Za-z]?)/); if(!m)return null;
+  let v=parseFloat(m[1]); if(m[2]&&SC[m[2]])v*=SC[m[2]]; return v; }
+function ibRatio(s){ if(s==null||/^NA$/i.test(s))return null; const p=s.split('/'); if(p.length!==2)return null;
+  const dv=ibNum(p[0]),dt=ibNum(p[1]); return dv!=null&&dt!=null&&dt>0?{dv:Math.abs(dv),dt}:null; }
+const SPM={t:1e12,g:1e9,meg:1e6,k:1e3,m:1e-3,mil:25.4e-6,u:1e-6,'µ':1e-6,n:1e-9,p:1e-12,f:1e-15};
+function spNum(s){ const m=String(s).trim().match(/^([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)(meg|mil|[tgkmunpfµ])?/i); if(!m)return null;
+  let v=parseFloat(m[1]); if(m[2])v*=SPM[m[2].toLowerCase()]; return v; }
+function fT(s){ if(s==null||!isFinite(s))return '—'; const a=Math.abs(s);
+  if(a<1e-9)return +(s*1e12).toPrecision(3)+' ps'; if(a<1e-6)return +(s*1e9).toPrecision(3)+' ns';
+  if(a<1e-3)return +(s*1e6).toPrecision(3)+' µs'; return +(s*1e3).toPrecision(3)+' ms'; }
+function fF(f){ if(!isFinite(f))return '—'; if(f>=1e9)return +(f/1e9).toPrecision(3)+' GHz'; if(f>=1e6)return +(f/1e6).toPrecision(3)+' MHz';
+  if(f>=1e3)return +(f/1e3).toPrecision(3)+' kHz'; return +f.toPrecision(3)+' Hz'; }
+function fL(m){ if(!isFinite(m))return '—'; const mm=m*1e3, inch=m/0.0254;
+  const a=mm>=1000?(mm/1000).toPrecision(3)+' m':(mm>=100?mm.toFixed(0):mm>=10?mm.toFixed(1):mm.toFixed(2))+' mm';
+  const b=inch>=10?inch.toFixed(1)+' in':inch>=1?inch.toFixed(2)+' in':Math.round(inch*1000)+' mil';
+  return a+' · '+b; }
+const fV=v=>v==null?'—':(+v.toPrecision(3))+' V';
+function erEff(er,wh){ let e=(er+1)/2+(er-1)/2*Math.pow(1+12/wh,-0.5); if(wh<1)e+=(er-1)/2*0.04*Math.pow(1-wh,2); return e; }
+
+/* ---------- IBIS parser ---------- */
+const MODEL_KW=new Set(['pulldown','pullup','gnd clamp','power clamp','pullup reference','pulldown reference','power clamp reference',
+ 'gnd clamp reference','temperature range','voltage range','ramp','rising waveform','falling waveform','model spec','receiver thresholds',
+ 'driver schedule','add submodel','composite current','isso pu','isso pd','external model','end external model','algorithmic model',
+ 'end algorithmic model','on','off','r series','l series','rl series','c series','lc series','rc series','series current','series mos',
+ 'tts','ttgnd','initial delay','rgnd','rpower','rac','cac','model data','end model data','c comp corner']);
+function parseIbis(text){
+  const ib={ver:'',fileName:'',component:[],manufacturer:'',models:[],pins:[],selectors:{}};
+  let cc='|',section=null,model=null,wave=null,sel=null;
+  for(const raw of text.split(/\r?\n/)){
+    const mcc=raw.match(/^\s*\[comment[ _]char\]\s*(\S)/i); if(mcc){cc=mcc[1];continue;}
+    let line=raw; const ci=line.indexOf(cc); if(ci>=0)line=line.slice(0,ci);
+    if(!line.trim())continue;
+    const km=line.match(/^\s*\[([^\]]+)\]\s*(.*)$/);
+    if(km){
+      const key=km[1].trim().toLowerCase().replace(/[\s_]+/g,' '), arg=km[2].trim(); wave=null;
+      if(key==='ibis ver'){ib.ver=arg;section=null;}
+      else if(key==='file name'){ib.fileName=arg;section=null;}
+      else if(key==='component'){ib.component.push(arg);section=null;model=null;}
+      else if(key==='manufacturer'){ib.manufacturer=arg;section=null;}
+      else if(key==='pin'){section='pin';model=null;}
+      else if(key==='model selector'){sel=arg.split(/\s+/)[0];ib.selectors[sel.toLowerCase()]=[];section='selector';model=null;}
+      else if(key==='model'){model={name:arg.split(/\s+/)[0]||'(unnamed)',type:'',vrange:null,ramp:{},rise:[],fall:[],ccomp:null,vmeas:null,rload:null};
+        ib.models.push(model);section='model';}
+      else if(model&&MODEL_KW.has(key)){
+        if(key==='voltage range'){model.vrange=arg.split(/\s+/).map(ibNum);section='model';}
+        else if(key==='ramp')section='ramp';
+        else if(key==='rising waveform'||key==='falling waveform'){wave={fix:{},t:[],v:[[],[],[]]};model[key[0]==='r'?'rise':'fall'].push(wave);section='wave';}
+        else section='skip';
+      } else {section='skip';model=null;}
+      continue;
+    }
+    const s=line.trim(), tok=s.split(/\s+/);
+    if(section==='pin'){ if(tok.length>=2)ib.pins.push({pin:tok[0],signal:tok[1],model:tok[2]||''}); }
+    else if(section==='selector'&&sel){ ib.selectors[sel.toLowerCase()].push(tok[0]); }
+    else if(section==='model'&&model){ const m=s.match(/^([A-Za-z_]+)\s*=?\s*(.*)$/); if(m){const k=m[1].toLowerCase(),val=m[2].trim();
+        if(k==='model_type')model.type=val.split(/\s+/)[0]; else if(k==='c_comp')model.ccomp=val.split(/\s+/).map(ibNum);
+        else if(k==='vmeas')model.vmeas=ibNum(val.split(/\s+/)[0]);} }
+    else if(section==='ramp'&&model){ const m=s.match(/^(dV\/dt_[rf]|R_load)\s*=?\s*(.*)$/i); if(m){const k=m[1].toLowerCase();
+        if(k==='r_load')model.rload=ibNum(m[2].trim()); else model.ramp[k.slice(-1)]=m[2].trim().split(/\s+/).slice(0,3).map(ibRatio);} }
+    else if(section==='wave'&&wave){
+      if(s.includes('=')){const m=s.match(/^([A-Za-z_]+)\s*=\s*(\S+)/); if(m)wave.fix[m[1].toLowerCase()]=ibNum(m[2]);}
+      else{const t=ibNum(tok[0]); if(t==null)continue; wave.t.push(t); for(let c=0;c<3;c++)wave.v[c].push(tok[c+1]!=null?ibNum(tok[c+1]):null);}
+    }
+  }
+  return ib;
+}
+
+/* ---------- measurement ---------- */
+function measure(t,v){
+  if(t.length<3)return null; const v0=v[0],v1=v[v.length-1],sw=v1-v0; if(Math.abs(sw)<1e-9)return null;
+  const cross=(p,from)=>{const y=v0+p*sw; for(let i=Math.max(1,from);i<v.length;i++){const a=v[i-1]-y,b=v[i]-y;
+      if(a===0)return{t:t[i-1],i:i-1}; if(a*b<0||b===0)return{t:t[i-1]+(y-v[i-1])/(v[i]-v[i-1])*(t[i]-t[i-1]),i};} return null;};
+  const c10=cross(.1,1),c20=cross(.2,1); if(!c10||!c20)return null;
+  const c90=cross(.9,c10.i),c80=cross(.8,c20.i); if(!c90||!c80)return null;
+  return {v0,v1,t10:c10.t,t90:c90.t,r1090:c90.t-c10.t,r2080:c80.t-c20.t};
+}
+function waveEdge(w,ci){const t=[],v=[]; for(let i=0;i<w.t.length;i++){if(w.v[ci][i]!=null){t.push(w.t[i]);v.push(w.v[ci][i]);}} return measure(t,v);}
+function analyze(m){
+  const A={rise:[null,null,null],fall:[null,null,null]};
+  for(const dir of ['rise','fall']){
+    for(const w of m[dir]){ w.e=[0,1,2].map(ci=>waveEdge(w,ci));
+      w.e.forEach((x,ci)=>{ if(x&&x.r1090>0&&(!A[dir][ci]||x.r1090<A[dir][ci].r1090))A[dir][ci]={r1090:x.r1090,r2080:x.r2080,est:false}; }); }
+    const rp=m.ramp[dir[0]];
+    if(rp)rp.forEach((x,ci)=>{ if(x&&!A[dir][ci])A[dir][ci]={r1090:x.dt*4/3,r2080:x.dt,est:true}; });
+  }
+  return A;
+}
+const CORNER=['typ','min','max'];
+function pick(A,basis){
+  const key=basis==='fast2080'?'r2080':'r1090', cis=basis==='typ1090'?[0]:[0,1,2]; let best=null;
+  for(const dir of ['rise','fall'])for(const ci of cis){const x=A[dir][ci]; if(x&&x[key]>0&&(!best||x[key]<best.tr))best={tr:x[key],dir,ci,est:x.est};}
+  return best;
+}
+function pinMap(ib){ const map={}; const skip=/^(power|gnd|nc|circuitcall)$/i;
+  for(const p of ib.pins){ if(!p.model||skip.test(p.model))continue; const targets=ib.selectors[p.model.toLowerCase()]||[p.model];
+    for(const t of targets)(map[t.toLowerCase()]||(map[t.toLowerCase()]=[])).push(p.signal||p.pin); }
+  return map; }
+
+/* ---------- plotting ---------- */
+function ticks(a,b,n){const span=b-a; if(!(span>0))return [a]; let step=Math.pow(10,Math.floor(Math.log10(span/n))); const e=span/n/step;
+  if(e>=7.5)step*=10; else if(e>=3.5)step*=5; else if(e>=1.5)step*=2; const out=[]; for(let x=Math.ceil(a/step)*step;x<=b+step*1e-6;x+=step)out.push(+x.toPrecision(10)); return out;}
+function plotSVG(series,mark,opt){
+  opt=opt||{}; const W=640,H=250,l=50,r=16,t=26,b=34;
+  let tmin=Infinity,tmax=-Infinity,vmin=Infinity,vmax=-Infinity;
+  if(opt.win){tmin=opt.win[0];tmax=opt.win[1];}
+  series.forEach(s=>s.t.forEach((x,i)=>{const y=s.v[i]; if(y==null)return; if(opt.win&&(x<tmin||x>tmax))return;
+    if(!opt.win){if(x<tmin)tmin=x; if(x>tmax)tmax=x;} if(y<vmin)vmin=y; if(y>vmax)vmax=y;}));
+  if(!isFinite(vmin)||!(tmax>tmin))return '<p class="muted">Not enough points to plot.</p>';
+  const pad=(vmax-vmin)*0.08||0.1; vmin-=pad; vmax+=pad;
+  const span=tmax-tmin; const [us,un]=span<2e-9?[1e12,'ps']:span<2e-6?[1e9,'ns']:span<2e-3?[1e6,'µs']:[1e3,'ms'];
+  const X=x=>l+(x-tmin)/(tmax-tmin)*(W-l-r), Y=y=>t+(vmax-y)/(vmax-vmin)*(H-t-b);
+  let g='';
+  ticks(tmin*us,tmax*us,6).forEach(x=>{const px=X(x/us); g+=`<line class="grid" x1="${px}" x2="${px}" y1="${t}" y2="${H-b}"/><text class="axis" x="${px}" y="${H-b+15}" text-anchor="middle">${+x.toPrecision(4)}</text>`;});
+  ticks(vmin,vmax,5).forEach(y=>{const py=Y(y); g+=`<line class="grid" x1="${l}" x2="${W-r}" y1="${py}" y2="${py}"/><text class="axis" x="${l-6}" y="${py+3.5}" text-anchor="end">${+y.toPrecision(3)}</text>`;});
+  g+=`<text class="axis" x="${W-r}" y="${H-4}" text-anchor="end">time (${un})</text><text class="axis" x="${l-6}" y="${t-10}" text-anchor="end">V</text>`;
+  let paths='';
+  series.forEach(s=>{ const pts=[]; for(let i=0;i<s.t.length;i++){const x=s.t[i],y=s.v[i]; if(y==null)continue;
+      if(opt.win&&(x<tmin||x>tmax)){ if(!(i+1<s.t.length&&s.t[i+1]>=tmin&&x<tmin)&&!(i>0&&s.t[i-1]<=tmax&&x>tmax))continue; } pts.push([X(Math.min(Math.max(x,tmin),tmax)),Y(y)]);}
+    let d=''; if(pts.length>1600){ // bucket by pixel column, keep min/max
+      let cur=-1,lo=null,hi=null; const out=[]; for(const p of pts){const c=Math.round(p[0]); if(c!==cur){if(lo){out.push(lo);if(hi!==lo)out.push(hi);} cur=c;lo=p;hi=p;} else {if(p[1]<lo[1])lo=p; if(p[1]>hi[1])hi=p;}}
+      if(lo){out.push(lo);if(hi!==lo)out.push(hi);} pts.length=0; out.forEach(p=>pts.push(p)); }
+    pts.forEach((p,i)=>d+=(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)); paths+=`<path class="s ${s.cls}" d="${d}"/>`; });
+  let mk='';
+  if(mark&&mark.t1!=null&&mark.t2!=null&&mark.t1>=tmin&&mark.t2<=tmax){
+    const x1=X(mark.t1),x2=X(mark.t2);
+    if(mark.y1!=null)mk+=`<line class="lvl" x1="${l}" x2="${W-r}" y1="${Y(mark.y1)}" y2="${Y(mark.y1)}"/><line class="lvl" x1="${l}" x2="${W-r}" y1="${Y(mark.y2)}" y2="${Y(mark.y2)}"/>`;
+    mk+=`<line class="mk" x1="${x1}" x2="${x1}" y1="${t}" y2="${H-b}"/><line class="mk" x1="${x2}" x2="${x2}" y1="${t}" y2="${H-b}"/>`;
+    const cx=Math.min(Math.max((x1+x2)/2,l+70),W-r-70);
+    mk+=`<text class="mkl" x="${cx}" y="${t-8}" text-anchor="middle">${esc(mark.label)}</text>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.aria||'Waveform')}">${g}${paths}${mk}</svg>`;
+}
+
+/* ---------- design numbers ---------- */
+function designHTML(pk,title){
+  if(!pk)return `<h2>Design numbers</h2><p class="note">This selection has no driver edge, so there is nothing to derive. Input and terminator models only describe a receiver. Pick an output or I/O model.</p>`;
+  const tr=pk.tr, er=state.er, ee=erEff(er,state.wh), vi=C0/Math.sqrt(er), vo=C0/Math.sqrt(ee);
+  const di=0.0254/vi, dout=0.0254/vo;
+  return `<h2>Design numbers</h2>
+  <div class="edge-used"><span class="lab">Edge used</span><span class="big">${fT(tr)}</span><span class="sub">${esc(pk.desc)}</span></div>
+  <dl class="rules">
+    <div><dt>Knee frequency<code>0.35 / tr</code></dt><dd>${fF(0.35/tr)}</dd></div>
+    <div class="key"><dt>EMI design range<code>0.5 / tr</code></dt><dd>up to ${fF(0.5/tr)}</dd></div>
+    <div class="key"><dt>Critical length, inner layer</dt><dd>${fL(0.25*tr*vi)}</dd></div>
+    <div class="key"><dt>Critical length, outer layer</dt><dd>${fL(0.25*tr*vo)}</dd></div>
+    <div><dt>Delay per inch, inner / outer</dt><dd>${Math.round(di*1e12)} / ${Math.round(dout*1e12)} ps</dd></div>
+    <div><dt>Clock ceiling<code>tr ≤ 15 % of period</code></dt><dd>${fF(0.15/tr)}</dd></div>
+  </dl>
+  <p class="note">A trace longer than the critical length acts as a transmission line. Route it as controlled impedance over an unbroken return plane, and leave room for a termination resistor. Power decoupling should stay low-impedance up to the EMI frequency.</p>
+  ${pk.est?'<p class="note warn">This edge is estimated from <code>[Ramp]</code> data, which assumes a straight-line edge. A model with waveform tables gives a measured value.</p>':''}
+  ${pk.warn?`<p class="note warn">${pk.warn}</p>`:''}`;
+}
+
+/* ---------- IBIS view ---------- */
+function loadIbis(text,name,sample){
+  const err=$('#err-ibis'); err.hidden=true;
+  if(/^\s*\[ibis ver\]/im.test(text)===false&&/\[model\]/i.test(text)===false){
+    err.textContent='No IBIS keywords found in '+(name||'the text')+'. An IBIS file has [IBIS Ver] and [Model] sections. For SPICE netlists or waveform exports, use the SPICE tab.'; err.hidden=false; return; }
+  const ib=parseIbis(text);
+  if(!ib.models.length){err.textContent='The file was read, but it has no [Model] sections. It may be a package or EBD file that refers to models in another .ibs file.';err.hidden=false;return;}
+  ib.models.forEach(m=>m.A=analyze(m)); ib.pmap=pinMap(ib);
+  let bi=0,bt=Infinity; ib.models.forEach((m,i)=>{const p=pick(m.A,'fast1090'); if(p&&p.tr<bt){bt=p.tr;bi=i;}});
+  state.ib=ib; state.sel=bi; state.fastest=isFinite(bt)?bi:-1; state.wi=0; state.dir='rise';
+  state.lenKey='ibis-edge-pins:'+(sample?'sample':(ib.component[0]||ib.fileName||name||'file')); state.pd={};
+  try{state.pd=JSON.parse(localStorage.getItem(state.lenKey)||'{}')||{};}catch(e){state.pd={};}
+  $('#name-ibis').innerHTML=esc(name||'Pasted text')+(sample?' <span class="sample-flag">Sample, not a real part</span>':'');
+  renderIbis();
+}
+function renderIbis(){
+  const ib=state.ib; if(!ib)return;
+  const drivers=ib.models.filter(m=>pick(m.A,'fast1090'));
+  const f=state.fastest>=0?pick(ib.models[state.fastest].A,'fast1090'):null;
+  $('#sum-ibis').innerHTML=[
+    ['Component',ib.component.join(', ')||'—'],['Manufacturer',ib.manufacturer||'—'],['IBIS version',ib.ver||'—'],
+    ['Models',ib.models.length+' ('+drivers.length+' with driver data)'],['Fastest edge',f?fT(f.tr)+' · '+ib.models[state.fastest].name:'—']
+  ].map(([k,v])=>`<div><span class="lab">${k}</span><span class="v">${esc(v)}</span></div>`).join('');
+  renderPins(); renderTable(); renderDetail();
+}
+function cell(x){ if(!x)return '<td class="muted">—</td>'; return x.est?`<td class="est" title="Estimated from [Ramp]">≈${fT(x.r1090)}</td>`:`<td>${fT(x.r1090)}</td>`; }
+function renderTable(){
+  const ib=state.ib, q=state.filter.toLowerCase();
+  let h=`<thead><tr><th class="name" rowspan="2">Model</th><th class="name" rowspan="2">Type</th><th rowspan="2">Pins</th><th class="grp" colspan="3">Rise 10–90 %</th><th class="grp" colspan="3">Fall 10–90 %</th><th rowspan="2">Fastest</th></tr>
+  <tr><th>typ</th><th>min</th><th>max</th><th>typ</th><th>min</th><th>max</th></tr></thead><tbody>`;
+  let shown=0;
+  ib.models.forEach((m,i)=>{ if(q&&!m.name.toLowerCase().includes(q))return; shown++;
+    const p=pick(m.A,'fast1090'), pins=ib.pmap[m.name.toLowerCase()]||[];
+    h+=`<tr data-i="${i}" class="${i===state.sel?'sel':''}" tabindex="0" aria-selected="${i===state.sel}"><td class="name">${esc(m.name)}${i===state.fastest?'<span class="chip fast">fastest</span>':''}</td>
+      <td class="type">${esc(m.type||'—')}</td><td title="${esc(pins.slice(0,40).join(', '))}">${pins.length||'—'}</td>
+      ${m.A.rise.map(cell).join('')}${m.A.fall.map(cell).join('')}<td>${p?(p.est?'<span class="est">≈'+fT(p.tr)+'</span>':fT(p.tr)):'<span class="muted">input</span>'}</td></tr>`; });
+  if(!shown)h+=`<tr><td class="name muted" colspan="10">No model names contain “${esc(state.filter)}”.</td></tr>`;
+  $('#tbl').innerHTML=h+'</tbody>';
+}
+function renderDetail(){
+  const ib=state.ib, m=ib.models[state.sel]; if(!m){$('#detail').innerHTML='';return;}
+  const pins=ib.pmap[m.name.toLowerCase()]||[];
+  const waves=m[state.dir]; if(state.wi>=waves.length)state.wi=0; const w=waves[state.wi];
+  let h=`<div class="dhead"><h2>${esc(m.name)}</h2><span class="muted">${esc(m.type||'type not given')}</span></div>`;
+  h+=`<p class="pins">${pins.length?'Used on '+pins.length+' pin'+(pins.length>1?'s':'')+': '+esc(pins.slice(0,12).join(', '))+(pins.length>12?' …':''):'No pins in [Pin] point at this model directly.'}</p>`;
+  const facts=[]; if(m.vrange)facts.push(['Voltage range',m.vrange.map(fV).join(' / ')]); if(m.ccomp)facts.push(['C_comp',m.ccomp.map(x=>x==null?'—':+(x*1e12).toPrecision(3)+' pF').join(' / ')]);
+  if(m.vmeas!=null)facts.push(['Vmeas',fV(m.vmeas)]); if(m.rload!=null)facts.push(['Ramp R_load',+m.rload.toPrecision(3)+' Ω']);
+  if(facts.length)h+=`<div class="summary">${facts.map(([k,v])=>`<div><span class="lab">${k}</span><span class="v">${esc(v)}</span></div>`).join('')}</div>`;
+  if(m.rise.length||m.fall.length){
+    h+=`<div class="ctrl"><button class="btn" data-dir="rise" aria-pressed="${state.dir==='rise'}">Rising</button><button class="btn" data-dir="fall" aria-pressed="${state.dir==='fall'}">Falling</button>`;
+    if(waves.length>1)h+=`<label class="lab" for="wsel" style="margin-left:6px">Fixture</label><select id="wsel">${waves.map((x,i)=>`<option value="${i}" ${i===state.wi?'selected':''}>${i+1}: ${fixLabel(x)}</option>`).join('')}</select>`;
+    h+='</div>';
+    if(w){
+      let fi=-1,ft=Infinity; w.e.forEach((e,i)=>{if(e&&e.r1090<ft){ft=e.r1090;fi=i;}});
+      const e=fi>=0?w.e[fi]:null;
+      const mark=e?{t1:Math.min(e.t10,e.t90),t2:Math.max(e.t10,e.t90),y1:e.v0+0.1*(e.v1-e.v0),y2:e.v0+0.9*(e.v1-e.v0),label:'10–90 % ('+CORNER[fi]+'): '+fT(e.r1090)}:null;
+      h+=`<div class="chart">${plotSVG([0,1,2].filter(c=>w.v[c].some(x=>x!=null)).map(c=>({t:w.t,v:w.v[c],cls:'s-'+CORNER[c]})),mark,{aria:m.name+' '+state.dir+' waveform'})}</div>
+      <div class="keys"><span><i class="k-typ"></i>typ</span><span><i class="k-min"></i>min (slow)</span><span><i class="k-max"></i>max (fast)</span><span>Fixture: ${fixLabel(w)}</span></div>
+      <div class="small-wrap"><table class="mini"><thead><tr><th>Corner</th><th>Start → end</th><th>20–80 %</th><th>10–90 %</th><th>Slew 10–90</th></tr></thead><tbody>
+      ${w.e.map((x,i)=>x?`<tr><td>${CORNER[i]}</td><td class="mono">${fV(x.v0)} → ${fV(x.v1)}</td><td class="mono">${fT(x.r2080)}</td><td class="mono">${fT(x.r1090)}</td><td class="mono">${(0.8*Math.abs(x.v1-x.v0)/x.r1090/1e9).toFixed(2)} V/ns</td></tr>`:`<tr><td>${CORNER[i]}</td><td class="muted" colspan="4">no data</td></tr>`).join('')}
+      </tbody></table></div>`;
+    } else h+=`<p class="note">This model has no ${state.dir==='rise'?'[Rising Waveform]':'[Falling Waveform]'} table.</p>`;
+  } else h+=`<p class="note">${pick(m.A,'fast1090')?'This model has <code>[Ramp]</code> data but no waveform tables, so the times shown are estimates.':'No <code>[Ramp]</code> or waveform data. This is a receiver-only model, so it has no edge rate of its own.'}</p>`;
+  if(m.ramp.r||m.ramp.f){
+    h+=`<h3>[Ramp] data <span class="muted" style="font-weight:400">· 20–80 % of swing${m.rload!=null?' into '+(+m.rload.toPrecision(3))+' Ω':''}</span></h3><div class="small-wrap"><table class="mini"><thead><tr><th>Edge</th><th>typ</th><th>min</th><th>max</th></tr></thead><tbody>`;
+    for(const k of ['r','f']){ const r=m.ramp[k]; if(!r)continue;
+      h+=`<tr><td>dV/dt_${k}</td>${[0,1,2].map(i=>r[i]?`<td class="mono">${fV(r[i].dv)} / ${fT(r[i].dt)}<br><span class="muted">${(r[i].dv/r[i].dt/1e9).toFixed(2)} V/ns</span></td>`:'<td class="muted">—</td>').join('')}</tr>`; }
+    h+='</tbody></table></div>';
+  }
+  $('#detail').innerHTML=h;
+  const p=pick(m.A,state.basis);
+  if(p)p.desc=m.name+' · '+(p.dir==='rise'?'rising':'falling')+' edge · '+CORNER[p.ci]+' corner · '+(state.basis==='fast2080'?'20–80 %':'10–90 %');
+  $('#design-ibis').innerHTML=designHTML(p);
+}
+function fixLabel(w){const f=w.fix; const r=f.r_fixture, v=f.v_fixture, c=f.c_fixture;
+  return (r!=null?+r.toPrecision(3)+' Ω':'R ?')+' to '+(v!=null?+v.toPrecision(3)+' V':'?')+(c?' · '+(+(c*1e12).toPrecision(3))+' pF':''); }
+
+/* ---------- pin checker ---------- */
+const SKIP_PIN=/^(power|gnd|nc|circuitcall)$/i;
+function buildPinRows(){
+  const ib=state.ib, byName={}; ib.models.forEach(m=>byName[m.name.toLowerCase()]=m);
+  ib.rows=ib.pins.filter(p=>p.model&&!SKIP_PIN.test(p.model)).map((p,i)=>{
+    const names=ib.selectors[p.model.toLowerCase()]||[p.model]; let pk=null,model=null;
+    names.forEach(n=>{const m=byName[n.toLowerCase()]; if(!m)return; if(!model)model=m; const x=pick(m.A,state.basis); if(x&&(!pk||x.tr<pk.tr)){pk=x;model=m;}});
+    return {i,p,pk,model,sel:names.length>1?p.model:null};
+  });
+}
+function calc(r){
+  const d=state.pd[r.p.pin]||{}, layer=d.layer||state.defLayer, fAuto=r.pk?0.5/r.pk.tr:null, f=d.f||fAuto;
+  const lc=f?vLayer(layer)/(8*f):null;
+  return {layer,fAuto,f,lc,st:'nodrv'};
+}
+function allCalc(){ const cs=state.ib.rows.map(r=>({r,c:calc(r)})); const lcs=cs.map(x=>x.c.lc).filter(x=>x!=null); const min=lcs.length?Math.min(...lcs):null;
+  cs.forEach(({c})=>{ if(c.lc==null)c.st='nodrv'; else c.st=c.lc<=min*1.1?'over':c.lc<=min*2?'near':'ok'; }); return {cs,min}; }
+function lcCell(c){ const tag=c.st==='over'?' <span class="st st-over">Shortest</span>':c.st==='near'?' <span class="st st-near">Short</span>':'';
+  return c.lc==null?'<span class="muted">set f</span>':fLen(c.lc)+tag; }
+function savePd(){try{localStorage.setItem(state.lenKey,JSON.stringify(state.pd))}catch(e){}}
+function renderPins(){
+  const ib=state.ib; if(!ib)return; buildPinRows();
+  let rows=allCalc().cs;
+  if(state.show==='flag')rows=rows.filter(x=>x.c.st==='over'||x.c.st==='near'); else if(state.show==='drv')rows=rows.filter(x=>x.c.lc!=null);
+  if(state.sort==='lc')rows.sort((a,b)=>(a.c.lc??Infinity)-(b.c.lc??Infinity));
+  let h=`<thead><tr><th class="name">Pin</th><th class="name">Signal</th><th class="name">Model</th><th>Edge t<sub>r</sub></th><th>Max f (MHz)</th><th class="name">Layer</th><th>Critical length</th></tr></thead><tbody>`;
+  rows.forEach(({r,c})=>{ const d=state.pd[r.p.pin]||{};
+    h+=`<tr data-pin="${esc(r.p.pin)}" class="row-${c.st}"><td class="name">${esc(r.p.pin)}</td><td class="sig">${esc(r.p.signal)}</td>
+    <td class="type">${esc(r.model?r.model.name:r.p.model+' (not found)')}${r.sel?' <span class="muted">via '+esc(r.sel)+'</span>':''}</td>
+    <td>${r.pk?(r.pk.est?'<span class="est">≈'+fT(r.pk.tr)+'</span>':fT(r.pk.tr)):'<span class="muted">input</span>'}</td>
+    <td><input class="fin" type="number" min="0" step="any" value="${d.f?+(d.f/1e6).toPrecision(4):''}" placeholder="${c.fAuto?+(c.fAuto/1e6).toPrecision(4):'set'}" aria-label="Max frequency in MHz for pin ${esc(r.p.pin)}"></td>
+    <td><select class="lay" aria-label="Layer for pin ${esc(r.p.pin)}"><option value="inner" ${c.layer==='inner'?'selected':''}>Inner</option><option value="outer" ${c.layer==='outer'?'selected':''}>Outer</option></select></td>
+    <td class="lc">${lcCell(c)}</td></tr>`; });
+  if(!rows.length)h+=`<tr><td class="name muted" colspan="7">${ib.rows.length?'No pins match this filter.':'This file has no [Pin] list, so there are no pins to check.'}</td></tr>`;
+  $('#ptbl').innerHTML=h+'</tbody>'; renderCounts();
+}
+function renderCounts(){
+  const {cs,min}=allCalc(), n=s=>cs.filter(x=>x.c.st===s).length;
+  const sh=cs.filter(x=>x.c.st==='over').sort((a,b)=>a.c.lc-b.c.lc);
+  $('#counts').innerHTML=(min!=null?`<div><span class="lab">Shortest critical length</span><span class="n over">${fLen(min)}</span></div>
+    <div style="max-width:46ch"><span class="lab">Shortest pins</span><span class="v mono" style="padding-top:6px">${esc(sh.slice(0,8).map(x=>x.r.p.signal).join(', '))}${sh.length>8?' …':''}</span></div>`:'')+
+    [['near','Short (≤ 2×)',n('near')],['','Other pins',n('ok')],['','No driver',n('nodrv')]].map(([k,l,v])=>`<div><span class="lab">${l}</span><span class="n ${k}">${v}</span></div>`).join('');
+}
+function refreshPins(){ const {cs}=allCalc(), map={}; cs.forEach(x=>map[x.r.p.pin]=x.c);
+  document.querySelectorAll('#ptbl tr[data-pin]').forEach(tr=>{const c=map[tr.dataset.pin]; if(!c)return; tr.className='row-'+c.st; tr.querySelector('.lc').innerHTML=lcCell(c);});
+  renderCounts(); }
+function pinEdit(e){
+  const tr=e.target.closest('tr[data-pin]'); if(!tr)return; const pin=tr.dataset.pin, d=state.pd[pin]||(state.pd[pin]={});
+  if(e.target.classList.contains('fin')){const v=parseFloat(e.target.value); d.f=v>0?v*1e6:undefined;}
+  else if(e.target.classList.contains('lay')){d.layer=e.target.value;}
+  else return;
+  savePd(); refreshPins();
+}
+function parseLenTok(s){const m=s.match(/^([\d.]+)\s*(mm|mils?|th|in|inch|")?$/i); if(!m)return null; const v=parseFloat(m[1]); if(!(v>0))return null;
+  const u=(m[2]||'').toLowerCase(); const k=u==='mm'?'mm':/^(mil|mils|th)$/.test(u)?'mil':/^(in|inch|")$/.test(u)?'in':state.unit; return v*UNIT[k];}
+function applyBulk(){
+  const ib=state.ib; if(!ib)return; const byKey={}; ib.rows.forEach(r=>{byKey[r.p.pin.toLowerCase()]=r.p.pin; byKey[String(r.p.signal).toLowerCase()]=r.p.pin;});
+  let ok=0; const miss=[];
+  $('#bulk-text').value.split(/\r?\n/).forEach(line=>{ const s=line.trim(); if(!s)return;
+    const tok=s.split(/\t|,|;|\s+/).map(x=>x.trim()).filter(Boolean); const pin=byKey[(tok[0]||'').toLowerCase()];
+    // allow "41.2 mm" split into two tokens
+    let len=null,layer=null; for(let k=1;k<tok.length;k++){ if(len==null){len=parseLenTok(tok[k]+(tok[k+1]&&/^(mm|mils?|th|in|inch)$/i.test(tok[k+1])?tok[k+1]:''));}
+      if(/^(top|bottom|bot|outer|surface|microstrip)$/i.test(tok[k]))layer='outer'; else if(/^(inner|internal|stripline)$/i.test(tok[k]))layer='inner'; }
+    if(!pin||len==null){ if(!/^(pin|net|signal|name)/i.test(tok[0]||''))miss.push(tok[0]); return; }
+    const d=state.pd[pin]||(state.pd[pin]={}); d.len=len; if(layer)d.layer=layer; ok++; });
+  savePd(); renderPins();
+  $('#bulk-res').textContent=`Applied ${ok} length${ok===1?'':'s'}.`+(miss.length?` Not matched: ${miss.slice(0,8).join(', ')}${miss.length>8?' …':''}`:'');
+}
+
+/* ---------- SPICE view ---------- */
+function parseSpice(text){
+  const rows=[]; let header=null,lastT=-Infinity,runs=1,stopped=false;
+  for(const raw of text.split(/\r?\n/)){ const s=raw.trim(); if(!s)continue;
+    const tok=s.split(/[\s,;]+/).filter(Boolean);
+    const isNum=tok.length>=2&&tok.every(x=>/^[+-]?(\d|\.\d)/.test(x)&&spNum(x)!=null);
+    if(isNum){ if(stopped)continue; const r=tok.map(spNum); if(rows.length&&r[0]<lastT){stopped=true;runs++;continue;} lastT=r[0]; rows.push(r); }
+    else if(!rows.length&&!header&&!/^\s*[*.]/.test(s)) header=s.includes('\t')?s.split('\t'):s.includes(',')?s.split(','):s.split(/\s+/);
+    else if(stopped&&/step/i.test(s)) {}
+  }
+  return {rows,header,multi:stopped};
+}
+function median(a){if(!a.length)return NaN; const s=[...a].sort((x,y)=>x-y); const k=s.length>>1; return s.length%2?s[k]:(s[k-1]+s[k])/2;}
+function findEdges(t,v,plo,phi){
+  const n=v.length, sorted=[...v].sort((a,b)=>a-b), mid=(sorted[0]+sorted[n-1])/2;
+  const base=median(sorted.filter(x=>x<mid)), top=median(sorted.filter(x=>x>=mid)), sw=top-base;
+  const res={base,top,edges:[]}; if(!(sw>0))return res;
+  const y50=base+.5*sw, ylo=base+plo*sw, yhi=base+phi*sw;
+  const ip=(i,y)=>t[i]+(y-v[i])/(v[i+1]-v[i])*(t[i+1]-t[i]);
+  const c50=[]; for(let i=0;i<n-1;i++){ if(v[i]<y50&&v[i+1]>=y50)c50.push({i,dir:'rise'}); else if(v[i]>=y50&&v[i+1]<y50)c50.push({i,dir:'fall'}); }
+  c50.forEach((c,k)=>{ const lo=k>0?c50[k-1].i:0, hi=k<c50.length-1?c50[k+1].i+1:n-1; let a=null,b=null;
+    if(c.dir==='rise'){ for(let j=c.i;j>=lo;j--)if(v[j]<ylo&&v[j+1]>=ylo){a=ip(j,ylo);break;} for(let j=c.i;j<hi;j++)if(v[j]<yhi&&v[j+1]>=yhi){b=ip(j,yhi);break;} }
+    else { for(let j=c.i;j>=lo;j--)if(v[j]>=yhi&&v[j+1]<yhi){a=ip(j,yhi);break;} for(let j=c.i;j<hi;j++)if(v[j]>=ylo&&v[j+1]<ylo){b=ip(j,ylo);break;} }
+    if(a!=null&&b!=null&&b>a)res.edges.push({dir:c.dir,t1:a,t2:b,tr:b-a}); });
+  return res;
+}
+function scanNetlist(text){
+  const out=[]; const lines=text.split(/\r?\n/);
+  lines.forEach((raw,li)=>{ const s=raw.replace(/^\s*\+/,' ').trim(); if(!s||s[0]==='*')return;
+    const pm=s.match(/pulse\s*\(([^)]*)\)/i);
+    if(pm){ const a=pm[1].trim().split(/[\s,]+/); const tr=spNum(a[3]||''),tf=spNum(a[4]||'');
+      out.push({kind:'PULSE source',name:s.split(/\s+/)[0],line:li+1,tr,tf,raw:s}); }
+    if(/^\.param/i.test(s)){ const re=/([A-Za-z_][\w]*)\s*=\s*\{?\s*([+-]?[\d.]+(?:e[+-]?\d+)?[a-zµ]*)\s*\}?/gi; let m;
+      while((m=re.exec(s))){ if(/^(t_?r|t_?f|t_?rise|t_?fall|rise_?t(ime)?|fall_?t(ime)?|tr\w{0,4}|tf\w{0,4})$/i.test(m[1])){
+          const v=spNum(m[2]); if(v!=null)out.push({kind:'.param',name:m[1],line:li+1,[/f/i.test(m[1].replace(/^t/i,'').slice(0,1))||/fall/i.test(m[1])?'tf':'tr']:v,raw:s}); } } }
+  });
+  const isModel=/^\s*\.(subckt|model)\b/im.test(text);
+  const devices=/^\s*[MQJ]\w*\s/im.test(text);
+  return {items:out,isModel,devices};
+}
+function loadSpice(text,name,sample){
+  const err=$('#err-spice'); err.hidden=true;
+  $('#name-spice').innerHTML=esc(name||'Pasted text')+(sample?' <span class="sample-flag">Sample waveform</span>':'');
+  if(/^\s*\[ibis ver\]/im.test(text)){ state.sp={kind:'ibis',text,name}; renderSpice(); return; }
+  const p=parseSpice(text);
+  if(p.rows.length>=10){ const nc=Math.min(...p.rows.map(r=>r.length));
+    state.sp={kind:'wave',rows:p.rows,header:p.header,nc,multi:p.multi,name}; state.col=Math.min(Math.max(1,state.col),nc-1); }
+  else state.sp={kind:'net',scan:scanNetlist(text),name};
+  renderSpice();
+}
+function renderSpice(){
+  const sp=state.sp, main=$('#spice-main'), des=$('#design-spice'); if(!sp){main.innerHTML='';des.innerHTML='';return;}
+  if(sp.kind==='ibis'){ main.innerHTML=`<h2>This is an IBIS file</h2><p class="note">It has IBIS keywords, so the IBIS tab will read it properly.</p><div><button class="btn primary" id="to-ibis">Open it in the IBIS tab</button></div>`;
+    des.innerHTML=designHTML(null); return; }
+  if(sp.kind==='net'){
+    const sc=sp.scan; let h=`<h2>Netlist scan</h2>`;
+    if(sc.items.length){ h+=`<div class="small-wrap"><table class="mini"><thead><tr><th>Found</th><th>Name</th><th>Line</th><th>tr</th><th>tf</th></tr></thead><tbody>${sc.items.map(x=>`<tr><td>${x.kind}</td><td class="mono">${esc(x.name)}</td><td class="mono">${x.line}</td><td class="mono">${fT(x.tr)}</td><td class="mono">${fT(x.tf)}</td></tr>`).join('')}</tbody></table></div>
+      <p class="note warn">These are stimulus settings written into the netlist. They show how fast the source is told to switch, not how fast the real driver output switches.</p>`; }
+    else h+=`<p class="note">No <code>PULSE</code> sources or <code>tr</code>/<code>tf</code> parameters found.</p>`;
+    if(sc.isModel)h+=`<p class="note">This file defines ${sc.devices?'a transistor-level':'a'} model (<code>.subckt</code> or <code>.model</code>). Its edge rate only appears when it is simulated. Drive its input with a fast step, load its output (for example 50 Ω to ground, the same load IBIS uses), run a transient analysis and paste the exported output waveform here.</p>`;
+    main.innerHTML=h;
+    const trs=sc.items.flatMap(x=>[x.tr,x.tf]).filter(x=>x>0);
+    des.innerHTML=designHTML(trs.length?{tr:Math.min(...trs),desc:'Shortest tr/tf set in the netlist (stimulus value)',warn:'Based on a source setting, not a measured device edge.'}:null);
+    return; }
+  const t=sp.rows.map(r=>r[0]), v=sp.rows.map(r=>r[state.col]);
+  const e1=findEdges(t,v,.1,.9), e2=findEdges(t,v,.2,.8);
+  const R=e1.edges.filter(e=>e.dir==='rise'), F=e1.edges.filter(e=>e.dir==='fall');
+  const mn=a=>a.length?Math.min(...a.map(e=>e.tr)):NaN, md=a=>median(a.map(e=>e.tr));
+  const colName=i=>(sp.header&&sp.header[i])?sp.header[i].trim():'column '+(i+1);
+  let h=`<div class="dhead"><h2>${esc(colName(state.col))}</h2><span class="muted">${sp.rows.length.toLocaleString()} points · ${fT(t[t.length-1]-t[0])} span</span></div>`;
+  if(sp.nc>2)h+=`<div class="ctrl"><label class="lab" for="colsel">Signal</label><select id="colsel">${Array.from({length:sp.nc-1},(_,k)=>k+1).map(i=>`<option value="${i}" ${i===state.col?'selected':''}>${esc(colName(i))}</option>`).join('')}</select></div>`;
+  if(sp.multi)h+=`<p class="note warn">The file holds several stepped runs. Only the first run is measured.</p>`;
+  h+=`<div class="summary">${[['Low level',fV(e1.base)],['High level',fV(e1.top)],['Edges found',R.length+' rising · '+F.length+' falling'],
+    ['Fastest rise',fT(mn(R))],['Median rise',fT(md(R))],['Fastest fall',fT(mn(F))],['Median fall',fT(md(F))]].map(([k,x])=>`<div><span class="lab">${k}</span><span class="v">${esc(x)}</span></div>`).join('')}</div>`;
+  const all=e1.edges; let fe=null; all.forEach(e=>{if(!fe||e.tr<fe.tr)fe=e;});
+  h+=`<h3>Full trace</h3><div class="chart">${plotSVG([{t,v,cls:'s-typ'}],null,{aria:'Imported waveform'})}</div>`;
+  if(fe){ const pad=Math.max(fe.tr*2.5,(fe.t2-fe.t1)); const sw=e1.top-e1.base;
+    h+=`<h3>Fastest edge, zoomed</h3><div class="chart">${plotSVG([{t,v,cls:'s-max'}],{t1:fe.t1,t2:fe.t2,y1:e1.base+.1*sw,y2:e1.base+.9*sw,label:(fe.dir==='rise'?'Rise':'Fall')+' 10–90 %: '+fT(fe.tr)},{win:[fe.t1-pad,fe.t2+pad],aria:'Fastest edge'})}</div>`; }
+  else h+=`<p class="note">No complete edges found. The trace needs to cross both 10 % and 90 % of its swing.</p>`;
+  h+=`<p class="note">Levels come from the median of the low and high halves of the trace, the way a scope's base and top measurements work. Overshoot and ringing don't shift them much.</p>`;
+  main.innerHTML=h;
+  let pk=null;
+  if(state.basis==='fast2080'){ const x=e2.edges.reduce((b,e)=>!b||e.tr<b.tr?e:b,null); if(x)pk={tr:x.tr,desc:'Fastest '+(x.dir==='rise'?'rising':'falling')+' edge · 20–80 %'}; }
+  else if(state.basis==='typ1090'){ if(all.length)pk={tr:md(all),desc:'Median of '+all.length+' edges · 10–90 %'}; }
+  else if(fe)pk={tr:fe.tr,desc:'Fastest '+(fe.dir==='rise'?'rising':'falling')+' edge of '+all.length+' · 10–90 %'};
+  des.innerHTML=designHTML(pk)+(pk?`<div class="trace-check"><span class="lab">Check a trace on this signal</span>
+    <div class="ctrl"><input id="sp-len" type="number" min="0" step="any" value="${state.spLen?toUnit(state.spLen):''}" aria-label="Trace length"><span class="muted">${state.unit==='in'?'in':state.unit}</span>
+    <select id="sp-lay" aria-label="Layer"><option value="inner" ${state.spLay==='inner'?'selected':''}>Inner</option><option value="outer" ${state.spLay==='outer'?'selected':''}>Outer</option></select></div>
+    <p id="sp-res" class="note"></p></div>`:'');
+  state.spPk=pk; spCheck();
+}
+
+/* ---------- samples ---------- */
+function sampleIbis(){
+  const L=[],p=s=>L.push(s);
+  p('[IBIS Ver]      5.1'); p('[File Name]     sample_io.ibs'); p('[File Rev]      1.0');
+  p('[Source]        Synthetic example generated by this page. Not a real device.');
+  p('[Component]     SAMPLE_IO_BANK'); p('[Manufacturer]  Example data');
+  p('[Package]'); p('| variable  typ     min     max'); p('R_pkg      0.25    0.20    0.30'); p('L_pkg      3.0nH   2.5nH   3.5nH'); p('C_pkg      0.6pF   0.5pF   0.7pF');
+  p('[Pin]  signal_name  model_name');
+  [['A1','DQ0','LVCMOS33_8MA'],['A2','DQ1','LVCMOS33_8MA'],['A3','DQ2','LVCMOS33_8MA'],['A4','DQ3','LVCMOS33_8MA'],['B1','CLK_OUT','LVCMOS33_16MA_FAST'],['B2','SPI_SCLK','LVCMOS33_16MA_FAST'],
+   ['C1','SPI_CS_N','LVCMOS18_4MA'],['C2','STATUS_LED','LVCMOS18_4MA'],['D1','RST_N','LVCMOS33_IN'],['D2','IRQ_N','LVCMOS33_IN'],['E1','VCC','POWER'],['E2','GND','GND']].forEach(r=>p(r.join('    ')));
+  const models=[
+    {name:'LVCMOS33_8MA',type:'I/O',vr:'3.3 3.0 3.6',sw:[2.70,2.35,3.00],r:[0.92,1.31,0.68],f:[0.85,1.22,0.62],wave:true},
+    {name:'LVCMOS33_16MA_FAST',type:'Output',vr:'3.3 3.0 3.6',sw:[2.85,2.50,3.10],r:[0.41,0.60,0.29],f:[0.38,0.55,0.27],wave:true},
+    {name:'LVCMOS18_4MA',type:'Output',vr:'1.8 1.7 1.9',sw:[1.45,1.25,1.62],r:[1.10,1.55,0.82],f:[1.02,1.44,0.76],wave:false},
+    {name:'LVCMOS33_IN',type:'Input',vr:'3.3 3.0 3.6'}];
+  const fx=v=>v.toFixed(4);
+  models.forEach(m=>{ p(''); p('[Model]  '+m.name); p('Model_type  '+m.type); p('C_comp  3.1pF  2.8pF  3.5pF'); if(m.type!=='Input')p('Vmeas = '+(parseFloat(m.vr)/2).toFixed(2));
+    p('[Voltage Range]  '+m.vr); if(!m.r)return;
+    p('[Ramp]'); p('| variable  typ  min  max');
+    p('dV/dt_r  '+[0,1,2].map(i=>(0.6*m.sw[i]).toFixed(3)+'/'+m.r[i].toFixed(3)+'n').join('  '));
+    p('dV/dt_f  '+[0,1,2].map(i=>(0.6*m.sw[i]).toFixed(3)+'/'+m.f[i].toFixed(3)+'n').join('  '));
+    p('R_load = 50'); if(!m.wave)return;
+    for(const dir of ['r','f']){ const dts=m[dir], tau=dts.map(d=>d/2.7726), t0=6*Math.max(...tau), T=12*Math.max(...tau);
+      p(dir==='r'?'[Rising Waveform]':'[Falling Waveform]'); p('R_fixture = 50'); p('V_fixture = 0'); p('V_fixture_min = 0'); p('V_fixture_max = 0');
+      p('| time      V(typ)    V(min)    V(max)');
+      for(let k=0;k<=50;k++){ const t=T*k/50; const vals=[0,1,2].map(i=>{const s=1/(1+Math.exp(-(t-t0)/tau[i])); return m.sw[i]*(dir==='r'?s:1-s);});
+        p(t.toFixed(4)+'n  '+vals.map(fx).join('  ')); } }
+  });
+  p(''); p('[End]'); return L.join('\n');
+}
+function sampleSpice(){
+  const L=['time\tV(clk_out)'], sw=3.3, edges=[]; for(let k=0;k<6;k++)edges.push({te:2e-9+k*10e-9,s:k%2?-1:1,tau:k%2?200e-12:218e-12});
+  for(let t=0;t<=60e-9+1e-15;t+=20e-12){ let v=0;
+    for(const e of edges){ const x=t-e.te, st=0.5+0.5*Math.tanh(x/e.tau);
+      const ring=x>0?0.07*Math.exp(-x/1.1e-9)*Math.sin(2*Math.PI*0.95e9*x)*st:0; v+=e.s*sw*(st+ring); }
+    L.push(t.toExponential(6)+'\t'+v.toExponential(6)); }
+  return L.join('\n');
+}
+
+/* ---------- wiring ---------- */
+function readFile(file,cb){const r=new FileReader(); r.onload=()=>cb(String(r.result),file.name); r.onerror=()=>alertErr(file.name); r.readAsText(file);}
+function alertErr(n){toast('Could not read '+n+'.');}
+function hookLoader(kind,load){
+  const drop=$('#drop-'+kind), inp=$('#file-'+kind);
+  $('#pick-'+kind).addEventListener('click',()=>inp.click());
+  inp.addEventListener('change',()=>{if(inp.files[0])readFile(inp.files[0],(t,n)=>load(t,n,false)); inp.value='';});
+  ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over');}));
+  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over');}));
+  drop.addEventListener('drop',e=>{const f=e.dataTransfer&&e.dataTransfer.files[0]; if(f)readFile(f,(t,n)=>load(t,n,false));});
+  $('#read-'+kind).addEventListener('click',()=>{const t=$('#paste-'+kind).value; if(t.trim())load(t,'Pasted text',false);});
+}
+hookLoader('ibis',loadIbis); hookLoader('spice',loadSpice);
+$('#sample-ibis').addEventListener('click',()=>loadIbis(sampleIbis(),'sample_io.ibs',true));
+$('#sample-spice').addEventListener('click',()=>loadSpice(sampleSpice(),'sample_clock_export.txt',true));
+
+function setTab(t){state.tab=t; $('#tab-ibis').setAttribute('aria-selected',t==='ibis'); $('#tab-spice').setAttribute('aria-selected',t==='spice');
+  $('#view-ibis').hidden=t!=='ibis'; $('#view-spice').hidden=t!=='spice';}
+$('#tab-ibis').addEventListener('click',()=>setTab('ibis')); $('#tab-spice').addEventListener('click',()=>setTab('spice'));
+
+$('#tbl').addEventListener('click',e=>{const tr=e.target.closest('tr[data-i]'); if(!tr)return; state.sel=+tr.dataset.i; state.wi=0; renderTable(); renderDetail();});
+$('#tbl').addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return; const tr=e.target.closest('tr[data-i]'); if(!tr)return; e.preventDefault(); state.sel=+tr.dataset.i; state.wi=0; renderTable(); renderDetail(); const n=document.querySelector('tr[data-i="'+state.sel+'"]'); if(n)n.focus();});
+$('#filter').addEventListener('input',e=>{state.filter=e.target.value; if(state.ib)renderTable();});
+$('#detail').addEventListener('click',e=>{const b=e.target.closest('[data-dir]'); if(!b)return; state.dir=b.dataset.dir; state.wi=0; renderDetail();});
+$('#detail').addEventListener('change',e=>{if(e.target.id==='wsel'){state.wi=+e.target.value; renderDetail();}});
+$('#spice-main').addEventListener('change',e=>{if(e.target.id==='colsel'){state.col=+e.target.value; renderSpice();}});
+$('#spice-main').addEventListener('click',e=>{if(e.target.id==='to-ibis'&&state.sp){loadIbis(state.sp.text,state.sp.name,false); setTab('ibis');}});
+
+function settingsChanged(){ const er=parseFloat($('#er').value), wh=parseFloat($('#wh').value);
+  if(er>=1)state.er=er; if(wh>0)state.wh=wh; state.basis=$('#basis').value;
+  state.unit=$('#unit').value; state.defLayer=$('#deflayer').value; state.show=$('#show').value; state.sort=$('#sort').value;
+  $('#ereff').textContent=erEff(state.er,state.wh).toFixed(2); saveSettings(); if(state.ib){renderPins();renderDetail();} renderSpice(); }
+$('#er').value=state.er; $('#wh').value=state.wh; $('#basis').value=state.basis; $('#unit').value=state.unit; $('#deflayer').value=state.defLayer;
+['er','wh','basis','unit','deflayer','show','sort'].forEach(id=>$('#'+id).addEventListener(id==='er'||id==='wh'?'input':'change',settingsChanged));
+$('#ptbl').addEventListener('input',pinEdit); $('#ptbl').addEventListener('change',e=>{if(e.target.classList.contains('lay'))pinEdit(e);});
+$('#copy-pins').addEventListener('click',()=>{ const ib=state.ib; if(!ib)return; const u=state.unit==='in'?'in':state.unit;
+  const rows=[['Pin','Signal','Model','Edge tr (ps)','Max f (MHz)','Layer','Critical length ('+u+')','Rank']];
+  allCalc().cs.forEach(({r,c})=>{rows.push([r.p.pin,r.p.signal,r.model?r.model.name:r.p.model,r.pk?(r.pk.tr*1e12).toFixed(0):'',c.f?(c.f/1e6).toFixed(1):'',c.layer,
+    c.lc?toUnit(c.lc):'',{over:'Shortest',near:'Short',ok:'',nodrv:'No driver'}[c.st]]);});
+  copyText(rows,'pins'); });
+function copyText(rows,what){
+  const csv=rows.map(r=>r.map(c=>/[",]/.test(String(c))?'"'+String(c).replace(/"/g,'""')+'"':c).join(',')).join('\n');
+  const fb=()=>{const box=$('#copy-fallback'); box.innerHTML='<textarea class="copybox" id="csvbox" readonly></textarea>'; const ta=$('#csvbox'); ta.value=csv; ta.select(); toast('Text selected below the model table. Press Ctrl+C to copy.');};
+  try{navigator.clipboard.writeText(csv).then(()=>toast('Copied '+(rows.length-1)+' '+what+' as CSV.'),fb);}catch(e){fb();}
+}
+$('#design-spice').addEventListener('input',e=>{ if(e.target.id==='sp-len'){const v=parseFloat(e.target.value); state.spLen=v>0?v*UNIT[state.unit]:null;} else if(e.target.id==='sp-lay')state.spLay=e.target.value; else return; spCheck(); });
+function spCheck(){ const out=$('#sp-res'); if(!out||!state.spPk)return; const lc=vLayer(state.spLay)*state.spPk.tr/4;
+  if(!state.spLen){out.innerHTML=`Critical length on this layer: <b class="mono">${fLen(lc)}</b>`;return;}
+  const ratio=state.spLen/lc, st=ratio>1?'over':ratio>=0.7?'near':'ok'; out.innerHTML=`${stChip({st,ratio})} against ${fLen(lc)} critical`; }
+
+function toast(msg){const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toast.h); toast.h=setTimeout(()=>t.hidden=true,2200);}
+$('#copy-csv').addEventListener('click',()=>{
+  const ib=state.ib; if(!ib)return; const ps=x=>x?(x.r1090*1e12).toFixed(0)+(x.est?'~':''):'';
+  const vi=C0/Math.sqrt(state.er), vo=C0/Math.sqrt(erEff(state.er,state.wh));
+  const rows=[['Model','Type','Pins','Rise typ (ps)','Rise min (ps)','Rise max (ps)','Fall typ (ps)','Fall min (ps)','Fall max (ps)','Fastest 10-90 (ps)','Lcrit inner (mm)','Lcrit outer (mm)','f EMI 0.5/tr (MHz)']];
+  ib.models.forEach(m=>{const p=pick(m.A,'fast1090'); rows.push([m.name,m.type,(ib.pmap[m.name.toLowerCase()]||[]).length,...m.A.rise.map(ps),...m.A.fall.map(ps),
+    p?(p.tr*1e12).toFixed(0):'',p?(0.25*p.tr*vi*1e3).toFixed(1):'',p?(0.25*p.tr*vo*1e3).toFixed(1):'',p?(0.5/p.tr/1e6).toFixed(0):'']);});
+  const csv=rows.map(r=>r.map(c=>/[",]/.test(String(c))?'"'+String(c).replace(/"/g,'""')+'"':c).join(',')).join('\n');
+  const fb=()=>{const box=$('#copy-fallback'); box.innerHTML='<textarea class="copybox" id="csvbox" readonly></textarea>'; const ta=$('#csvbox'); ta.value=csv; ta.select(); toast('Select-all is done. Press Ctrl+C to copy.');};
+  try{navigator.clipboard.writeText(csv).then(()=>toast('Copied '+(rows.length-1)+' models as CSV. ~ marks a ramp estimate.'),fb);}catch(e){fb();}
+});
+
+$('#ereff').textContent=erEff(state.er,state.wh).toFixed(2);
+loadIbis(sampleIbis(),'sample_io.ibs',true);
+loadSpice(sampleSpice(),'sample_clock_export.txt',true);
+})();
+</script>
+
+</body>
+</html>
