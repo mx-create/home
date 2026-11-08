@@ -47,6 +47,8 @@ header p{max-width:68ch;color:var(--muted)}
 .formula{display:flex;flex-wrap:wrap;gap:6px 22px;font-family:var(--f-mono);font-size:13px;color:var(--copper);
   border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding-block:8px}
 
+.privacy{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mask);font-weight:500}
+.privacy svg{flex:none}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;min-width:0}
 
 /* board settings */
@@ -200,6 +202,7 @@ dl.rules div.key dd{color:var(--mask);font-weight:600}
       <span>L<sub>crit</sub> = ¼ · t<sub>r</sub> · c / √ε<sub>r</sub></span>
       <span>t<sub>r</sub> ≤ 15 % of clock period</span>
     </div>
+    <p class="privacy"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Your files stay on your computer. Nothing is sent to a server: all reading and calculation happens here in your web browser.</p>
   </header>
 
   <section class="panel board" aria-label="Board settings">
