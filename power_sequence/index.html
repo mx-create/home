@@ -15,7 +15,7 @@
   --bg:#f4f6f8; --panel:#ffffff; --fg:#17202a; --muted:#5b6876; --line:#d6dde4; --grid:#e6ebf0;
   --accent:#0a7f93; --accent-ink:#ffffff; --warn:#b35a00; --err:#b3261e; --ok:#2e7d3e; --cell:#f9fafb;
   --ch1:#a87f00; --ch2:#0a8fa3; --ch3:#b0329a; --ch4:#2e8b3e; --ch5:#3561d6; --ch6:#c8661a;
-  --arrow-up:#3a4a5c; --arrow-dn:#b35a00; --rail:#0a7f93; --logic:#7a4fc9;
+  --arrow-up:#3a4a5c; --arrow-dn:#b35a00; --rail:#0a7f93; --logic:#7a4fc9; --data:#2e8b3e; --clock:#c8661a;
   --f-ui:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
 }
@@ -23,12 +23,12 @@
   --bg:#0f1418; --panel:#161d23; --fg:#e4eaef; --muted:#93a1ae; --line:#2a353f; --grid:#212b33;
   --accent:#3fd0e0; --accent-ink:#06262b; --warn:#ffa94d; --err:#ff7a70; --ok:#6fd77f; --cell:#1b232a;
   --ch1:#f2d13a; --ch2:#3fd0e0; --ch3:#e05ac8; --ch4:#5bd46a; --ch5:#7aa2ff; --ch6:#ff9a3c;
-  --arrow-up:#9fb0c0; --arrow-dn:#ffa94d; --rail:#3fd0e0; --logic:#b48cff; color-scheme:dark}}
+  --arrow-up:#9fb0c0; --arrow-dn:#ffa94d; --rail:#3fd0e0; --logic:#b48cff; --data:#6fd67f; --clock:#ffa463; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0f1418; --panel:#161d23; --fg:#e4eaef; --muted:#93a1ae; --line:#2a353f; --grid:#212b33;
   --accent:#3fd0e0; --accent-ink:#06262b; --warn:#ffa94d; --err:#ff7a70; --ok:#6fd77f; --cell:#1b232a;
   --ch1:#f2d13a; --ch2:#3fd0e0; --ch3:#e05ac8; --ch4:#5bd46a; --ch5:#7aa2ff; --ch6:#ff9a3c;
-  --arrow-up:#9fb0c0; --arrow-dn:#ffa94d; --rail:#3fd0e0; --logic:#b48cff; color-scheme:dark}
+  --arrow-up:#9fb0c0; --arrow-dn:#ffa94d; --rail:#3fd0e0; --logic:#b48cff; --data:#6fd67f; --clock:#ffa463; color-scheme:dark}
 
 body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:14px;line-height:1.45}
 .wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
@@ -79,6 +79,10 @@ tr.t-rail.drop-before td:first-child{box-shadow:inset 3px 0 var(--rail),inset 0 
 tr.t-rail.drop-after td:first-child{box-shadow:inset 3px 0 var(--rail),inset 0 -2px var(--accent)!important}
 tr.t-logic.drop-before td:first-child{box-shadow:inset 3px 0 var(--logic),inset 0 2px var(--accent)!important}
 tr.t-logic.drop-after td:first-child{box-shadow:inset 3px 0 var(--logic),inset 0 -2px var(--accent)!important}
+tr.t-data.drop-before td:first-child{box-shadow:inset 3px 0 var(--data),inset 0 2px var(--accent)!important}
+tr.t-data.drop-after td:first-child{box-shadow:inset 3px 0 var(--data),inset 0 -2px var(--accent)!important}
+tr.t-clock.drop-before td:first-child{box-shadow:inset 3px 0 var(--clock),inset 0 2px var(--accent)!important}
+tr.t-clock.drop-after td:first-child{box-shadow:inset 3px 0 var(--clock),inset 0 -2px var(--accent)!important}
 td.x button{border:none;background:none;color:var(--muted);padding:4px 6px;font-size:16px;line-height:1}
 table.grid td select{min-width:76px}
 td.x{white-space:nowrap;width:1%}
@@ -86,13 +90,19 @@ td.x button.mv{font-size:13px;padding:4px 5px}
 td.x button.mv:hover{color:var(--accent)}
 td.x button:disabled{opacity:.25;cursor:default}
 td.x button.del:hover{color:var(--err)}
-/* type tint: rails one colour, logic another */
+/* type tint: one colour per type */
 tr.t-rail td{background:color-mix(in srgb,var(--rail) 7%,transparent)}
 tr.t-logic td{background:color-mix(in srgb,var(--logic) 9%,transparent)}
 tr.t-rail td:first-child{box-shadow:inset 3px 0 var(--rail)}
 tr.t-logic td:first-child{box-shadow:inset 3px 0 var(--logic)}
 tr.t-rail select{color:var(--rail);font-weight:500}
 tr.t-logic select{color:var(--logic);font-weight:500}
+tr.t-data td{background:color-mix(in srgb,var(--data) 8%,transparent)}
+tr.t-data td:first-child{box-shadow:inset 3px 0 var(--data)}
+tr.t-data select{color:var(--data);font-weight:500}
+tr.t-clock td{background:color-mix(in srgb,var(--clock) 8%,transparent)}
+tr.t-clock td:first-child{box-shadow:inset 3px 0 var(--clock)}
+tr.t-clock select{color:var(--clock);font-weight:500}
 .key{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 3px 0 6px;vertical-align:-1px}
 /* start/stop-after picker */
 td.dd{position:relative}
@@ -200,7 +210,7 @@ table.res td:first-child,table.res th:first-child{text-align:left}
         <tbody id="rows"></tbody>
       </table>
     </div>
-    <p class="hint">Rows are tinted by type:<span class="key" style="background:var(--rail)"></span>rail<span class="key" style="background:var(--logic)"></span>logic. Click the <code>⠿</code> handle to select a row (Shift+click for several), then <code>Ctrl+C</code> / <code>Ctrl+V</code> to copy it in below. Drag the handle to move rows.</p>
+    <p class="hint">Rows are tinted by type:<span class="key" style="background:var(--rail)"></span>rail<span class="key" style="background:var(--logic)"></span>logic<span class="key" style="background:var(--data)"></span>data<span class="key" style="background:var(--clock)"></span>clock. Data rows draw as a bus that turns valid once up; clock rows toggle while up. Click the <code>⠿</code> handle to select a row (Shift+click for several), then <code>Ctrl+C</code> / <code>Ctrl+V</code> to copy it in below. Drag the handle to move rows.</p>
     <details class="keys"><summary>Keyboard shortcuts and input formats</summary><ul>
       <li><code>Ctrl+C</code> in a cell with nothing highlighted copies the whole row; <code>Ctrl+V</code> in any cell then inserts it below that row with a new name (<code>3V3</code> → <code>3V3_2</code>).</li>
       <li>With rows selected: <code>Ctrl+C</code> copy, <code>Ctrl+X</code> cut, <code>Ctrl+V</code> insert below, <code>Delete</code> remove, <code>↑</code> <code>↓</code> move, <code>Esc</code> back to editing.</li>
@@ -262,8 +272,13 @@ function getSettingsRaw(){const o={};["title","pgPct","offPct","offAt","tEnd"].f
 
 /* ---------- table ---------- */
 function blankRow(){return ["","Rail","","1","","0","1","","0"]}
-function normType(t){t=String(t||"").trim().toLowerCase();return /^(l|d|s|sig|logic|digital|signal|en|pg)/.test(t)&&!/^(rail|r)$/.test(t)?"Logic":"Rail"}
-function typeClass(tr,t){tr.classList.remove("t-logic","t-rail");tr.classList.add(normType(t)==="Logic"?"t-logic":"t-rail")}
+const TYPES=["Rail","Logic","Data","Clock"];
+function normType(t){t=String(t||"").trim().toLowerCase();
+  if(/^(c|clk|clock|osc|xtal|refclk)/.test(t))return"Clock";
+  if(/^(data|dat|bus|dq|sda|mosi|miso)/.test(t)||t==="d")return"Data";
+  return /^(l|d|s|sig|logic|digital|signal|en|pg)/.test(t)&&!/^(rail|r)$/.test(t)?"Logic":"Rail"}
+function isDig(t){return t!=="Rail"}
+function typeClass(tr,t){tr.classList.remove("t-logic","t-rail","t-data","t-clock");tr.classList.add("t-"+normType(t).toLowerCase())}
 function renderTable(){
   closeAC();tbody.innerHTML="";
   data.forEach((r,i)=>{
@@ -271,7 +286,7 @@ function renderTable(){
     const sw=document.createElement("td");sw.className="sw";sw.innerHTML=`<span class="grip" tabindex="0" role="button" title="Drag to reorder (or focus and use ↑ ↓)" aria-label="Reorder row ${i+1}">⠿</span><i style="background:var(--ch${(i%6)+1})"></i>`;tr.appendChild(sw);
     COLS.forEach((c,j)=>{
       const td=document.createElement("td");let el;
-      if(c==="type"){el=document.createElement("select");["Rail","Logic"].forEach(o=>{const op=document.createElement("option");op.textContent=o;el.appendChild(op)});el.value=normType(r[j])}
+      if(c==="type"){el=document.createElement("select");TYPES.forEach(o=>{const op=document.createElement("option");op.textContent=o;el.appendChild(op)});el.value=normType(r[j])}
       else{el=document.createElement("input");el.value=r[j]??"";el.spellcheck=false;el.autocomplete="off"}
       if(c==="after"||c==="stopAfter"){td.className="dd";el.setAttribute("role","combobox");el.setAttribute("aria-autocomplete","list");el.setAttribute("aria-expanded","false")}
       el.id=`c_${i}_${j}`;el.dataset.r=i;el.dataset.c=j;el.setAttribute("aria-label",`${HEAD[j]} row ${i+1}`);
@@ -520,7 +535,7 @@ function solve(){
   data.forEach((r,i)=>{const name=String(r[0]||"").trim();if(!name)return;
     const s={i,name,key:name.toUpperCase(),type:normType(r[1]),v:pVolt(r[2]),rise:pTime(r[3],0),after:pRef(r[4]),delay:pTime(r[5],0),
       fall:pTime(r[6],0),stopAfter:pRef(r[7]),dDelay:pTime(r[8],0),color:(i%6)+1};
-    if(s.type==="Logic"&&isNaN(s.v))s.v=3.3;
+    if(isDig(s.type)&&isNaN(s.v))s.v=3.3;
     [["rise","Rise"],["delay","Up delay"],["fall","Fall"],["dDelay","Down delay"]].forEach(([k,l])=>{if(isNaN(s[k])){errs.push(`${name}: “${l}” isn't a time. Use a number in ms, or add us / s.`);s[k]=0}else if(s[k]<0){errs.push(`${name}: “${l}” can't be negative.`);s[k]=0}});
     if(isNaN(s.v)){warns.push(`${name}: level is blank or unreadable, drawn as 1 V.`);s.v=1}
     if(byName[s.key])errs.push(`Duplicate name “${name}”. Each row needs a unique name.`);
@@ -536,7 +551,7 @@ function solve(){
       else{const src=byName[s.after.name];
         if(!src){errs.push(`${s.name}: “Start after” names ${s.after.name}, which isn't in the table.`)}
         else if(up(src,stack.concat(s.name))){const useStart=s.after.edge==="start";t0=useStart?src.tStart:src.tPG;s.upSrc={src,edge:useStart?"start":"pg",t:t0}}}}
-    s.tStart=t0+s.delay;s.tPG=s.tStart+s.rise*(s.type==="Logic"?0.5:pg);s.tUp=s.tStart+s.rise;
+    s.tStart=t0+s.delay;s.tPG=s.tStart+s.rise*(isDig(s.type)?0.5:pg);s.tUp=s.tStart+s.rise;
     stUp[s.key]="done";return true}
   sigs.forEach(s=>up(s,[]));
   // power-down
@@ -550,7 +565,7 @@ function solve(){
       else{const src=byName[s.stopAfter.name];
         if(!src)errs.push(`${s.name}: “Stop after” names ${s.stopAfter.name}, which isn't in the table.`);
         else if(dn(src,stack.concat(s.name))){const useStart=s.stopAfter.edge==="start";t0=useStart?src.tFall:src.tOff;s.dnSrc={src,edge:useStart?"start":"off",t:t0}}}}
-    s.tFall=t0+s.dDelay;s.tOff=s.tFall+s.fall*(s.type==="Logic"?0.5:(1-off));s.tDown=s.tFall+s.fall;
+    s.tFall=t0+s.dDelay;s.tOff=s.tFall+s.fall*(isDig(s.type)?0.5:(1-off));s.tDown=s.tFall+s.fall;
     stDn[s.key]="done";return true}
   if(offAt!==null&&!isNaN(offAt)){sigs.forEach(s=>dn(s,[]));
     sigs.forEach(s=>{if(s.tFall<s.tUp)warns.push(`${s.name} starts falling at ${fmt(s.tFall)} ms, before it finishes rising at ${fmt(s.tUp)} ms. Move “Power-off at” later.`)})}
@@ -600,12 +615,36 @@ function buildSVG(S,T,o={}){
     out.push(`<line x1="${L}" y1="${base}" x2="${W-R}" y2="${base}" stroke="${T.line}" stroke-width="1"/>`);
     out.push(`<rect x="12" y="${y+h/2-12}" width="4" height="24" rx="1" fill="${c}"/>`);
     out.push(`<text x="24" y="${y+h/2-1}" font-size="13" font-weight="700" fill="${T.fg}">${esc(s.name)}</text>`);
-    out.push(`<text x="24" y="${y+h/2+14}" font-family="${T.mono}" font-size="11" fill="${T.muted}">${s.type==="Rail"?fmt(s.v)+" V":"logic "+fmt(s.v)+" V"}</text>`);
-    const pts=[[0,0],[s.tStart,0],[s.tUp,1]];
-    if(s.tFall!=null){pts.push([s.tFall,1],[s.tDown,0],[tMax,0])}else pts.push([tMax,1]);
-    const d=pts.map((p,k)=>`${k?"L":"M"}${x(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(" ");
-    out.push(`<path d="${d} L${x(tMax)},${base} L${L},${base} Z" fill="${c}" fill-opacity="0.13" stroke="none"${cp}/>`);
-    out.push(`<path d="${d}" fill="none" stroke="${c}" stroke-width="2.2" stroke-linejoin="round"${cp}/>`);
+    out.push(`<text x="24" y="${y+h/2+14}" font-family="${T.mono}" font-size="11" fill="${T.muted}">${s.type==="Rail"?fmt(s.v)+" V":s.type.toLowerCase()+" "+fmt(s.v)+" V"}</text>`);
+    const P2=(X,f)=>`${X.toFixed(1)},${Y(f).toFixed(1)}`;
+    const xEnd=s.tFall!=null?x(s.tFall):x(tMax);
+    if(s.type==="Data"){
+      // bus: undefined (mid line) until it starts, opens to valid between start and up, closes again on the way down
+      const xs=x(s.tStart),xu=Math.max(x(s.tUp),xs+4),xf=s.tFall!=null?Math.max(x(s.tFall),xu):x(tMax),xd=s.tFall!=null?Math.max(x(s.tDown),xf+4):null;
+      let top=`M${P2(xs,.5)} L${P2(xu,1)} L${P2(xf,1)}`,bot=`M${P2(xs,.5)} L${P2(xu,0)} L${P2(xf,0)}`;
+      if(xd!=null){top+=` L${P2(xd,.5)}`;bot+=` L${P2(xd,.5)}`}
+      const shape=`M${P2(xs,.5)} L${P2(xu,1)} L${P2(xf,1)} ${xd!=null?`L${P2(xd,.5)} `:""}L${P2(xf,0)} L${P2(xu,0)} Z`;
+      out.push(`<path d="${shape}" fill="${c}" fill-opacity="0.16" stroke="none"${cp}/>`);
+      out.push(`<path d="M${P2(L,.5)} L${P2(xs,.5)}${xd!=null?` M${P2(xd,.5)} L${P2(x(tMax),.5)}`:""}" fill="none" stroke="${c}" stroke-width="1.4" stroke-dasharray="4 3"${cp}/>`);
+      out.push(`<path d="${top} ${bot}" fill="none" stroke="${c}" stroke-width="2.2" stroke-linejoin="round"${cp}/>`);
+      if(xf-xu>40)out.push(`<text x="${(xu+Math.min(xf,W-R))/2}" y="${Y(.5)+4}" text-anchor="middle" font-family="${T.mono}" font-size="10" fill="${c}"${cp}>valid</text>`);
+    }else{
+      let d;
+      if(s.type==="Clock"){
+        // clock: first edge follows the rise, then toggles at a fixed drawing pitch until it starts to fall
+        const xu=x(s.tUp),hp=P?7:9;const seg=[`M${P2(L,0)}`,`L${P2(x(s.tStart),0)}`,`L${P2(xu,1)}`];
+        let X=xu,hi=1;const lim=Math.min(xEnd,W+hp);while(X+hp<lim){X+=hp;seg.push(`L${P2(X,hi)}`);hi=1-hi;seg.push(`L${P2(X,hi)}`)}
+        seg.push(`L${P2(Math.max(X,Math.min(xEnd,W+hp)),hi)}`);
+        if(s.tFall!=null){if(!hi)seg.push(`L${P2(xEnd,1)}`);seg.push(`L${P2(x(s.tDown),0)}`,`L${P2(x(tMax),0)}`)}
+        d=seg.join(" ");
+      }else{
+        const pts=[[0,0],[s.tStart,0],[s.tUp,1]];
+        if(s.tFall!=null){pts.push([s.tFall,1],[s.tDown,0],[tMax,0])}else pts.push([tMax,1]);
+        d=pts.map((p,k)=>`${k?"L":"M"}${x(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(" ");
+        out.push(`<path d="${d} L${x(tMax)},${base} L${L},${base} Z" fill="${c}" fill-opacity="0.13" stroke="none"${cp}/>`);
+      }
+      out.push(`<path d="${d}" fill="none" stroke="${c}" stroke-width="${s.type==="Clock"?1.6:2.2}" stroke-linejoin="round"${cp}/>`);
+    }
     if(S.set.showPG&&s.type==="Rail"){
       out.push(`<circle cx="${x(s.tPG)}" cy="${Y(S.pg)}" r="3" fill="${c}" stroke="${T.bg}" stroke-width="1"${cp}/>`);
       if(s.tOff!=null)out.push(`<circle cx="${x(s.tOff)}" cy="${Y(S.off)}" r="3" fill="${T.bg}" stroke="${c}" stroke-width="1.5"${cp}/>`)}
@@ -615,7 +654,7 @@ function buildSVG(S,T,o={}){
     rows.forEach(({s})=>{
       [["upSrc","up",s.tStart,s.delay,S.pg],["dnSrc","dn",s.tFall,s.dDelay,S.off]].forEach(([k,kind,tDst,dly,thr])=>{
         const src=s[k];if(!src||(P&&kind!==o.kind))return;const a=lv[src.src.key],b=lv[s.key];if(!a||!b)return;
-        const fr=src.edge==="start"?(kind==="up"?0:1):(src.src.type==="Logic"?0.5:thr);
+        const fr=src.edge==="start"?(kind==="up"?0:1):(isDig(src.src.type)?0.5:thr);
         const x1=x(src.t),y1=a.Y(fr),x2=x(tDst);const down=b.y>a.y;const yb=down?b.base-2:b.top;
         const col=T[kind];
         if(Math.abs(x2-x1)<2){out.push(`<path d="M${x1},${y1} L${x1},${yb}" fill="none" stroke="${col}" stroke-width="1.1" stroke-dasharray="3 2" marker-end="url(#${pre}ar_${kind})"${cp}/>`)}
