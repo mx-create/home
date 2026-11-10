@@ -93,6 +93,9 @@ button:hover{border-color:var(--ink)}
 .cg-lib button{padding:4px 8px;font-size:.78rem;white-space:nowrap}
 .cg-st{font-size:.72rem;color:var(--muted);line-height:1.35}.cg-st.err{color:#b3261e}
 .cg-st a{color:inherit}
+/* the part value (C, L) stands out so the chosen part is easy to see */
+.vmain input{background:var(--accent-soft);border-color:var(--accent);color:var(--ink);font-weight:600}
+.cg-g label.vmain{color:var(--accent);font-weight:600}
 .cg-lib a.btnlink{flex:1;min-width:0;text-align:center;padding:4px 8px;font-size:.78rem;white-space:nowrap;color:var(--ink);text-decoration:none;border:1px solid var(--rule);border-radius:4px;background:var(--field)}
 .libline{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.76rem;color:var(--muted);margin-top:8px}
 .libline input{font-size:.8rem;padding:3px 6px;width:11em}
@@ -311,7 +314,7 @@ body.reporting .mxfoot{display:none}
 </fieldset>
 <fieldset>
   <legend>Inductor (each phase)</legend>
-  <div class="row"><label for="L"><span class="sym">L</span>Inductance</label><input id="L" type="number" step="any" value="4.7"><span class="u">µH</span></div>
+  <div class="row vmain"><label for="L"><span class="sym">L</span>Inductance</label><input id="L" type="number" step="any" value="4.7"><span class="u">µH</span></div>
   <div class="row"><label for="dcr"><span class="sym">DCR</span>Winding resistance</label><input id="dcr" type="number" step="any" value="15"><span class="u">mΩ</span></div>
   <div class="cg-lib" id="indLib"><input type="search" class="libq" id="indQ" placeholder="Filter: 4.7u 10A, dcr<20" aria-label="Filter the inductor list" autocomplete="off" spellcheck="false">
     <select id="indPick" aria-label="Pick an inductor from the shared library"></select>
@@ -502,7 +505,7 @@ body.reporting .mxfoot{display:none}
 
 <footer class="mxfoot" style="max-width:1200px;margin:40px auto 0;padding:18px 16px 24px">Made by Manu R &middot; <a href="https://blog.mxdesign.uk">blog.mxdesign.uk</a> &middot; <a href="https://www.linkedin.com/in/manu-r-engineer" target="_blank" rel="noopener">LinkedIn</a> &middot; <a href="https://mxdesign.uk/RC_standard_finder/">RC Standard Finder</a></footer>
 <script src="vendor/katex/katex.min.js"></script>
-<script src="../shared/partslib.js?v=20261105a"></script>
+<script src="../shared/partslib.js?v=20261105b"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -559,7 +562,9 @@ const BK=[['c','C µF'],['n','Qty'],['kb','k<sub>C</sub> %'],['esr','ESR mΩ'],[
 const escA=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 /* library pickers: only parts of the group's technology, narrowed further by the filter box above the list */
 const libQ=[];
-const optOf=(e,sel)=>`<option value="${escA(e.pn)}"${e.pn===sel?' selected':''}>${e.verified?'✓ ':'○ '}${escA(e.pn)}${e.description?' · '+escA(e.description.slice(0,36)):''}</option>`;
+/* the part's value leads the option (47 µF 25 V · PN), so the chosen part reads at a glance in the closed list */
+const valLead=(t,e)=>{const v=PartsLib.valueText(t,e);return v?escA(v)+' · ':''};
+const optOf=(e,sel,t)=>`<option value="${escA(e.pn)}"${e.pn===sel?' selected':''}>${e.verified?'✓ ':'○ '}${valLead(t,e)}${escA(e.pn)}${e.description?' · '+escA(e.description.slice(0,36)):''}</option>`;
 function pickHead(r,what,kindName){
   if(!r.total)return `Nothing in the shared library yet`;
   const n=r.items.length;
@@ -568,7 +573,7 @@ function pickHead(r,what,kindName){
 }
 function libOpts(sel,kind,q){
   const r=PartsLib.pick('cap',{kind,q}),kn=kind&&kind!=='custom'?CAPNAME[kind]:'';
-  return `<option value="">${escA(pickHead(r,'capacitor',kn))}</option>`+r.items.map(e=>optOf(e,sel)).join('');
+  return `<option value="">${escA(pickHead(r,'capacitor',kn))}</option>`+r.items.map(e=>optOf(e,sel,'cap')).join('');
 }
 function renderBank(){
   $('bank').innerHTML=bank.map((g,i)=>`<div class="cg" style="--bc:${BCOL[i%BCOL.length]}">
@@ -579,7 +584,7 @@ function renderBank(){
       <div class="row1"><input type="text" id="bk${i}_pn" data-i="${i}" data-k="pn" placeholder="Manufacturer part number" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${escA(g.pn||'')}">
       <button type="button" data-look="${i}">Look up</button><button type="button" data-save="${i}">Save to library</button></div>
       <div class="cg-st" id="bkst${i}" role="status">${g.note||''}</div></div>
-    <div class="cg-g">${BK.map(([k,l])=>`<label>${l}<input id="bk${i}_${k}" type="number" step="any" data-i="${i}" data-k="${k}" value="${g[k]}"></label>`).join('')}</div></div>`).join('');
+    <div class="cg-g">${BK.map(([k,l])=>`<label${k==='c'?' class="vmain"':''}>${l}<input id="bk${i}_${k}" type="number" step="any" data-i="${i}" data-k="${k}" value="${g[k]}"></label>`).join('')}</div></div>`).join('');
 }
 $('bank').addEventListener('input',e=>{const t=e.target,i=+t.dataset.i,k=t.dataset.k; if(isNaN(i)||!k)return;
   if(k==='type'){bank[i].type=t.value; const c=CAPS[t.value]; if(c){bank[i].df=c.df;bank[i].fs=c.fspec;bank[i].esl=c.esl;bank[i].kb=c.kbias;bank[i].esr=c.esr;} renderBank(); compute(); return;}
@@ -650,7 +655,7 @@ PartsLib.onChange(()=>{libStatus(); indOpts(); if(typeof icOpts==='function')icO
 let indMz={manufacturer:'',description:'',datasheet:''};
 function indStat(html,err){const el=$('indSt'); el.innerHTML=html; el.className='cg-st'+(err?' err':'');}
 function indOpts(){const sel=$('indPn').value.trim().toUpperCase(),r=PartsLib.pick('ind',{q:$('indQ').value});
-  $('indPick').innerHTML=`<option value="">${escA(pickHead(r,'inductor','').replace('a inductor','an inductor'))}</option>`+r.items.map(e=>optOf(e,sel)).join('');}
+  $('indPick').innerHTML=`<option value="">${escA(pickHead(r,'inductor','').replace('a inductor','an inductor'))}</option>`+r.items.map(e=>optOf(e,sel,'ind')).join('');}
 function setInd(L,dcr){const out=[];
   if(isFinite(L)&&L>0){$('L').value=+(+L).toPrecision(6);out.push('L');}
   if(isFinite(dcr)&&dcr>0){$('dcr').value=+(+dcr).toPrecision(6);out.push('DCR');}
@@ -701,7 +706,7 @@ function icOpts(){
   const rs={ctrl:PartsLib.pick('ctrl',{q}),conv:PartsLib.pick('conv',{q})};
   const total=rs.ctrl.total+rs.conv.total,n=rs.ctrl.items.length+rs.conv.items.length;
   const head=!total?'No controller or converter ICs in the library yet':`Pick an IC from the library (${n}${n<total?' of '+total:''})`;
-  const grp=t=>rs[t].items.length?`<optgroup label="${ICNAME[t]}s">`+rs[t].items.map(e=>`<option value="${t}:${escA(e.pn)}"${t+':'+e.pn===sel?' selected':''}>${e.verified?'✓ ':'○ '}${escA(e.pn)}${e.description?' · '+escA(e.description.slice(0,36)):''}</option>`).join('')+'</optgroup>':'';
+  const grp=t=>rs[t].items.length?`<optgroup label="${ICNAME[t]}s">`+rs[t].items.map(e=>`<option value="${t}:${escA(e.pn)}"${t+':'+e.pn===sel?' selected':''}>${e.verified?'✓ ':'○ '}${valLead(t,e)}${escA(e.pn)}${e.description?' · '+escA(e.description.slice(0,36)):''}</option>`).join('')+'</optgroup>':'';
   $('icPick').innerHTML=`<option value="">${escA(head)}</option>`+grp('ctrl')+grp('conv');
 }
 function icAskLink(){const pn=$('icPn').value.trim(),a=$('icAsk');a.href=pn?PartsLib.googleUrl($('icKind').value,pn):'#';}

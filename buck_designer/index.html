@@ -1182,7 +1182,7 @@ return {run,cornerText,PARAM_LABEL,snubberDesign};
 })();
 if(typeof module!=="undefined")module.exports=WCA;
 </script>
-<script src="../shared/partslib.js?v=20261105a"></script>
+<script src="../shared/partslib.js?v=20261105b"></script>
 <script>/* ===================== Formatting and SVG plots ===================== */
 "use strict";
 const Fmt=(function(){
@@ -2124,7 +2124,7 @@ const NOUN={cap:"capacitor",ind:"inductor",fet:"MOSFET",ctrl:"controller",conv:"
 function libOptions(lt,key,kind){
   const r=PL.pick(lt,{kind,q:LIBQ[key]}),n=r.items.length,kn=kind&&Core.CAP_TYPES[kind]?Core.CAP_TYPES[kind].label:"";
   const head=r.kindMissing?`No ${kn} parts in the library yet · ${n} of other types`:`Use a ${NOUN[lt]} from the shared library… ${n}${kn?" "+kn:""} part${n===1?"":"s"}${n<r.total?` (of ${r.total})`:""}`;
-  return `<option value="">${esc(head)}</option>`+r.items.map(x=>`<option value="${esc(x.pn)}">${x.verified?"✓ ":"○ "}${esc(x.pn)}${lt==="cap"?(x.description?" · "+esc(x.description.slice(0,40)):""):(x.manufacturer?" · "+esc(x.manufacturer):"")}</option>`).join("");
+  return `<option value="">${esc(head)}</option>`+r.items.map(x=>`<option value="${esc(x.pn)}">${x.verified?"✓ ":"○ "}${PL.valueText(lt,x)?esc(PL.valueText(lt,x))+" · ":""}${esc(x.pn)}${lt==="cap"?(x.description?" · "+esc(x.description.slice(0,40)):""):(x.manufacturer?" · "+esc(x.manufacturer):"")}</option>`).join("");
 }
 function libBar(lt,key,kind,attr){
   return `<div class="libbar"><input type="search" class="libq" data-libq="${esc(key)}" data-lt="${lt}" data-kind="${esc(kind||"")}" value="${esc(LIBQ[key]||"")}" placeholder="Filter: ${esc(LIBHINT[lt])}" aria-label="Filter the library list" autocomplete="off" spellcheck="false"><select ${attr}="${esc(key)}" aria-label="Use a part from the shared library">${libOptions(lt,key,kind)}</select></div>`;

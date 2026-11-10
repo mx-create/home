@@ -282,6 +282,24 @@ function pickFor(type,opts){
   return {items:base.filter(e=>matches(type,e,opts.q)),total:list.length,kindCount:kinded.length,kindMissing:!kinded.length&&!!list.length};
 }
 
+/* ---------- the part's headline value, for pickers: "47 µF 25 V", "4.7 µH 10 A", "40 V 5 mΩ" ---------- */
+const SIP=[[1e9,"G"],[1e6,"M"],[1e3,"k"],[1,""],[1e-3,"m"],[1e-6,"µ"],[1e-9,"n"],[1e-12,"p"]];
+function si(x,unit){
+  if(!isFinite(x)||x<=0)return "";
+  for(const [m,p] of SIP)if(x>=m*0.9995)return +(x/m).toPrecision(3)+" "+p+unit;
+  return +x.toPrecision(3)+" "+unit;
+}
+function valueText(type,e){
+  const v=(e&&e.vals)||{},b=[];
+  const add=t=>{if(t)b.push(t)};
+  if(type==="cap"){add(si(v.c*1e-6,"F"));add(si(v.vr,"V"))}
+  else if(type==="ind"){add(si(v.L*1e-6,"H"));add(si(v.isat,"A"))}
+  else if(type==="fet"){add(si(v.vds,"V"));add(si(v.rds*1e-3,"Ω"))}
+  else if(type==="conv"){add(si(v.vinMaxIc,"V"));add(si(v.ioutMaxIc,"A"))}
+  else if(type==="ctrl"){add(si(v.vinMaxIc,"V"));if(v.vref>0)b.push("ref "+(+(+v.vref).toPrecision(4))+" V")}
+  return b.join(" ");
+}
+
 /* a verified tick on a library part; the server keeps the existing values */
 async function setVerified(type,e,flag,by){
   return save(type,{pn:e.pn,type:e.type,verified:!!flag,vals:e.vals},by);
@@ -328,5 +346,5 @@ function compToCap(g,mz){
   return e;
 }
 
-root.PartsLib={API,TYPES,all,get,pick:pickFor,matches,ofKind,status,onChange,pull,flush,save,remove,history,adopt,getBy,setBy,capToComp,compToCap,capComplete,CAP_REQ,mouserFetch,digikeyFetch,lookupPart,mouserMap,dkMap,dkNum,googleUrl,askKeys,setVerified,getKey,setKey};
+root.PartsLib={API,TYPES,all,get,pick:pickFor,matches,ofKind,status,onChange,pull,flush,save,remove,history,adopt,getBy,setBy,capToComp,compToCap,capComplete,CAP_REQ,mouserFetch,digikeyFetch,lookupPart,mouserMap,dkMap,dkNum,googleUrl,askKeys,setVerified,getKey,setKey,valueText};
 })(typeof window!=="undefined"?window:globalThis);
